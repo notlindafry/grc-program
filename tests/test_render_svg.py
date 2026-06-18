@@ -56,16 +56,16 @@ def test_exposure_arc_bars_are_neutral_not_the_semantic_ramp():
     assert 'fill="#b00020"' not in svg and 'fill="#0a7d33"' not in svg
 
 
-def test_exposure_arc_status_rides_on_coloured_over_count_labels():
+def test_exposure_arc_over_count_labels_are_neutral():
     svg = exposure_arc_svg(
         _arc_rows(), 193e6,
         axis_label="annual loss exposure ($M)",
         appetite_label="aggregate annual appetite $193M",
     )
-    # 0 over -> green, the peak (2) -> red, a lesser positive (1) -> amber.
-    assert 'class="rl-within" text-anchor="start">0 over appetite</text>' in svg
-    assert 'class="rl-over" text-anchor="start">2 over appetite</text>' in svg
-    assert 'class="rl-straddling" text-anchor="start">1 over appetite</text>' in svg
+    # The counts still show (the data); their colour is neutral, not a RAG ramp.
+    for count in ("0 over appetite", "1 over appetite", "2 over appetite"):
+        assert f'class="rl-status" text-anchor="start">{count}</text>' in svg
+    assert "rl-over" not in svg and "rl-within" not in svg and "rl-straddling" not in svg
 
 
 def test_exposure_arc_annualization_on_axis_and_appetite_line():
@@ -103,19 +103,36 @@ def test_appetite_ranges_one_plot_when_only_one_breaches():
     assert svg.count(">after plan</text>") == 1
 
 
-def test_appetite_ranges_transition_is_coloured_by_post_state():
+def test_appetite_ranges_header_has_colon_then_tab():
     svg = appetite_ranges_svg(_appetite_plots())
-    assert 'class="rl-over">over → still over</tspan>' in svg      # still over: red
-    assert 'class="rl-within">over → within</tspan>' in svg        # cleared: green
-    assert 'class="rl-within">straddling → within</tspan>' in svg  # cleared: green
+    # The risk title gets a colon and a tab gap (dx) before the status.
+    assert 'start">RISK-PLATFORM-OUTAGE:<tspan dx="20" class="rl-status">' in svg
+
+
+def test_appetite_ranges_transition_text_kept_but_neutral():
+    svg = appetite_ranges_svg(_appetite_plots())
+    # The transition text (the data) is unchanged; only the colour is neutralized.
+    assert 'class="rl-status">over → still over</tspan>' in svg
+    assert 'class="rl-status">over → within</tspan>' in svg
+    assert 'class="rl-status">straddling → within</tspan>' in svg
 
 
 def test_appetite_ranges_current_is_solid_projected_is_outline():
     svg = appetite_ranges_svg(_appetite_plots())
-    # Current bar: solid fill, no stroke (realized).
-    assert 'fill="#b00020"/>' in svg
-    # Projected bar: light tint plus a coloured stroke (projected).
-    assert 'fill="#0a7d33" fill-opacity="0.12" stroke="#0a7d33"' in svg
+    # Both bars are neutral blue; solid vs outline is the only distinction.
+    assert f'fill="{NEUTRAL}"/>' in svg  # solid current bar, no stroke
+    assert f'fill="{NEUTRAL}" fill-opacity="0.12" stroke="{NEUTRAL}"' in svg  # outline
+
+
+def test_charts_carry_no_rag_colours():
+    arc = exposure_arc_svg(_arc_rows(), 193e6, axis_label="annual loss exposure ($M)",
+                           appetite_label="aggregate annual appetite $193M")
+    app = appetite_ranges_svg(_appetite_plots())
+    for svg in (arc, app):
+        for rag in ("#b00020", "#b06a00", "#0a7d33"):
+            assert rag not in svg
+        for cls in ("rl-over", "rl-straddling", "rl-within"):
+            assert cls not in svg
 
 
 def test_appetite_ranges_every_appetite_line_says_annual():

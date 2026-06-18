@@ -226,14 +226,13 @@ ul { margin: .5rem 0 1rem; }
 .straddling { color: #b06a00; font-weight: 700; }
 .within { color: #0a7d33; font-weight: 700; }
 /* Inline charts (render_svg). SVG text is filled, not coloured, so these set
-   `fill`. Palette matches the badges above. */
+   `fill`. Chart status is a single neutral blue (matching the bars), not a
+   semantic ramp -- status reads from position and labels, not colour. */
 .rl-chart { display: block; margin: 1.1rem 0 1.3rem; max-width: 100%; height: auto; }
 .rl-chart text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
 .rl-label { fill: #1a1a1a; font-size: 12px; }
 .rl-muted { fill: #666; font-size: 11px; }
-.rl-over { fill: #b00020; font-size: 12px; font-weight: 600; }
-.rl-straddling { fill: #b06a00; font-size: 12px; font-weight: 600; }
-.rl-within { fill: #0a7d33; font-size: 12px; font-weight: 600; }
+.rl-status { fill: #5b7a99; font-size: 12px; font-weight: 600; }
 """
 
 

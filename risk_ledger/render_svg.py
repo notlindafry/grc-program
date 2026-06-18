@@ -8,6 +8,10 @@ rounded up to a clean number above the largest value being plotted. The charts
 adapt to whatever the engine produces -- the appetite chart renders one row per
 breaching risk, however many there are.
 
+Status is neutral: bars and status labels are a single blue, never a red/amber/
+green ramp. The reader gets status from each bar's position against the appetite
+line and from the labels themselves, not from colour.
+
 Every figure shown is annualized loss exposure, matching the rest of the report;
 the axis title and every appetite-line label say ``annual`` so it cannot be read
 as single-loss expectancy.
@@ -24,18 +28,13 @@ from .montecarlo import Band
 EN_DASH = "–"
 ARROW = "→"
 
-# Palette -- matches the report.
-OVER = "#b00020"
-STRADDLING = "#b06a00"
-WITHIN = "#0a7d33"
+# Palette -- matches the report. Status on the charts is deliberately neutral:
+# one blue for bars and status labels, never a red/amber/green ramp.
 NEUTRAL = "#5b7a99"
 TEXT = "#1a1a1a"
 MUTED = "#666"
 AXIS = "#ccc"
 WHITE = "#fff"
-
-STATE_COLOR = {"over": OVER, "straddling": STRADDLING, "within": WITHIN}
-STATE_CLASS = {"over": "rl-over", "straddling": "rl-straddling", "within": "rl-within"}
 
 
 # -- text / number formatting -------------------------------------------------
@@ -105,20 +104,6 @@ def _axis_ticks(axis_max: float) -> list[float]:
     return ticks
 
 
-def _over_count_class(count: int, peak: int) -> str:
-    """Semantic class for an ``N over appetite`` row label on the exposure arc.
-
-    Zero over is healthy (green). A positive count is amber, except the worst
-    point on the arc (the peak over-count) which is red. With this corpus that
-    reads entering 0 -> green, mid-year 2 -> red, exiting 1 -> amber.
-    """
-    if count <= 0:
-        return "within"
-    if count >= peak:
-        return "over"
-    return "straddling"
-
-
 # -- low-level SVG primitives (rectangles, lines, text only) ------------------
 
 def _rect(x, y, w, h, *, fill, stroke=None, stroke_w=1.0, fill_opacity=None, rx=2) -> str:
@@ -178,8 +163,8 @@ def exposure_arc_svg(rows: list[ArcRow], appetite: float, *, axis_label: str,
     """Three neutral range bars on one shared linear axis, with a single dashed
     aggregate-appetite line and a per-row ``N over appetite`` status label.
 
-    Bars are neutral: a portfolio total has no single appetite state, so status
-    rides on the per-row label (coloured by over-count) and on the appetite line.
+    Everything is neutral blue; status rides on the bars' position against the
+    appetite line and on the per-row label text, not on colour.
     """
     W, PAD_L, PAD_R = 720, 152, 132
     PLOT_X0, PLOT_X1 = PAD_L, W - PAD_R
@@ -190,7 +175,6 @@ def exposure_arc_svg(rows: list[ArcRow], appetite: float, *, axis_label: str,
     plot_bottom = TOP + len(rows) * ROW_PITCH
     axis_y = plot_bottom + 6
     height = axis_y + 40
-    peak = max((r.over_count for r in rows), default=0)
 
     def X(v: float) -> float:
         return PLOT_X0 + (v / axis_max) * PLOT_W
@@ -213,7 +197,7 @@ def exposure_arc_svg(rows: list[ArcRow], appetite: float, *, axis_label: str,
                           cls="rl-muted", anchor="middle"))
         body.append(_rect(x_lo, bar_top, x_hi - x_lo, BAR_H, fill=NEUTRAL))
         body.append(_text(PLOT_X1 + 9, mid_y + 4, f"{row.over_count} over appetite",
-                          cls="rl-" + _over_count_class(row.over_count, peak)))
+                          cls="rl-status"))
 
     # Axis line, ticks, and the annualization-bearing title.
     body.append(_line(PLOT_X0, axis_y, PLOT_X1, axis_y, stroke=AXIS))
@@ -239,28 +223,28 @@ class AppetitePlot:
     appetite: float
 
 
-def _transition(current_state: str, post_state: str | None) -> tuple[str, str]:
-    """Header transition text and its semantic class (coloured by the post state).
-
-    ``over -> within`` (green), ``over -> still over`` (red), ``straddling ->
-    within`` (green). ``still`` marks a state that did not change.
+def _transition(current_state: str, post_state: str | None) -> str:
+    """Header transition text: ``over → within``, ``over → still over``
+    (``still`` marks a state that did not change). The text and the bars' position
+    against the appetite line carry the status; colour does not.
     """
     if post_state is None:
-        return current_state, STATE_CLASS[current_state]
+        return current_state
     if post_state == "within":
         word = "within"
     elif post_state == current_state:
         word = f"still {post_state}"
     else:
         word = post_state
-    return f"{current_state} {ARROW} {word}", STATE_CLASS[post_state]
+    return f"{current_state} {ARROW} {word}"
 
 
 def appetite_ranges_svg(plots: list[AppetitePlot]) -> str:
     """One mini-plot per breaching risk, each on its own scale (magnitudes differ
     by more than an order of magnitude, so a shared scale would crush the small
-    risks). Current band solid in the current-state colour; projected band an
-    outline in the post-state colour; a dashed per-risk appetite line across both.
+    risks). Current band a solid neutral bar, projected band a neutral outline
+    (solid vs outline is the realized-vs-projected distinction), and a dashed
+    per-risk appetite line across both.
     """
     W, M_PAD_L = 600, 88
     PLOT_X0, PLOT_X1 = M_PAD_L, W - 14
@@ -285,28 +269,27 @@ def appetite_ranges_svg(plots: list[AppetitePlot]) -> str:
         cur_top = y0 + HEADER_H + APP_LABEL_H
         after_top = cur_top + BAR_H + BAR_GAP
 
-        # Header: risk name, then the coloured transition.
-        trans_text, trans_cls = _transition(plot.current_state, plot.post_state)
+        # Header: risk name, a colon, a tab, then the (neutral) transition.
+        trans_text = _transition(plot.current_state, plot.post_state)
         body.append(
             f'<text x="0" y="{_num(y0 + 15)}" class="rl-label" text-anchor="start">'
-            f'{_esc(plot.name)} <tspan class="{trans_cls}">{_esc(trans_text)}</tspan></text>'
+            f'{_esc(plot.name)}:<tspan dx="20" class="rl-status">{_esc(trans_text)}</tspan></text>'
         )
 
-        # Current residual: a solid bar in the current-state colour.
-        cur_color = STATE_COLOR[plot.current_state]
+        # Current residual: a solid neutral bar.
         body.append(_text(PLOT_X0 - 8, cur_top + BAR_H / 2 + 4, "current",
                           cls="rl-muted", anchor="end"))
         body.append(_rect(X(plot.current.low), cur_top,
-                          X(plot.current.high) - X(plot.current.low), BAR_H, fill=cur_color))
+                          X(plot.current.high) - X(plot.current.low), BAR_H, fill=NEUTRAL))
 
-        # Projected residual: an outline bar (light tint) in the post-state colour.
-        if plot.post is not None and plot.post_state is not None:
-            post_color = STATE_COLOR[plot.post_state]
+        # Projected residual: an outline bar (light tint). Solid vs outline -- not
+        # colour -- is the realized-vs-projected distinction.
+        if plot.post is not None:
             body.append(_text(PLOT_X0 - 8, after_top + BAR_H / 2 + 4, "after plan",
                               cls="rl-muted", anchor="end"))
             body.append(_rect(X(plot.post.low), after_top,
                               X(plot.post.high) - X(plot.post.low), BAR_H,
-                              fill=post_color, fill_opacity=0.12, stroke=post_color, stroke_w=1.5))
+                              fill=NEUTRAL, fill_opacity=0.12, stroke=NEUTRAL, stroke_w=1.5))
 
         # Dashed appetite line across both bars, labelled with the annual figure.
         ax = X(plot.appetite)
