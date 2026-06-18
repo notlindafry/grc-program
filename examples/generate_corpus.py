@@ -45,104 +45,104 @@ RISK-ACCT-TAKEOVER:
   baseline:
     opportunity_frequency_90ci: [10, 40]           # conditions per year that could produce this loss
     probability_of_realization_90ci: [0.005, 0.02] # given the condition, chance the loss is realized (control failure folded in)
-    loss_magnitude_90ci: [200000, 500000]          # loss if a loss event occurs, USD
-  appetite_threshold: 500000
+    loss_magnitude_90ci: [2000000, 5000000]        # loss if a loss event occurs, USD
+  appetite_threshold: 5000000
 
 RISK-DATA-EXFIL:
   title: Exfiltration of regulated data from an analytics or export path
   baseline:
     opportunity_frequency_90ci: [20, 80]
     probability_of_realization_90ci: [0.01, 0.04]
-    loss_magnitude_90ci: [100000, 300000]
-  appetite_threshold: 600000
+    loss_magnitude_90ci: [1000000, 3000000]
+  appetite_threshold: 6000000
 
 RISK-PAYMENT-FRAUD:
   title: Fraudulent transactions against the payments platform
   baseline:
     opportunity_frequency_90ci: [15, 50]
     probability_of_realization_90ci: [0.02, 0.06]
-    loss_magnitude_90ci: [120000, 300000]
-  appetite_threshold: 3000000
+    loss_magnitude_90ci: [1200000, 3000000]
+  appetite_threshold: 30000000
 
 RISK-PCI-SCOPE:
   title: PCI scope expansion / cardholder data handling gap
   baseline:
     opportunity_frequency_90ci: [5, 20]
     probability_of_realization_90ci: [0.01, 0.04]
-    loss_magnitude_90ci: [200000, 700000]
-  appetite_threshold: 2500000
+    loss_magnitude_90ci: [2000000, 7000000]
+  appetite_threshold: 25000000
 
 RISK-DATA-QUALITY:
   title: Corrupted or unvalidated data feeding downstream decisions
   baseline:
     opportunity_frequency_90ci: [10, 50]
     probability_of_realization_90ci: [0.02, 0.10]
-    loss_magnitude_90ci: [50000, 200000]
-  appetite_threshold: 1500000
+    loss_magnitude_90ci: [500000, 2000000]
+  appetite_threshold: 15000000
 
 RISK-DATA-AVAILABILITY:
   title: Loss of availability of a core data platform service
   baseline:
     opportunity_frequency_90ci: [10, 40]
     probability_of_realization_90ci: [0.02, 0.08]
-    loss_magnitude_90ci: [80000, 250000]
-  appetite_threshold: 1500000
+    loss_magnitude_90ci: [800000, 2500000]
+  appetite_threshold: 15000000
 
 RISK-ABUSE-ESCALATION:
   title: Unmitigated abuse escalating on the platform
   baseline:
     opportunity_frequency_90ci: [20, 80]
     probability_of_realization_90ci: [0.03, 0.10]
-    loss_magnitude_90ci: [40000, 150000]
-  appetite_threshold: 1500000
+    loss_magnitude_90ci: [400000, 1500000]
+  appetite_threshold: 15000000
 
 RISK-ABUSE-DETECTION:
   title: Gaps in automated detection of policy-violating content
   baseline:
     opportunity_frequency_90ci: [20, 70]
     probability_of_realization_90ci: [0.02, 0.08]
-    loss_magnitude_90ci: [50000, 180000]
-  appetite_threshold: 1500000
+    loss_magnitude_90ci: [500000, 1800000]
+  appetite_threshold: 15000000
 
 RISK-MIGRATION-AVAILABILITY:
   title: Availability regressions introduced by the migration
   baseline:
     opportunity_frequency_90ci: [10, 40]
     probability_of_realization_90ci: [0.02, 0.08]
-    loss_magnitude_90ci: [60000, 200000]
-  appetite_threshold: 1000000
+    loss_magnitude_90ci: [600000, 2000000]
+  appetite_threshold: 10000000
 
 RISK-MIGRATION-DATAINTEGRITY:
   title: Data integrity loss during monolith-to-microservices cutover
   baseline:
     opportunity_frequency_90ci: [5, 20]
     probability_of_realization_90ci: [0.01, 0.05]
-    loss_magnitude_90ci: [100000, 400000]
-  appetite_threshold: 1000000
+    loss_magnitude_90ci: [1000000, 4000000]
+  appetite_threshold: 10000000
 
 RISK-VENDOR-ACCESS:
   title: Excessive third-party vendor access to internal systems
   baseline:
     opportunity_frequency_90ci: [5, 20]
     probability_of_realization_90ci: [0.01, 0.04]
-    loss_magnitude_90ci: [80000, 300000]
-  appetite_threshold: 800000
+    loss_magnitude_90ci: [800000, 3000000]
+  appetite_threshold: 8000000
 
 RISK-ENDPOINT-MALWARE:
   title: Malware on a corporate endpoint leading to lateral movement
   baseline:
     opportunity_frequency_90ci: [30, 100]
     probability_of_realization_90ci: [0.02, 0.08]
-    loss_magnitude_90ci: [30000, 120000]
-  appetite_threshold: 1000000
+    loss_magnitude_90ci: [300000, 1200000]
+  appetite_threshold: 10000000
 
 RISK-PLATFORM-OUTAGE:
   title: Customer-facing outage of a core platform service
   baseline:
     opportunity_frequency_90ci: [20, 60]            # disruptions per year that could cause an outage
     probability_of_realization_90ci: [0.01, 0.04]   # given a disruption, chance it becomes a customer outage (resilient baseline)
-    loss_magnitude_90ci: [150000, 800000]           # revenue, SLA credits, reputational loss per outage
-  appetite_threshold: 1500000
+    loss_magnitude_90ci: [1500000, 8000000]         # revenue, SLA credits, reputational loss per outage
+  appetite_threshold: 15000000
 """
 
 ESTIMATORS = """\
@@ -454,7 +454,7 @@ def build() -> None:
         "EXC-2026-0133", title="DLP disabled on the analytics export path",
         owner=DATAPLAT, filed_on=dt.date(2026, 4, 28), okr="data-platform",
         control="DLP-EXPORT-001", mapped_risk="RISK-DATA-EXFIL",
-        moves="loss_magnitude", with_ci=[400000, 900000],
+        moves="loss_magnitude", with_ci=[4000000, 9000000],
         estimated_by="a.silva@company.com", estimated_on="2026-04-28",
         reason="cost", assets=["analytics-export-pipeline"],
         mechanism="re_enable_dlp_with_tuned_rules", reduces="loss_magnitude",
@@ -463,7 +463,7 @@ def build() -> None:
         "EXC-2026-0134", title="DLP sampling reduced on warehouse export job",
         owner=DATAPLAT, filed_on=dt.date(2026, 5, 2), okr="data-platform",
         control="DLP-EXPORT-001", mapped_risk="RISK-DATA-EXFIL",
-        moves="loss_magnitude", with_ci=[150000, 400000],
+        moves="loss_magnitude", with_ci=[1500000, 4000000],
         estimated_by="a.silva@company.com", estimated_on="2026-05-02",
         reason="cost", assets=["warehouse-export-job"],
         mechanism="re_enable_dlp_with_tuned_rules", reduces="loss_magnitude",
@@ -472,7 +472,7 @@ def build() -> None:
         "EXC-2026-0135", title="DLP disabled on ad-hoc BI export connector",
         owner=DATAPLAT, filed_on=dt.date(2026, 5, 9), okr="data-platform",
         control="DLP-EXPORT-001", mapped_risk="RISK-DATA-EXFIL",
-        moves="loss_magnitude", with_ci=[150000, 380000],
+        moves="loss_magnitude", with_ci=[1500000, 3800000],
         estimated_by="m.haddad@company.com", estimated_on="2026-05-09",
         reason="technical_constraint", assets=["bi-export-connector"],
         mechanism="re_enable_dlp_with_tuned_rules", reduces="loss_magnitude",

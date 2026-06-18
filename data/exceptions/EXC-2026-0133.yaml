@@ -9,7 +9,7 @@ mapped_risk: RISK-DATA-EXFIL
 
 exception_effect:
   moves: loss_magnitude
-  with_exception_90ci: [400000, 900000]
+  with_exception_90ci: [4000000, 9000000]
   estimated_by: a.silva@company.com
   estimated_on: 2026-04-28
 
