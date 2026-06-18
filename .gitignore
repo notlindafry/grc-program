@@ -12,3 +12,8 @@ venv/
 # Generated reports (the canonical sample lives at docs/example-report.md).
 /report.html
 /report.md
+
+# Local throwaway experiments (e.g. testing a deliberately broken corpus).
+/data-broken/
+/broken-report.html
+
