@@ -1,0 +1,30 @@
+id: EXC-2026-0211
+title: Deferred data-validation checks (1) — engineers on migration
+owner: data-platform-lead@company.com
+filed_on: 2026-06-02
+
+initiative: data-platform
+control: DQ-VALIDATION-005
+mapped_risk: RISK-DATA-QUALITY
+
+exception_effect:
+  moves: probability_of_action
+  with_exception_90ci: [0.08, 0.2]
+  estimated_by: r.chen@company.com
+  estimated_on: 2026-05-30
+
+reason: resource_reallocation
+reason_detail:
+  diverted_to: gcloud-migration
+scope:
+  type: enumerated
+  assets: [data-platform-system]
+remediation:
+  target_date: 2026-09-01
+  mechanism: restore_validation_suite
+  reduces: probability_of_action
+status: active
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

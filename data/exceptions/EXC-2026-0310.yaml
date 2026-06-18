@@ -1,0 +1,28 @@
+id: EXC-2026-0310
+title: Temporary vendor access for mobile analytics SDK
+owner: mobile-lead@company.com
+filed_on: 2026-03-01
+
+initiative: mobile-app
+control: VENDOR-ACCESS-012
+mapped_risk: RISK-VENDOR-ACCESS
+
+exception_effect:
+  moves: probability_of_action
+  with_exception_90ci: [0.02, 0.06]
+  estimated_by: r.chen@company.com
+  estimated_on: 2026-03-10
+
+reason: cost
+scope:
+  type: enumerated
+  assets: [mobile-app-asset-0]
+remediation:
+  target_date: 2026-09-01
+  mechanism: scope_vendor_access
+  reduces: probability_of_action
+status: active
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

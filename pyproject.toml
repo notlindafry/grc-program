@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "risk-ledger"
+version = "0.1.0"
+description = "A git-native ledger that runs security exceptions as a risk process, not a compliance one."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Exception Risk Ledger contributors" }]
+keywords = ["risk", "fair", "security", "exceptions", "grc", "monte-carlo"]
+dependencies = [
+    # PyYAML is the only runtime dependency. The Monte Carlo engine is pure
+    # standard library on purpose: the security surface stays near zero and the
+    # tool runs anywhere Python does.
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+risk-ledger = "risk_ledger.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["risk_ledger*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

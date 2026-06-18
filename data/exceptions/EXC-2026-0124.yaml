@@ -1,0 +1,28 @@
+id: EXC-2026-0124
+title: Allow legacy API keys on internal data browser
+owner: platform-lead@company.com
+filed_on: 2026-05-07
+
+initiative: gcloud-migration
+control: IAM-LEGACY-AUTH-001
+mapped_risk: RISK-ACCT-TAKEOVER
+
+exception_effect:
+  moves: probability_of_action
+  with_exception_90ci: [0.012, 0.033]
+  estimated_by: p.nguyen@company.com
+  estimated_on: 2026-04-15
+
+reason: timeline
+scope:
+  type: enumerated
+  assets: [internal-data-browser]
+remediation:
+  target_date: 2026-09-01
+  mechanism: rotate_to_scoped_tokens
+  reduces: probability_of_action
+status: active
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

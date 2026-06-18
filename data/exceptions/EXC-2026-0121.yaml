@@ -1,0 +1,28 @@
+id: EXC-2026-0121
+title: Skip MFA on internal metrics dashboard for cutover window
+owner: platform-lead@company.com
+filed_on: 2026-03-19
+
+initiative: gcloud-migration
+control: IAM-LEGACY-AUTH-001
+mapped_risk: RISK-ACCT-TAKEOVER
+
+exception_effect:
+  moves: probability_of_action
+  with_exception_90ci: [0.01, 0.028]
+  estimated_by: m.haddad@company.com
+  estimated_on: 2026-04-15
+
+reason: timeline
+scope:
+  type: enumerated
+  assets: [metrics-dashboard]
+remediation:
+  target_date: 2026-09-01
+  mechanism: enforce_sso_via_idp
+  reduces: probability_of_action
+status: active
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

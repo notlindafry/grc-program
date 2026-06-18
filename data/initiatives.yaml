@@ -1,0 +1,28 @@
+# Initiatives the exceptions attach to. The drift view's headline names the
+# stated objective, so it lives here, git-native. cutover_date lets the
+# trajectory analysis measure the run-up to a real deadline.
+
+gcloud-migration:
+  title: gcloud-migration
+  stated_objective: a quality rebuild from monolith to microservices
+  cutover_date: 2026-06-30
+
+payments-launch:
+  title: payments-launch
+  stated_objective: launch the new payments platform to general availability
+
+data-platform:
+  title: data-platform
+  stated_objective: a governed, reliable central data platform
+
+trust-and-safety:
+  title: trust-and-safety
+  stated_objective: keep abuse and policy-violating content off the platform
+
+mobile-app:
+  title: mobile-app
+  stated_objective: ship the redesigned mobile application
+
+internal-tools:
+  title: internal-tools
+  stated_objective: modernize internal developer and operations tooling

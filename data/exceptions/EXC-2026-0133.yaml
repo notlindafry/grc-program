@@ -1,0 +1,28 @@
+id: EXC-2026-0133
+title: DLP disabled on the analytics export path
+owner: data-platform-lead@company.com
+filed_on: 2026-04-28
+
+initiative: data-platform
+control: DLP-EXPORT-001
+mapped_risk: RISK-DATA-EXFIL
+
+exception_effect:
+  moves: loss_magnitude
+  with_exception_90ci: [400000, 900000]
+  estimated_by: a.silva@company.com
+  estimated_on: 2026-04-28
+
+reason: cost
+scope:
+  type: enumerated
+  assets: [analytics-export-pipeline]
+remediation:
+  target_date: 2026-09-01
+  mechanism: re_enable_dlp_with_tuned_rules
+  reduces: loss_magnitude
+status: active
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

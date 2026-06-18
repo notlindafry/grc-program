@@ -1,0 +1,28 @@
+id: EXC-2026-0120
+title: Allow shared break-glass account on legacy jobs runner
+owner: platform-lead@company.com
+filed_on: 2026-03-05
+
+initiative: gcloud-migration
+control: IAM-LEGACY-AUTH-001
+mapped_risk: RISK-ACCT-TAKEOVER
+
+exception_effect:
+  moves: probability_of_action
+  with_exception_90ci: [0.012, 0.034]
+  estimated_by: a.silva@company.com
+  estimated_on: 2026-04-15
+
+reason: technical_constraint
+scope:
+  type: enumerated
+  assets: [legacy-jobs-runner]
+remediation:
+  target_date: 2026-09-01
+  mechanism: remove_shared_accounts
+  reduces: probability_of_action
+status: active
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

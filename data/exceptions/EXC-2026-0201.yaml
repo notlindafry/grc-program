@@ -1,0 +1,30 @@
+id: EXC-2026-0201
+title: Deferred fraud-rule tuning (1) — team pulled to migration
+owner: payments-lead@company.com
+filed_on: 2026-05-19
+
+initiative: payments-launch
+control: FRAUD-RULES-007
+mapped_risk: RISK-PAYMENT-FRAUD
+
+exception_effect:
+  moves: probability_of_action
+  with_exception_90ci: [0.04, 0.09]
+  estimated_by: r.chen@company.com
+  estimated_on: 2026-05-30
+
+reason: resource_reallocation
+reason_detail:
+  diverted_to: gcloud-migration
+scope:
+  type: enumerated
+  assets: [payments-launch-system]
+remediation:
+  target_date: 2026-09-01
+  mechanism: tune_fraud_rules
+  reduces: probability_of_action
+status: active
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

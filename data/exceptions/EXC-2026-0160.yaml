@@ -1,0 +1,28 @@
+id: EXC-2026-0160
+title: Defer chaos/availability testing on migrated order service
+owner: platform-lead@company.com
+filed_on: 2026-05-16
+
+initiative: gcloud-migration
+control: REL-AVAIL-010
+mapped_risk: RISK-MIGRATION-AVAILABILITY
+
+exception_effect:
+  moves: probability_of_action
+  with_exception_90ci: [0.05, 0.14]
+  estimated_by: j.okafor@company.com
+  estimated_on: 2026-05-22
+
+reason: timeline
+scope:
+  type: enumerated
+  assets: [order-service]
+remediation:
+  target_date: 2026-09-01
+  mechanism: add_chaos_suite
+  reduces: probability_of_action
+status: active
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

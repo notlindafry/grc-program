@@ -1,0 +1,183 @@
+"""Command-line interface.
+
+    risk-ledger validate [--data DIR]      run the honesty gates; non-zero exit on errors
+    risk-ledger drift [INITIATIVE]         per-initiative drift lens
+    risk-ledger appetite [RISK]            per-risk appetite-breach lens
+    risk-ledger ranked                     the ranked action list
+    risk-ledger report                     the full narrative report (all three lenses)
+
+Global options pin the Monte Carlo run and the calibration window; they override
+any config.yaml in the corpus.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import sys
+from pathlib import Path
+
+from .config import Config
+from .engine import Engine
+from .loader import Corpus, load_corpus
+from .report import render_report
+from .validation import validate_corpus
+from .views.appetite import render_appetite
+from .views.drift import render_drift
+from .views.ranked import render_ranked
+
+
+def _build_config(args: argparse.Namespace, data_dir: Path) -> Config:
+    cfg = Config.load(data_dir)
+    if args.iterations is not None:
+        cfg.iterations = args.iterations
+    if args.seed is not None:
+        cfg.seed = args.seed
+    if args.refresh_window is not None:
+        cfg.refresh_window_days = args.refresh_window
+    if args.final_stretch_weeks is not None:
+        cfg.final_stretch_weeks = args.final_stretch_weeks
+    if args.as_of is not None:
+        cfg.as_of = dt.date.fromisoformat(args.as_of)
+    return cfg
+
+
+def _prepare(args: argparse.Namespace) -> tuple[Corpus, Config, dict, Engine]:
+    data_dir = Path(args.data)
+    cfg = _build_config(args, data_dir)
+    corpus = load_corpus(data_dir)
+    risk_issues = validate_corpus(corpus, cfg)
+    engine = Engine(corpus, cfg)
+    return corpus, cfg, risk_issues, engine
+
+
+def _cmd_validate(args: argparse.Namespace) -> int:
+    data_dir = Path(args.data)
+    cfg = _build_config(args, data_dir)
+    corpus = load_corpus(data_dir)
+    risk_issues = validate_corpus(corpus, cfg)
+
+    print("# Validation\n")
+    hard = 0
+
+    if corpus.load_errors:
+        # The loader only records genuinely problematic files (a missing optional
+        # register is silent), so every load error is fatal.
+        print("## Load errors\n")
+        for msg in corpus.load_errors:
+            hard += 1
+            print(f"- [ERROR] {msg}")
+        print()
+
+    if risk_issues:
+        print("## Risk register\n")
+        for rid, issues in risk_issues.items():
+            for issue in issues:
+                hard += 1
+                print(f"- [ERROR] {issue.message}")
+        print()
+
+    errors = [(e, e.errors) for e in corpus.exceptions if e.errors]
+    flags = [(e, e.flags) for e in corpus.exceptions if e.flags and not e.errors]
+
+    if errors:
+        print("## Rejected (hard errors)\n")
+        for e, issues in errors:
+            hard += len(issues)
+            for issue in issues:
+                print(f"- [ERROR] {issue.message}")
+        print()
+
+    if flags:
+        print("## Flagged (kept, handled specially)\n")
+        for e, issues in flags:
+            for issue in issues:
+                cat = issue.category.upper()
+                print(f"- [{cat} FLAG] {issue.message}")
+        print()
+
+    total = len(corpus.exceptions)
+    n_err = sum(1 for e in corpus.exceptions if e.errors)
+    n_flag = sum(1 for e in corpus.exceptions if e.flags and not e.errors)
+    clean = total - n_err - n_flag
+    print("## Summary\n")
+    print(f"- {total} exception record(s)")
+    print(f"- {clean} clean, {n_flag} flagged, {n_err} rejected")
+    if hard:
+        print(f"\n{hard} hard error(s). Exit 1.")
+        return 1
+    print("\nNo hard errors.")
+    return 0
+
+
+def _cmd_drift(args: argparse.Namespace) -> int:
+    corpus, cfg, _, engine = _prepare(args)
+    print(render_drift(engine, corpus, cfg, only_initiative=args.initiative))
+    return 0
+
+
+def _cmd_appetite(args: argparse.Namespace) -> int:
+    corpus, cfg, _, engine = _prepare(args)
+    print(render_appetite(engine, corpus, cfg, only_risk=args.risk))
+    return 0
+
+
+def _cmd_ranked(args: argparse.Namespace) -> int:
+    corpus, cfg, _, engine = _prepare(args)
+    print(render_ranked(engine, corpus, cfg))
+    return 0
+
+
+def _cmd_report(args: argparse.Namespace) -> int:
+    corpus, cfg, _, engine = _prepare(args)
+    text = render_report(engine, corpus, cfg)
+    if args.out:
+        Path(args.out).write_text(text)
+        print(f"Wrote {args.out}")
+    else:
+        print(text)
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="risk-ledger", description=__doc__)
+    parser.add_argument("--data", default="data", help="corpus directory (default: data)")
+    parser.add_argument("--iterations", type=int, default=None, help="Monte Carlo iterations")
+    parser.add_argument("--seed", type=int, default=None, help="Monte Carlo seed")
+    parser.add_argument("--refresh-window", type=int, default=None, help="calibration refresh window, days")
+    parser.add_argument("--final-stretch-weeks", type=int, default=None, help="drift final-stretch window, weeks")
+    parser.add_argument("--as-of", default=None, help="reference date (YYYY-MM-DD) for staleness/expiry")
+
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    sub.add_parser("validate", help="run the validation gates")
+
+    p_drift = sub.add_parser("drift", help="per-initiative drift view")
+    p_drift.add_argument("initiative", nargs="?", default=None, help="limit to one initiative")
+
+    p_app = sub.add_parser("appetite", help="per-risk appetite-breach view")
+    p_app.add_argument("risk", nargs="?", default=None, help="limit to one risk")
+
+    sub.add_parser("ranked", help="ranked action list")
+
+    p_report = sub.add_parser("report", help="full narrative report")
+    p_report.add_argument("--out", default=None, help="write to a file instead of stdout")
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    dispatch = {
+        "validate": _cmd_validate,
+        "drift": _cmd_drift,
+        "appetite": _cmd_appetite,
+        "ranked": _cmd_ranked,
+        "report": _cmd_report,
+    }
+    return dispatch[args.command](args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

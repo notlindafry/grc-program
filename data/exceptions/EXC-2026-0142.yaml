@@ -1,0 +1,28 @@
+id: EXC-2026-0142
+title: Skip MFA on internal analytics console to hit migration cutover
+owner: platform-lead@company.com
+filed_on: 2026-01-12
+
+initiative: gcloud-migration
+control: IAM-LEGACY-AUTH-001
+mapped_risk: RISK-ACCT-TAKEOVER
+
+exception_effect:
+  moves: probability_of_action
+  with_exception_90ci: [0.012, 0.035]
+  estimated_by: r.chen@company.com
+  estimated_on: 2026-04-15
+
+reason: technical_constraint
+scope:
+  type: enumerated
+  assets: [analytics-console-prod]
+remediation:
+  target_date: 2026-09-01
+  mechanism: enforce_sso_via_idp
+  reduces: probability_of_action
+status: active
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

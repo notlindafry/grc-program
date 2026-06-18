@@ -1,0 +1,8 @@
+# Optional run configuration. CLI flags override these.
+monte_carlo:
+  iterations: 10000
+  seed: 20260617
+calibration:
+  refresh_window_days: 365
+drift:
+  final_stretch_weeks: 8

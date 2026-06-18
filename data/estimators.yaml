@@ -1,0 +1,28 @@
+# The calibration gate. Each estimate records who made it; the tool checks that
+# person here. An estimate from someone uncalibrated, or whose calibration is
+# older than the configured refresh window, is flagged and not trusted.
+
+r.chen@company.com:
+  calibrated: true
+  calibrated_on: 2026-03-15
+j.okafor@company.com:
+  calibrated: true
+  calibrated_on: 2025-11-20
+p.nguyen@company.com:
+  calibrated: true
+  calibrated_on: 2026-01-10
+a.silva@company.com:
+  calibrated: true
+  calibrated_on: 2025-09-05
+m.haddad@company.com:
+  calibrated: true
+  calibrated_on: 2026-02-01
+
+# Uncalibrated: any estimate from here is flagged low-confidence.
+t.brooks@company.com:
+  calibrated: false
+
+# Stale: calibrated once, but longer ago than the refresh window (365d).
+l.romano@company.com:
+  calibrated: true
+  calibrated_on: 2024-02-01

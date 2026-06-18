@@ -1,0 +1,28 @@
+id: EXC-2026-0119
+title: Defer MFA rollout on internal wiki during migration
+owner: platform-lead@company.com
+filed_on: 2026-02-18
+
+initiative: gcloud-migration
+control: IAM-LEGACY-AUTH-001
+mapped_risk: RISK-ACCT-TAKEOVER
+
+exception_effect:
+  moves: probability_of_action
+  with_exception_90ci: [0.01, 0.03]
+  estimated_by: p.nguyen@company.com
+  estimated_on: 2026-04-15
+
+reason: timeline
+scope:
+  type: enumerated
+  assets: [internal-wiki]
+remediation:
+  target_date: 2026-09-01
+  mechanism: enforce_sso_via_idp
+  reduces: probability_of_action
+status: active
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

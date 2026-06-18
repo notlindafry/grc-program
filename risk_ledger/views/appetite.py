@@ -1,0 +1,193 @@
+"""Appetite breach view -- the per-risk lens.
+
+Shows where accumulated acceptances pushed a mapped risk past its stated number,
+and whether that was one big call or a thousand small ones. The single-acceptance
+vs accumulation distinction is the most useful thing in the view: the first has
+an owner to scrutinize, the second is a process problem with no one to blame.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from ..config import Config
+from ..engine import Engine, ResidualResult
+from ..loader import Corpus
+from ..render import (
+    APPETITE_BADGE,
+    BAND_POSITION,
+    fmt_band,
+    fmt_threshold,
+    join_clause,
+    md_table,
+    pct,
+    plural,
+)
+
+# A breach counts as single-acceptance when the leading contributor is at least
+# this share of the contributed exposure, or breaches appetite by itself.
+DOMINANT_SHARE = 0.5
+
+
+@dataclass
+class Breach:
+    kind: str  # "single-acceptance" | "accumulation"
+    dominant_share: float
+    culprit_id: str | None
+    all_tolerable_alone: bool
+
+
+def classify_breach(engine: Engine, res: ResidualResult) -> Breach | None:
+    if not res.contributors:
+        return None
+    total = sum(c.band.mean for c in res.contributors)
+    top = res.contributors[0]
+    share = (top.band.mean / total) if total > 0 else 0.0
+
+    states = {
+        c.exception.id: engine.single_acceptance_state(res.risk.id, c.exception.id)
+        for c in res.contributors
+    }
+    intolerable = [c for c in res.contributors if states.get(c.exception.id) == "over"]
+    all_tolerable_alone = not intolerable
+
+    if intolerable:
+        return Breach("single-acceptance", share, intolerable[0].exception.id, all_tolerable_alone)
+    if share >= DOMINANT_SHARE:
+        return Breach("single-acceptance", share, top.exception.id, all_tolerable_alone)
+    return Breach("accumulation", share, None, all_tolerable_alone)
+
+
+def _exc_label(corpus: Corpus, exc_id: str) -> str:
+    exc = next((e for e in corpus.exceptions if e.id == exc_id), None)
+    if exc is None:
+        return exc_id
+    if exc.title:
+        return f"{exc_id} ({exc.title})"
+    return exc_id
+
+
+def _risk_section(engine: Engine, corpus: Corpus, res: ResidualResult) -> str:
+    risk = res.risk
+    badge = APPETITE_BADGE[res.state]
+    lines = [f"### {risk.id} — {badge}", ""]
+
+    headline = (
+        f"{risk.id} carries **{fmt_band(res.band)}** in residual annual loss against a "
+        f"**{fmt_threshold(res.threshold)}** appetite, and {BAND_POSITION[res.state]}."
+    )
+
+    if res.state == "within":
+        lines.append(headline)
+        lines.append("")
+        return "\n".join(lines)
+
+    breach = classify_breach(engine, res)
+    if breach is not None:
+        if breach.kind == "accumulation":
+            top_n = min(3, len(res.contributors))
+            tol = (
+                "each looked tolerable on its own"
+                if breach.all_tolerable_alone
+                else "no single one dominates"
+            )
+            headline += (
+                f" This is an **accumulation breach**: no single exception caused it — "
+                f"the top {top_n} accepted gaps {tol}, and together they breach. "
+                f"There is no individual to send this back to; it is a process signal."
+            )
+        else:
+            culprit = _exc_label(corpus, breach.culprit_id) if breach.culprit_id else "one exception"
+            headline += (
+                f" This is a **single-acceptance breach**: {culprit} accounts for "
+                f"{pct(breach.dominant_share)} of the contributed exposure. "
+                f"One owner, one decision to revisit."
+            )
+    lines.append(headline)
+    lines.append("")
+
+    # Attribution: rank the contributing exceptions.
+    rows = []
+    for c in res.contributors:
+        alone = engine.single_acceptance_state(risk.id, c.exception.id)
+        rows.append(
+            [
+                c.exception.id,
+                c.exception.title or "—",
+                fmt_band(c.band),
+                {"over": "yes", "straddling": "maybe", "within": "no"}.get(alone, "—"),
+                c.exception.owner or "—",
+            ]
+        )
+    if rows:
+        lines.append(
+            md_table(
+                ["Exception", "What was accepted", "Contribution", "Over alone?", "Owner"],
+                rows,
+            )
+        )
+        lines.append("")
+
+    if res.untrusted:
+        ids = join_clause([c.exception.id for c in res.untrusted])
+        lines.append(
+            f"*Not included above (untrusted): {ids}. "
+            f"These rest on uncalibrated or vague inputs and are excluded from the band "
+            f"until corrected.*"
+        )
+        lines.append("")
+    return "\n".join(lines)
+
+
+def render_appetite(engine: Engine, corpus: Corpus, config: Config, only_risk: str | None = None) -> str:
+    residuals = engine.all_residuals()
+    if only_risk:
+        residuals = [r for r in residuals if r.risk.id == only_risk]
+        if not residuals:
+            return f"No computable risk named {only_risk!r}."
+
+    order = {"over": 0, "straddling": 1, "within": 2}
+    residuals.sort(key=lambda r: (order[r.state], -r.band.mean))
+
+    out = ["## Appetite breach", ""]
+
+    # Portfolio line: stated tolerance vs revealed carry.
+    portfolio = engine.portfolio_residual_band()
+    if portfolio is not None and not only_risk:
+        stated = engine.portfolio_appetite_total()
+        n_over = sum(1 for r in residuals if r.state == "over")
+        n_straddle = sum(1 for r in residuals if r.state == "straddling")
+        breach_clause = ""
+        if n_over or n_straddle:
+            parts = []
+            if n_over:
+                parts.append(f"{plural(n_over, 'risk')} over")
+            if n_straddle:
+                parts.append(f"{plural(n_straddle, 'risk')} straddling")
+            breach_clause = f" {join_clause(parts)} appetite."
+        out.append(
+            f"Stated tolerance across {plural(len(residuals), 'tracked risk')} sums to "
+            f"**{fmt_threshold(stated)}**; the acceptances on the books reveal the organization "
+            f"is carrying **{fmt_band(portfolio)}** in residual annual loss.{breach_clause}"
+        )
+        out.append("")
+
+    breaching = [r for r in residuals if r.state in ("over", "straddling")]
+    within = [r for r in residuals if r.state == "within"]
+
+    if not breaching and not only_risk:
+        out.append("All tracked risks are within appetite.")
+        out.append("")
+
+    for res in breaching:
+        out.append(_risk_section(engine, corpus, res))
+
+    if only_risk:
+        for res in within:
+            out.append(_risk_section(engine, corpus, res))
+    elif within:
+        names = join_clause([r.risk.id for r in within])
+        out.append(f"**Within appetite:** {names}.")
+        out.append("")
+
+    return "\n".join(out).rstrip() + "\n"

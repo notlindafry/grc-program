@@ -1,0 +1,30 @@
+id: EXC-2026-0206
+title: Deferred PCI segmentation work (1) — staff on migration
+owner: payments-lead@company.com
+filed_on: 2026-05-27
+
+initiative: payments-launch
+control: PCI-SEG-002
+mapped_risk: RISK-PCI-SCOPE
+
+exception_effect:
+  moves: probability_of_action
+  with_exception_90ci: [0.04, 0.1]
+  estimated_by: r.chen@company.com
+  estimated_on: 2026-05-30
+
+reason: resource_reallocation
+reason_detail:
+  diverted_to: gcloud-migration
+scope:
+  type: enumerated
+  assets: [payments-launch-system]
+remediation:
+  target_date: 2026-09-01
+  mechanism: complete_network_segmentation
+  reduces: probability_of_action
+status: active
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

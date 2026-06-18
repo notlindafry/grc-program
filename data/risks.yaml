@@ -1,0 +1,99 @@
+# The light register. One entry per risk the organization tracks. Holds the
+# shared baseline and the numeric appetite so they are not duplicated across
+# exceptions and cannot drift. All quantities are 90% confidence intervals.
+
+RISK-ACCT-TAKEOVER:
+  title: Account takeover of an internal system via credential compromise
+  baseline:
+    contact_frequency_90ci: [10, 40]          # threat contacts per year (environmental)
+    probability_of_action_90ci: [0.005, 0.02] # prob the actor acts AND succeeds (Vulnerability folded in)
+    loss_magnitude_90ci: [200000, 500000]     # loss if a loss event occurs, USD
+  appetite_threshold: 500000
+
+RISK-DATA-EXFIL:
+  title: Exfiltration of regulated data from an analytics or export path
+  baseline:
+    contact_frequency_90ci: [20, 80]
+    probability_of_action_90ci: [0.01, 0.04]
+    loss_magnitude_90ci: [100000, 300000]
+  appetite_threshold: 600000
+
+RISK-PAYMENT-FRAUD:
+  title: Fraudulent transactions against the payments platform
+  baseline:
+    contact_frequency_90ci: [15, 50]
+    probability_of_action_90ci: [0.02, 0.06]
+    loss_magnitude_90ci: [120000, 300000]
+  appetite_threshold: 3000000
+
+RISK-PCI-SCOPE:
+  title: PCI scope expansion / cardholder data handling gap
+  baseline:
+    contact_frequency_90ci: [5, 20]
+    probability_of_action_90ci: [0.01, 0.04]
+    loss_magnitude_90ci: [200000, 700000]
+  appetite_threshold: 2500000
+
+RISK-DATA-QUALITY:
+  title: Corrupted or unvalidated data feeding downstream decisions
+  baseline:
+    contact_frequency_90ci: [10, 50]
+    probability_of_action_90ci: [0.02, 0.10]
+    loss_magnitude_90ci: [50000, 200000]
+  appetite_threshold: 1500000
+
+RISK-DATA-AVAILABILITY:
+  title: Loss of availability of a core data platform service
+  baseline:
+    contact_frequency_90ci: [10, 40]
+    probability_of_action_90ci: [0.02, 0.08]
+    loss_magnitude_90ci: [80000, 250000]
+  appetite_threshold: 1500000
+
+RISK-ABUSE-ESCALATION:
+  title: Unmitigated abuse escalating on the platform
+  baseline:
+    contact_frequency_90ci: [20, 80]
+    probability_of_action_90ci: [0.03, 0.10]
+    loss_magnitude_90ci: [40000, 150000]
+  appetite_threshold: 1500000
+
+RISK-ABUSE-DETECTION:
+  title: Gaps in automated detection of policy-violating content
+  baseline:
+    contact_frequency_90ci: [20, 70]
+    probability_of_action_90ci: [0.02, 0.08]
+    loss_magnitude_90ci: [50000, 180000]
+  appetite_threshold: 1500000
+
+RISK-MIGRATION-AVAILABILITY:
+  title: Availability regressions introduced by the migration
+  baseline:
+    contact_frequency_90ci: [10, 40]
+    probability_of_action_90ci: [0.02, 0.08]
+    loss_magnitude_90ci: [60000, 200000]
+  appetite_threshold: 1000000
+
+RISK-MIGRATION-DATAINTEGRITY:
+  title: Data integrity loss during monolith-to-microservices cutover
+  baseline:
+    contact_frequency_90ci: [5, 20]
+    probability_of_action_90ci: [0.01, 0.05]
+    loss_magnitude_90ci: [100000, 400000]
+  appetite_threshold: 1000000
+
+RISK-VENDOR-ACCESS:
+  title: Excessive third-party vendor access to internal systems
+  baseline:
+    contact_frequency_90ci: [5, 20]
+    probability_of_action_90ci: [0.01, 0.04]
+    loss_magnitude_90ci: [80000, 300000]
+  appetite_threshold: 800000
+
+RISK-ENDPOINT-MALWARE:
+  title: Malware on a corporate endpoint leading to lateral movement
+  baseline:
+    contact_frequency_90ci: [30, 100]
+    probability_of_action_90ci: [0.02, 0.08]
+    loss_magnitude_90ci: [30000, 120000]
+  appetite_threshold: 1000000

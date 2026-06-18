@@ -1,0 +1,28 @@
+id: EXC-2026-0151
+title: Service-account sprawl on migrated workloads
+owner: iam-lead@company.com
+filed_on: 2026-05-15
+
+initiative: gcloud-migration
+control: IAM-SVCACCT-003
+mapped_risk: RISK-ACCT-TAKEOVER
+
+exception_effect:
+  moves: probability_of_action
+  with_exception_90ci: [0.03, 0.09]
+  estimated_by: r.chen@company.com
+  estimated_on: 2026-05-20
+
+reason: timeline
+scope:
+  type: enumerated
+  assets: [svcacct-pool-prod]
+remediation:
+  target_date: 2026-08-15
+  mechanism: rotate_and_scope_service_accounts
+  reduces: probability_of_action
+status: active
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null
