@@ -114,19 +114,39 @@ Compare the residual band to `appetite_threshold`:
 
 ## Breach classification
 
-For an over/straddling risk, the contributing exceptions are ranked by expected
-contribution and the breach is classified:
+For an over/straddling risk, the active trusted contributors are ranked by
+expected contribution and the breach is classified by three rules applied in
+order. "Contributed exposure" is the sum of contributor means — the exposure
+added over baseline — so a contributor's *share* is its mean divided by that sum.
 
-- **single-acceptance** — the leading contributor accounts for ≥ 50% of the
-  contributed exposure, or breaches appetite by itself. One owner, one decision
-  to revisit.
-- **accumulation** — many individually tolerable calls that together cross the
-  line, with no single one over on its own. The death-by-a-thousand-cuts
-  pattern: a process problem with no individual to send it back to.
+1. **Solo-breach rule** *(structural; no threshold)*. If baseline plus any single
+   contributor alone is `over` appetite — its standalone 90% residual band sits
+   fully above the line — that exception is sufficient by itself. The breach is
+   **single-acceptance** and the culprit is the largest such exception. This uses
+   the same 90%-band appetite test (`p5 ≥ threshold`) as everything else, so it
+   needs no tunable of its own.
+
+2. **Dominant-share threshold** = `single_acceptance_share`, **default 0.50**,
+   range `(0, 1]`. If no exception breaches alone but the leading contributor's
+   share is ≥ this value, the breach is **single-acceptance** (culprit = the top
+   contributor). At 0.50 the lead must be the majority of the added exposure.
+   Raise it to demand a more dominant culprit before blaming one decision; lower
+   it to call more breaches single-acceptance.
+
+3. **Accumulation** *(otherwise)*. No single sufficient cause and the exposure is
+   spread across many calls. This is the death-by-a-thousand-cuts pattern: a
+   process problem with no individual to send it back to.
 
 The tool also reports, per contributor, whether that exception alone (baseline +
 just it) would be over — the "tolerable on its own" signal that makes an
-accumulation breach legible.
+accumulation breach legible — and `all_tolerable_alone`, true when *every*
+contributor stays within appetite on its own.
+
+`single_acceptance_share` is set under `breach:` in `config.yaml`, or with
+`--single-acceptance-share` on the CLI (the flag overrides the file). The
+over/straddling/within boundaries themselves are **not** tunable: they are fixed
+by the 90% band (5th/95th percentiles) by design, since the SPEC mandates a 90%
+CI everywhere.
 
 ## Clustering and the ranked list
 

@@ -74,6 +74,22 @@ def test_classify_single_acceptance_breach(config):
     assert breach.dominant_share > 0.5
 
 
+def test_single_acceptance_share_threshold_is_configurable(config):
+    # 12 small, evenly-sized PoA bumps: none breaches alone, the lead share is
+    # small (~1/12). The classification flips purely on the threshold.
+    excs = [make_exc(eid=f"A{i}", with_exception_90ci=[0.012, 0.035], control="C") for i in range(12)]
+    eng = _engine(make_corpus(exceptions=excs), config)
+    res = eng.residual("RISK-X")
+    lead_share = classify_breach(eng, res).dominant_share
+    assert lead_share < 0.5  # spread out
+
+    config.single_acceptance_share = 0.5      # default
+    assert classify_breach(eng, res).kind == "accumulation"
+
+    config.single_acceptance_share = lead_share / 2  # below the lead share
+    assert classify_breach(eng, res).kind == "single-acceptance"
+
+
 # -- ranked -------------------------------------------------------------------
 
 

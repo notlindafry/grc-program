@@ -6,3 +6,8 @@ calibration:
   refresh_window_days: 365
 drift:
   final_stretch_weeks: 8
+breach:
+  # Lead-contributor share of contributed exposure at/above which a breach is
+  # classified single-acceptance rather than accumulation. (A contributor that
+  # breaches appetite alone is single-acceptance regardless of this number.)
+  single_acceptance_share: 0.5

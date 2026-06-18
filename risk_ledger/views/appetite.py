@@ -24,11 +24,6 @@ from ..render import (
     plural,
 )
 
-# A breach counts as single-acceptance when the leading contributor is at least
-# this share of the contributed exposure, or breaches appetite by itself.
-DOMINANT_SHARE = 0.5
-
-
 @dataclass
 class Breach:
     kind: str  # "single-acceptance" | "accumulation"
@@ -38,11 +33,32 @@ class Breach:
 
 
 def classify_breach(engine: Engine, res: ResidualResult) -> Breach | None:
+    """Classify an over/straddling breach as single-acceptance or accumulation.
+
+    The rule set, applied in order, over the risk's active trusted contributors:
+
+    1. **Solo-breach rule** (structural, no tunable). If baseline plus any single
+       contributor *alone* is ``over`` appetite -- its standalone 90% residual
+       sits fully above the line -- that exception is sufficient on its own, so
+       the breach is **single-acceptance** and the culprit is the largest such
+       exception. Uses the same 90%-band appetite test as everywhere else.
+
+    2. **Dominant-share threshold** (``config.single_acceptance_share``, default
+       0.50). If no exception breaches alone but the leading contributor's
+       expected contribution is at least this share of the contributed exposure
+       (the sum of contributor means, i.e. the exposure added over baseline),
+       the breach is **single-acceptance**, culprit = the top contributor.
+
+    3. Otherwise **accumulation**: no single sufficient cause and the exposure is
+       spread. ``all_tolerable_alone`` records whether *every* contributor stays
+       within appetite on its own -- the death-by-a-thousand-cuts signal.
+    """
     if not res.contributors:
         return None
     total = sum(c.band.mean for c in res.contributors)
     top = res.contributors[0]
     share = (top.band.mean / total) if total > 0 else 0.0
+    threshold = engine.config.single_acceptance_share
 
     states = {
         c.exception.id: engine.single_acceptance_state(res.risk.id, c.exception.id)
@@ -53,7 +69,7 @@ def classify_breach(engine: Engine, res: ResidualResult) -> Breach | None:
 
     if intolerable:
         return Breach("single-acceptance", share, intolerable[0].exception.id, all_tolerable_alone)
-    if share >= DOMINANT_SHARE:
+    if share >= threshold:
         return Breach("single-acceptance", share, top.exception.id, all_tolerable_alone)
     return Breach("accumulation", share, None, all_tolerable_alone)
 

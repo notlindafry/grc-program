@@ -37,8 +37,11 @@ def _build_config(args: argparse.Namespace, data_dir: Path) -> Config:
         cfg.refresh_window_days = args.refresh_window
     if args.final_stretch_weeks is not None:
         cfg.final_stretch_weeks = args.final_stretch_weeks
+    if args.single_acceptance_share is not None:
+        cfg.single_acceptance_share = args.single_acceptance_share
     if args.as_of is not None:
         cfg.as_of = dt.date.fromisoformat(args.as_of)
+    cfg.__post_init__()  # re-validate after CLI overrides
     return cfg
 
 
@@ -146,6 +149,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=None, help="Monte Carlo seed")
     parser.add_argument("--refresh-window", type=int, default=None, help="calibration refresh window, days")
     parser.add_argument("--final-stretch-weeks", type=int, default=None, help="drift final-stretch window, weeks")
+    parser.add_argument(
+        "--single-acceptance-share",
+        type=float,
+        default=None,
+        help="lead-contributor share (0-1) at/above which a breach is single-acceptance (default 0.5)",
+    )
     parser.add_argument("--as-of", default=None, help="reference date (YYYY-MM-DD) for staleness/expiry")
 
     sub = parser.add_subparsers(dest="command", required=True)
@@ -176,7 +185,11 @@ def main(argv: list[str] | None = None) -> int:
         "ranked": _cmd_ranked,
         "report": _cmd_report,
     }
-    return dispatch[args.command](args)
+    try:
+        return dispatch[args.command](args)
+    except ValueError as exc:  # bad config / dates: fail cleanly, not with a traceback
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

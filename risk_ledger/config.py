@@ -25,6 +25,14 @@ DEFAULT_REFRESH_WINDOW_DAYS = 365
 # How long before a deadline counts as the "final stretch" for drift trajectory.
 DEFAULT_FINAL_STRETCH_WEEKS = 8
 
+# Breach classification. A breach is "single-acceptance" rather than
+# "accumulation" when the leading contributor accounts for at least this share of
+# the contributed exposure (it also counts as single-acceptance if it breaches
+# appetite by itself, which is a structural rule, not a tunable). At 0.5 the lead
+# must be the majority of the added exposure; raise it to demand a more dominant
+# culprit, lower it to call more breaches single-acceptance.
+DEFAULT_SINGLE_ACCEPTANCE_SHARE = 0.5
+
 
 @dataclass
 class Config:
@@ -32,6 +40,7 @@ class Config:
     seed: int = DEFAULT_SEED
     refresh_window_days: int = DEFAULT_REFRESH_WINDOW_DAYS
     final_stretch_weeks: int = DEFAULT_FINAL_STRETCH_WEEKS
+    single_acceptance_share: float = DEFAULT_SINGLE_ACCEPTANCE_SHARE
     # The reference "today" used for staleness and expiry checks. Defaults to the
     # real today; pinned in tests and for reproducing a historical report.
     as_of: dt.date = None  # type: ignore[assignment]
@@ -39,6 +48,8 @@ class Config:
     def __post_init__(self) -> None:
         if self.as_of is None:
             self.as_of = dt.date.today()
+        if not 0.0 < self.single_acceptance_share <= 1.0:
+            raise ValueError("single_acceptance_share must be in (0, 1]")
 
     @classmethod
     def load(cls, data_dir: Path) -> "Config":
@@ -59,4 +70,8 @@ class Config:
         drift = raw.get("drift", {}) or {}
         if "final_stretch_weeks" in drift:
             cfg.final_stretch_weeks = int(drift["final_stretch_weeks"])
+        breach = raw.get("breach", {}) or {}
+        if "single_acceptance_share" in breach:
+            cfg.single_acceptance_share = float(breach["single_acceptance_share"])
+        cfg.__post_init__()  # re-validate after applying overrides
         return cfg
