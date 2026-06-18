@@ -23,6 +23,8 @@ from .models import (
     ACTION,
     ERROR,
     FLAG,
+    REMEDIATION_STATUSES,
+    REMEDIATION_TYPES,
     STRUCTURAL,
     TRUST,
     Issue,
@@ -97,7 +99,53 @@ def validate_corpus(corpus: Corpus, config: Config) -> dict[str, list[Issue]]:
 
     for exc in corpus.exceptions:
         _validate_exception(exc, corpus, config, invalid_risks)
+
+    known_controls = {e.control for e in corpus.exceptions if e.control}
+    for rem in corpus.remediations:
+        _validate_remediation(rem, corpus, config, invalid_risks, known_controls)
     return risk_issues
+
+
+def _validate_remediation(rem, corpus: Corpus, config: Config, invalid_risks: set[str],
+                          known_controls: set[str]) -> None:
+    """Structural gates for a remediation; never crashes the run on a bad record."""
+    if not rem.id:
+        rem.add(Issue("id_missing", ERROR, STRUCTURAL, f"{rem.path}: missing id"))
+    if rem.type not in REMEDIATION_TYPES:
+        rem.add(Issue("rem_type_invalid", ERROR, STRUCTURAL,
+                      f"{rem.id}: type must be one of {', '.join(REMEDIATION_TYPES)}; got {rem.type!r}"))
+    if rem.status not in REMEDIATION_STATUSES:
+        rem.add(Issue("rem_status_invalid", ERROR, STRUCTURAL,
+                      f"{rem.id}: status must be one of {', '.join(REMEDIATION_STATUSES)}; got {rem.status!r}"))
+
+    if rem.type == "restore":
+        if not rem.restores_control:
+            rem.add(Issue("rem_restores_control_missing", ERROR, STRUCTURAL,
+                          f"{rem.id}: restore requires restores_control"))
+        elif rem.restores_control not in known_controls:
+            rem.add(Issue("rem_restores_control_unknown", ERROR, STRUCTURAL,
+                          f"{rem.id}: restores_control {rem.restores_control!r} is not a control on any exception"))
+    elif rem.type == "strengthen":
+        if not rem.mapped_risk:
+            rem.add(Issue("rem_mapped_risk_missing", ERROR, STRUCTURAL,
+                          f"{rem.id}: strengthen requires mapped_risk"))
+        elif rem.mapped_risk not in corpus.risks:
+            rem.add(Issue("rem_mapped_risk_unknown", ERROR, STRUCTURAL,
+                          f"{rem.id}: mapped_risk {rem.mapped_risk!r} is not in risks.yaml"))
+        elif rem.mapped_risk in invalid_risks:
+            rem.add(Issue("rem_mapped_risk_invalid", ERROR, STRUCTURAL,
+                          f"{rem.id}: mapped_risk {rem.mapped_risk!r} has a malformed baseline/appetite"))
+        if rem.moves not in VARIABLES:
+            rem.add(Issue("rem_moves_invalid", ERROR, STRUCTURAL,
+                          f"{rem.id}: moves must be one of {', '.join(VARIABLES)}; got {rem.moves!r}"))
+        elif rem.post_control_90ci is None:
+            rem.add(Issue("rem_post_control_point_estimate", ERROR, STRUCTURAL,
+                          f"{rem.id}: post_control_90ci must be a [low, high] 90% CI, not a point estimate"))
+        elif not _valid_ci_for(rem.moves, rem.post_control_90ci):
+            rem.add(Issue("rem_post_control_out_of_range", ERROR, STRUCTURAL,
+                          f"{rem.id}: post_control_90ci {rem.post_control_90ci!r} is not valid for {rem.moves}"))
+        # A strengthen estimate passes the same honesty gate as an exception.
+        _validate_estimator(rem, corpus, config)
 
 
 def _validate_exception(exc, corpus: Corpus, config: Config, invalid_risks: set[str]) -> None:

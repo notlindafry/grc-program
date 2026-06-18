@@ -38,6 +38,10 @@ DEFAULT_SINGLE_ACCEPTANCE_SHARE = 0.5
 # acceptance that has quietly become the rule.
 DEFAULT_RENEWAL_ALERT_COUNT = 3
 
+# Fiscal-year boundary, used by the exposure arc (exceptions filed before this
+# date are the book entering the year).
+DEFAULT_YEAR_START = dt.date(2026, 1, 1)
+
 
 @dataclass
 class Config:
@@ -47,6 +51,7 @@ class Config:
     final_stretch_weeks: int = DEFAULT_FINAL_STRETCH_WEEKS
     single_acceptance_share: float = DEFAULT_SINGLE_ACCEPTANCE_SHARE
     renewal_alert_count: int = DEFAULT_RENEWAL_ALERT_COUNT
+    year_start: dt.date = DEFAULT_YEAR_START
     # The reference "today" used for staleness and expiry checks. Defaults to the
     # real today; pinned in tests and for reproducing a historical report.
     as_of: dt.date = None  # type: ignore[assignment]
@@ -84,5 +89,8 @@ class Config:
         renew = raw.get("renewals", {}) or {}
         if "alert_count" in renew:
             cfg.renewal_alert_count = int(renew["alert_count"])
+        if raw.get("year_start"):
+            ys = raw["year_start"]
+            cfg.year_start = ys if isinstance(ys, dt.date) else dt.date.fromisoformat(str(ys))
         cfg.__post_init__()  # re-validate after applying overrides
         return cfg

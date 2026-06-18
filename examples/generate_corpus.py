@@ -143,6 +143,17 @@ RISK-PLATFORM-OUTAGE:
     probability_of_realization_90ci: [0.01, 0.04]   # given a disruption, chance it becomes a customer outage (resilient baseline)
     loss_magnitude_90ci: [1500000, 8000000]         # revenue, SLA credits, reputational loss per outage
   appetite_threshold: 15000000
+
+# Material exposure near its appetite, with NO exceptions mapped to it -- the case
+# the exception lens alone would miss. A funded strengthen (REM-2026-0005) buys it
+# down; it is within appetite today, so it does not add a current breach.
+RISK-DATA-RESIDENCY:
+  title: Regulated data leaving its required residency region
+  baseline:
+    opportunity_frequency_90ci: [10, 18]            # cross-region data flows per year that could breach residency
+    probability_of_realization_90ci: [0.06, 0.11]   # given a flow, chance it lands non-compliant
+    loss_magnitude_90ci: [5000000, 9000000]         # regulatory penalty, remediation, reputational loss
+  appetite_threshold: 14000000
 """
 
 ESTIMATORS = """\
@@ -263,6 +274,9 @@ renewals:
   # An active exception renewed at least this many times with its justification
   # never revisited is flagged "temporary forever" in the Persistence view.
   alert_count: 3
+# Fiscal-year boundary for the 2026 exposure arc: exceptions filed before this
+# date are the book entering the year.
+year_start: 2026-01-01
 """
 
 
@@ -346,6 +360,48 @@ def write_exception(
     (EXC / f"{eid}.yaml").write_text("\n".join(lines))
 
 
+REM = DATA / "remediations"
+
+
+def write_remediation(
+    rid,
+    *,
+    title,
+    rtype,
+    status,
+    owner,
+    mechanism,
+    target_date,
+    restores_control=None,
+    mapped_risk=None,
+    moves=None,
+    post_control_90ci=None,
+    estimated_by=None,
+    estimated_on=None,
+):
+    lines = [
+        f"id: {rid}",
+        f"title: {title}",
+        f"type: {rtype}",
+        f"status: {status}",
+        f"target_date: {target_date}",
+        f"owner: {owner}",
+        f"mechanism: {mechanism}",
+    ]
+    if rtype == "restore":
+        lines.append(f"restores_control: {restores_control}")
+    else:  # strengthen
+        lines += [
+            f"mapped_risk: {mapped_risk}",
+            f"moves: {moves}",
+            f"post_control_90ci: [{post_control_90ci[0]}, {post_control_90ci[1]}]",
+            f"estimated_by: {estimated_by}",
+            f"estimated_on: {estimated_on}",
+        ]
+    lines.append("")
+    (REM / f"{rid}.yaml").write_text("\n".join(lines))
+
+
 # Date pools for the gcloud-migration trajectory: a handful early, a flood late.
 EARLY = [
     dt.date(2026, 1, 12),
@@ -361,6 +417,9 @@ LATE = [dt.date(2026, 5, 6) + dt.timedelta(days=int(i * 1.5)) for i in range(27)
 def build() -> None:
     DATA.mkdir(exist_ok=True)
     EXC.mkdir(exist_ok=True)
+    REM.mkdir(exist_ok=True)
+    for old in REM.glob("*.yaml"):
+        old.unlink()
     for old in EXC.glob("*.yaml"):
         old.unlink()
 
@@ -424,7 +483,7 @@ def build() -> None:
         "EXC-2026-0151", title="Service-account sprawl on migrated workloads",
         owner=IAM, filed_on=next(migration_dates), okr="gcloud-migration",
         control="IAM-SVCACCT-003", mapped_risk="RISK-ACCT-TAKEOVER",
-        moves="probability_of_realization", with_ci=[0.03, 0.09],
+        moves="probability_of_realization", with_ci=[0.011, 0.028],
         estimated_by="r.chen@company.com", estimated_on="2026-05-20",
         reason="timeline", assets=["svcacct-pool-prod"],
         mechanism="rotate_and_scope_service_accounts", target_date="2026-08-15",
@@ -532,7 +591,7 @@ def build() -> None:
         "EXC-2026-0170", title="Run core services single-region to cut infrastructure cost",
         owner=PLATFORM, filed_on=dt.date(2026, 4, 20), okr="gcloud-migration",
         control="REL-MULTIREGION-014", mapped_risk="RISK-PLATFORM-OUTAGE",
-        moves="probability_of_realization", with_ci=[0.10, 0.30],
+        moves="probability_of_realization", with_ci=[0.30, 0.58],
         estimated_by="j.okafor@company.com", estimated_on="2026-04-20",
         reason="cost", assets=["core-services-prod"],
         mechanism="deploy_multi_region_active_active", target_date="2026-12-01",
@@ -542,7 +601,7 @@ def build() -> None:
         "EXC-2026-0171", title="Skip quarterly platform DR test to free the team for migration",
         owner=PLATFORM, filed_on=dt.date(2026, 5, 20), okr="core-platform",
         control="REL-DR-TEST-015", mapped_risk="RISK-PLATFORM-OUTAGE",
-        moves="probability_of_realization", with_ci=[0.06, 0.18],
+        moves="probability_of_realization", with_ci=[0.24, 0.50],
         estimated_by="p.nguyen@company.com", estimated_on="2026-05-20",
         reason="resource_reallocation", diverted_to="gcloud-migration",
         assets=["platform-failover"], mechanism="resume_quarterly_dr_tests",
@@ -638,8 +697,50 @@ def build() -> None:
             mechanism=mech, renewals=count, justification_changed_last=justification,
         )
 
+    # --- Remediations: the sign-flipped counterpart of exceptions ------------
+    # Three funded restores clear the legacy-auth, DLP, and single-region clusters,
+    # returning ACCT-TAKEOVER, DATA-EXFIL, and EXC-0170 to baseline. REM-0004 is
+    # only PROPOSED, so EXC-0171 stays and RISK-PLATFORM-OUTAGE remains over after
+    # the funded plan -- the intended over-after-remediation demonstration. REM-0005
+    # is a funded strengthen on RISK-DATA-RESIDENCY, the register-driven item with
+    # no exception behind it.
+    write_remediation(
+        "REM-2026-0001", title="Enforce SSO via the IdP across legacy consoles",
+        rtype="restore", status="funded", owner=PLATFORM,
+        mechanism="enforce_sso_via_idp", target_date="2026-09-01",
+        restores_control="IAM-LEGACY-AUTH-001",
+    )
+    write_remediation(
+        "REM-2026-0002", title="Re-enable DLP with tuned rules on export paths",
+        rtype="restore", status="funded", owner=DATAPLAT,
+        mechanism="re_enable_dlp_with_tuned_rules", target_date="2026-09-01",
+        restores_control="DLP-EXPORT-001",
+    )
+    write_remediation(
+        "REM-2026-0003", title="Deploy multi-region active-active for core services",
+        rtype="restore", status="funded", owner=PLATFORM,
+        mechanism="deploy_multi_region_active_active", target_date="2026-12-01",
+        restores_control="REL-MULTIREGION-014",
+    )
+    write_remediation(
+        "REM-2026-0004", title="Resume quarterly platform DR tests",
+        rtype="restore", status="proposed", owner=PLATFORM,
+        mechanism="resume_quarterly_dr_tests", target_date="2026-09-01",
+        restores_control="REL-DR-TEST-015",
+    )
+    write_remediation(
+        "REM-2026-0005", title="Implement automated data-residency controls",
+        rtype="strengthen", status="funded", owner=DATAPLAT,
+        mechanism="implement_automated_data_residency_controls", target_date="2026-10-01",
+        mapped_risk="RISK-DATA-RESIDENCY", moves="loss_magnitude",
+        post_control_90ci=[1000000, 3000000],
+        estimated_by="r.chen@company.com", estimated_on="2026-06-01",
+    )
+
     n = len(list(EXC.glob("*.yaml")))
+    r = len(list(REM.glob("*.yaml")))
     print(f"Wrote {n} exception files to {EXC}")
+    print(f"Wrote {r} remediation files to {REM}")
 
 
 if __name__ == "__main__":

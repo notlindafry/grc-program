@@ -138,6 +138,49 @@ def test_persistence_flagged(built):
     assert len(renewed_once) == 8
 
 
+def test_new_risk_data_residency(built):
+    corpus, _, engine = built
+    assert sum(1 for rid in corpus.risks if engine.risk_is_computable(rid)) == 14
+    # Material exposure but within appetite today, and no exceptions behind it.
+    assert engine.residual("RISK-DATA-RESIDENCY").state == "within"
+    assert not any(e.mapped_risk == "RISK-DATA-RESIDENCY" for e in corpus.exceptions)
+
+
+def test_remediations_loaded(built):
+    corpus, _, _ = built
+    assert len(corpus.remediations) == 5
+    assert [r.id for r in corpus.remediations if r.rejected] == []
+    funded = {r.id for r in corpus.remediations if r.is_funded}
+    assert "REM-2026-0004" not in funded  # proposed DR-test fix, not funded
+
+
+def test_over_after_funded_plan_is_platform_only(built):
+    corpus, _, engine = built
+    post = {r.risk.id: r.state for r in engine.all_post_remediation()}
+    assert {rid for rid, s in post.items() if s == "over"} == {"RISK-PLATFORM-OUTAGE"}
+    assert post["RISK-ACCT-TAKEOVER"] == "within"   # legacy-auth restore clears it
+    assert post["RISK-DATA-EXFIL"] == "within"      # DLP restore clears it
+    assert post["RISK-DATA-RESIDENCY"] == "within"  # strengthen keeps it under
+
+
+def test_demo_risk_reductions(built):
+    corpus, _, engine = built
+    by_id = {r.id: r for r in corpus.remediations}
+    restore = engine.risk_reduction(by_id["REM-2026-0001"])     # restore: legacy-auth cluster
+    strengthen = engine.risk_reduction(by_id["REM-2026-0005"])  # strengthen: data-residency
+    assert restore is not None and restore.low > 0
+    assert strengthen is not None and strengthen.low > 0
+
+
+def test_exposure_arc_bands(built):
+    _, config, engine = built
+    entering = engine.date_filtered_portfolio_band(config.year_start)
+    current = engine.portfolio_residual_band()
+    exiting = engine.post_remediation_portfolio_band()
+    assert entering.mean < current.mean  # 2026 acceptances pushed the book up
+    assert exiting.mean < current.mean    # the funded plan pulls it down
+
+
 def test_cli_validate_and_report(capsys):
     assert main(["validate"]) == 0
     out = capsys.readouterr().out

@@ -13,7 +13,7 @@ import pytest
 
 from risk_ledger.config import Config
 from risk_ledger.loader import Corpus
-from risk_ledger.models import Estimator, Exception_, Risk
+from risk_ledger.models import Estimator, Exception_, Remediation, Risk
 
 AS_OF = dt.date(2026, 6, 18)
 
@@ -74,11 +74,38 @@ def make_exc(eid="EXC-0001", **over) -> Exception_:
     return Exception_.parse(raw, path=f"{eid}.yaml")
 
 
-def make_corpus(risks=None, estimators=None, exceptions=None) -> Corpus:
+def make_rem(rid="REM-0001", **over) -> Remediation:
+    """Build a remediation from sensible defaults (restore by default)."""
+    rtype = over.get("type", "restore")
+    raw = {
+        "id": rid,
+        "title": over.get("title", f"remediation {rid}"),
+        "type": rtype,
+        "status": over.get("status", "funded"),
+        "target_date": over.get("target_date", "2026-09-01"),
+        "owner": over.get("owner", "owner@company.com"),
+        "mechanism": over.get("mechanism", "do_the_thing"),
+    }
+    if rtype == "restore":
+        raw["restores_control"] = over.get("restores_control", "CTRL-1")
+    else:  # strengthen
+        raw["mapped_risk"] = over.get("mapped_risk", "RISK-X")
+        raw["moves"] = over.get("moves", "loss_magnitude")
+        raw["post_control_90ci"] = over.get("post_control_90ci", [50000, 150000])
+        raw["estimated_by"] = over.get("estimated_by", "r.chen@company.com")
+        raw["estimated_on"] = over.get("estimated_on", "2026-06-01")
+    for key in ("restores_control", "mapped_risk", "moves", "post_control_90ci", "estimated_by"):
+        if key in over:
+            raw[key] = over[key]
+    return Remediation.parse(raw, path=f"{rid}.yaml")
+
+
+def make_corpus(risks=None, estimators=None, exceptions=None, remediations=None) -> Corpus:
     corpus = Corpus()
     for r in risks or [make_risk()]:
         corpus.risks[r.id] = r
     for e in estimators or [make_estimator()]:
         corpus.estimators[e.email] = e
     corpus.exceptions = list(exceptions or [])
+    corpus.remediations = list(remediations or [])
     return corpus

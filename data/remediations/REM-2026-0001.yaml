@@ -1,0 +1,8 @@
+id: REM-2026-0001
+title: Enforce SSO via the IdP across legacy consoles
+type: restore
+status: funded
+target_date: 2026-09-01
+owner: platform-lead@company.com
+mechanism: enforce_sso_via_idp
+restores_control: IAM-LEGACY-AUTH-001

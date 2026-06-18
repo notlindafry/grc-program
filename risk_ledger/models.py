@@ -305,3 +305,112 @@ def _ci(value: Any) -> Optional[list[float]]:
     if lo is None or hi is None:
         return None
     return [lo, hi]
+
+
+# ---------------------------------------------------------------------------
+# Remediation -- the sign-flipped counterpart of an exception
+# ---------------------------------------------------------------------------
+
+REMEDIATION_TYPES = ("restore", "strengthen")
+REMEDIATION_STATUSES = ("funded", "in_progress", "proposed")
+_FUNDED_STATUSES = ("funded", "in_progress")
+
+
+@dataclass
+class Remediation:
+    """A planned control fix, version-controlled exactly like an exception.
+
+    Two disjoint types:
+
+    * ``restore`` -- restores a deviated control, clearing that control's active
+      exceptions; the affected factors return to baseline (full restoration
+      assumed), so no fresh estimate is required.
+    * ``strengthen`` -- moves one factor to a new absolute band below baseline,
+      gated by the same calibration rule as an exception estimate.
+
+    Only ``funded`` and ``in_progress`` remediations count toward the
+    post-remediation state.
+    """
+
+    id: str
+    path: str
+    raw: dict[str, Any]
+
+    title: str = ""
+    type: str = ""
+    status: str = ""
+    target_date: Optional[dt.date] = None
+    owner: str = ""
+    mechanism: str = ""  # how the fix is implemented; used for the action narrative
+
+    # restore
+    restores_control: str = ""
+
+    # strengthen
+    mapped_risk: str = ""
+    moves: str = ""
+    post_control_90ci: Optional[list[float]] = None
+    estimated_by: str = ""
+    estimated_on: Optional[dt.date] = None
+
+    issues: list[Issue] = field(default_factory=list)
+
+    @classmethod
+    def parse(cls, raw: dict[str, Any], path: str) -> "Remediation":
+        return cls(
+            id=str(raw.get("id", "")),
+            path=path,
+            raw=raw,
+            title=str(raw.get("title", "")),
+            type=str(raw.get("type", "")),
+            status=str(raw.get("status", "")),
+            target_date=_as_date(raw.get("target_date")),
+            owner=str(raw.get("owner", "")),
+            mechanism=str(raw.get("mechanism", "")),
+            restores_control=str(raw.get("restores_control", "")),
+            mapped_risk=str(raw.get("mapped_risk", "")),
+            moves=str(raw.get("moves", "")),
+            post_control_90ci=_ci(raw.get("post_control_90ci")),
+            estimated_by=str(raw.get("estimated_by", "")),
+            estimated_on=_as_date(raw.get("estimated_on")),
+        )
+
+    def add(self, issue: Issue) -> None:
+        self.issues.append(issue)
+
+    @property
+    def errors(self) -> list[Issue]:
+        return [i for i in self.issues if i.severity == ERROR]
+
+    @property
+    def flags(self) -> list[Issue]:
+        return [i for i in self.issues if i.severity == FLAG]
+
+    @property
+    def trust_flags(self) -> list[Issue]:
+        return [i for i in self.flags if i.category == TRUST]
+
+    @property
+    def rejected(self) -> bool:
+        return bool(self.errors)
+
+    @property
+    def is_computable(self) -> bool:
+        return not self.rejected
+
+    @property
+    def is_active(self) -> bool:
+        """A recognised, live remediation entry."""
+        return self.status in REMEDIATION_STATUSES
+
+    @property
+    def is_funded(self) -> bool:
+        """Counts toward the post-remediation state."""
+        return self.status in _FUNDED_STATUSES
+
+    @property
+    def counts_in_bands(self) -> bool:
+        """Trustworthy enough to enter a band. A restore has no estimate of its
+        own (it returns to baseline), so it is trusted unless rejected; a
+        strengthen passes the same calibration gate as an exception."""
+        return self.is_computable and not self.trust_flags

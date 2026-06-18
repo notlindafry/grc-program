@@ -15,3 +15,6 @@ renewals:
   # An active exception renewed at least this many times with its justification
   # never revisited is flagged "temporary forever" in the Persistence view.
   alert_count: 3
+# Fiscal-year boundary for the 2026 exposure arc: exceptions filed before this
+# date are the book entering the year.
+year_start: 2026-01-01

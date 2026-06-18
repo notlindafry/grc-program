@@ -105,3 +105,14 @@ RISK-PLATFORM-OUTAGE:
     probability_of_realization_90ci: [0.01, 0.04]   # given a disruption, chance it becomes a customer outage (resilient baseline)
     loss_magnitude_90ci: [1500000, 8000000]         # revenue, SLA credits, reputational loss per outage
   appetite_threshold: 15000000
+
+# Material exposure near its appetite, with NO exceptions mapped to it -- the case
+# the exception lens alone would miss. A funded strengthen (REM-2026-0005) buys it
+# down; it is within appetite today, so it does not add a current breach.
+RISK-DATA-RESIDENCY:
+  title: Regulated data leaving its required residency region
+  baseline:
+    opportunity_frequency_90ci: [10, 18]            # cross-region data flows per year that could breach residency
+    probability_of_realization_90ci: [0.06, 0.11]   # given a flow, chance it lands non-compliant
+    loss_magnitude_90ci: [5000000, 9000000]         # regulatory penalty, remediation, reputational loss
+  appetite_threshold: 14000000

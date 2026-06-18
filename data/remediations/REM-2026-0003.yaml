@@ -1,0 +1,8 @@
+id: REM-2026-0003
+title: Deploy multi-region active-active for core services
+type: restore
+status: funded
+target_date: 2026-12-01
+owner: platform-lead@company.com
+mechanism: deploy_multi_region_active_active
+restores_control: REL-MULTIREGION-014

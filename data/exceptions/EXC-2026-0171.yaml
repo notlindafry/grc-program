@@ -9,7 +9,7 @@ mapped_risk: RISK-PLATFORM-OUTAGE
 
 exception_effect:
   moves: probability_of_realization
-  with_exception_90ci: [0.06, 0.18]
+  with_exception_90ci: [0.24, 0.5]
   estimated_by: p.nguyen@company.com
   estimated_on: 2026-05-20
 

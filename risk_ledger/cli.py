@@ -101,13 +101,29 @@ def _cmd_validate(args: argparse.Namespace) -> int:
                 print(f"- [{cat} FLAG] {issue.message}")
         print()
 
+    rem_errors = [(r, r.errors) for r in corpus.remediations if r.errors]
+    rem_flags = [(r, r.flags) for r in corpus.remediations if r.flags and not r.errors]
+    if rem_errors or rem_flags:
+        print("## Remediations\n")
+        for r, issues in rem_errors:
+            hard += len(issues)
+            for issue in issues:
+                print(f"- [ERROR] {issue.message}")
+        for r, issues in rem_flags:
+            for issue in issues:
+                print(f"- [{issue.category.upper()} FLAG] {issue.message}")
+        print()
+
     total = len(corpus.exceptions)
     n_err = sum(1 for e in corpus.exceptions if e.errors)
     n_flag = sum(1 for e in corpus.exceptions if e.flags and not e.errors)
     clean = total - n_err - n_flag
+    n_rem = len(corpus.remediations)
+    n_rem_err = sum(1 for r in corpus.remediations if r.errors)
     print("## Summary\n")
     print(f"- {total} exception record(s)")
     print(f"- {clean} clean, {n_flag} flagged, {n_err} rejected")
+    print(f"- {n_rem} remediation(s), {n_rem_err} rejected")
     if hard:
         print(f"\n{hard} hard error(s). Exit 1.")
         return 1

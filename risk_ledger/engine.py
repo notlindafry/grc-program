@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 
 from .config import Config
 from .loader import Corpus
-from .models import Exception_, Risk
+from .models import Exception_, Remediation, Risk
 from .montecarlo import (
     OPPORTUNITY_FREQUENCY,
     LOSS_MAGNITUDE,
@@ -52,6 +52,18 @@ class ResidualResult:
     untrusted: list[Contributor] = field(default_factory=list)
 
 
+@dataclass
+class PostRemediationResult:
+    """A risk's residual once its funded remediations land. Conditional on the
+    funded plan executing."""
+
+    risk: Risk
+    band: Band
+    state: str  # over | straddling | within
+    threshold: float
+    applied: list[Remediation] = field(default_factory=list)
+
+
 class Engine:
     def __init__(self, corpus: Corpus, config: Config):
         self.corpus = corpus
@@ -65,10 +77,13 @@ class Engine:
         self._contrib_band: dict[str, Band] = {}
         self._residual: dict[str, ResidualResult] = {}
         self._residual_samples: dict[str, list[float]] = {}
+        self._post_residual: dict[str, PostRemediationResult] = {}
+        self._post_residual_samples: dict[str, list[float]] = {}
 
         self._compute_baselines()
         self._compute_contributions()
         self._compute_residuals()
+        self._compute_post_remediation()
 
     # -- baselines ----------------------------------------------------------
 
@@ -226,3 +241,148 @@ class Engine:
             self._contrib_samples[e] for e in exc_ids if e in self._contrib_samples
         ]
         return Band.from_samples(self.mc.sum_streams(streams))
+
+    # -- post-remediation ---------------------------------------------------
+    #
+    # Only funded / in_progress remediations count. Post-remediation residual is
+    # baseline plus active exception deltas minus remediation deltas, first-order:
+    #   * restore   -> clear the active exceptions on the restored control;
+    #   * strengthen-> swap the moved factor's baseline band for post_control_90ci.
+
+    def funded_remediations(self) -> list[Remediation]:
+        return [r for r in self.corpus.remediations if r.is_funded and r.is_computable]
+
+    def _restored_controls(self) -> set[str]:
+        return {
+            r.restores_control
+            for r in self.funded_remediations()
+            if r.type == "restore" and r.restores_control
+        }
+
+    def _compute_post_remediation(self) -> None:
+        for rid in self._risk_dists:
+            self._post_residual[rid] = self._post_remediation_for(rid)
+
+    def _post_remediation_for(self, rid: str) -> PostRemediationResult:
+        risk = self.corpus.risks[rid]
+        applied: list[Remediation] = []
+
+        # Funded, trusted strengthens on this risk swap their moved factor.
+        dists = dict(self._risk_dists[rid])
+        for rem in self.funded_remediations():
+            if rem.type == "strengthen" and rem.mapped_risk == rid and rem.counts_in_bands:
+                try:
+                    dists[rem.moves] = fit_distribution(rem.moves, *rem.post_control_90ci)
+                    applied.append(rem)
+                except (ValueError, TypeError):
+                    pass
+
+        post_baseline = self.mc.ale_samples(
+            dists[OPPORTUNITY_FREQUENCY],
+            dists[PROBABILITY_OF_REALIZATION],
+            dists[LOSS_MAGNITUDE],
+            key=f"baseline|{rid}",  # same key -> common random numbers with the baseline
+        )
+
+        restored = self._restored_controls()
+        cleared_controls: set[str] = set()
+        streams = [post_baseline]
+        for exc in self.corpus.exceptions:
+            if exc.mapped_risk != rid or not exc.is_active or not exc.counts_in_bands:
+                continue
+            if exc.control in restored:
+                cleared_controls.add(exc.control)  # cleared by a funded restore
+                continue
+            streams.append(self._contrib_samples[exc.id])
+
+        # Record the funded restores that actually cleared an exception here.
+        for rem in self.funded_remediations():
+            if rem.type == "restore" and rem.restores_control in cleared_controls:
+                applied.append(rem)
+
+        samples = self.mc.sum_streams(streams)
+        self._post_residual_samples[rid] = samples
+        band = Band.from_samples(samples)
+        return PostRemediationResult(
+            risk=risk,
+            band=band,
+            state=appetite_state(band, risk.appetite_threshold),
+            threshold=risk.appetite_threshold,
+            applied=applied,
+        )
+
+    def post_remediation_residual(self, rid: str) -> PostRemediationResult | None:
+        return self._post_residual.get(rid)
+
+    def all_post_remediation(self) -> list[PostRemediationResult]:
+        return [self._post_residual[rid] for rid in self._risk_dists]
+
+    def post_remediation_portfolio_band(self) -> Band | None:
+        streams = list(self._post_residual_samples.values())
+        if not streams:
+            return None
+        return Band.from_samples(self.mc.sum_streams(streams))
+
+    def risk_reduction(self, rem: Remediation) -> Band | None:
+        """The residual a funded remediation buys down, as a band.
+
+        * restore   -> the combined contribution of the active exceptions it
+          clears (reuse the cluster's contribution directly).
+        * strengthen-> current minus post-remediation for its risk, paired under
+          common random numbers (swap the factor, take the per-iteration
+          difference); held out if the estimator is untrusted.
+        """
+        if not rem.is_computable:
+            return None
+        if rem.type == "restore":
+            ids = [
+                e.id
+                for e in self.corpus.exceptions
+                if e.is_active
+                and e.counts_in_bands
+                and e.control == rem.restores_control
+                and e.id in self._contrib_samples
+            ]
+            return self.combined_band(ids)
+        if rem.type == "strengthen":
+            if not rem.counts_in_bands:
+                return None
+            rid = rem.mapped_risk
+            if rid not in self._risk_dists:
+                return None
+            try:
+                swapped = dict(self._risk_dists[rid])
+                swapped[rem.moves] = fit_distribution(rem.moves, *rem.post_control_90ci)
+            except (ValueError, TypeError):
+                return None
+            base = self._baseline_samples[rid]
+            post_base = self.mc.ale_samples(
+                swapped[OPPORTUNITY_FREQUENCY],
+                swapped[PROBABILITY_OF_REALIZATION],
+                swapped[LOSS_MAGNITUDE],
+                key=f"baseline|{rid}",
+            )
+            reduction = [base[i] - post_base[i] for i in range(self.mc.iterations)]
+            return Band.from_samples(reduction)
+        return None
+
+    def date_filtered_portfolio_band(self, before) -> Band | None:
+        """Portfolio residual over only exceptions filed before ``before``, with
+        no remediations applied (the book entering a period)."""
+        risk_streams = []
+        for rid in self._risk_dists:
+            streams = [self._baseline_samples[rid]]
+            for exc in self.corpus.exceptions:
+                if (
+                    exc.mapped_risk == rid
+                    and exc.is_active
+                    and exc.counts_in_bands
+                    and exc.filed_on is not None
+                    and exc.filed_on < before
+                    and exc.id in self._contrib_samples
+                ):
+                    streams.append(self._contrib_samples[exc.id])
+            risk_streams.append(self.mc.sum_streams(streams))
+        if not risk_streams:
+            return None
+        return Band.from_samples(self.mc.sum_streams(risk_streams))

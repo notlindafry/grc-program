@@ -22,7 +22,7 @@ from typing import Any
 
 import yaml
 
-from .models import OKR, Estimator, Exception_, Risk
+from .models import OKR, Estimator, Exception_, Remediation, Risk
 
 
 @dataclass
@@ -31,6 +31,7 @@ class Corpus:
     estimators: dict[str, Estimator] = field(default_factory=dict)
     okrs: dict[str, OKR] = field(default_factory=dict)
     exceptions: list[Exception_] = field(default_factory=list)
+    remediations: list[Remediation] = field(default_factory=list)
     load_errors: list[str] = field(default_factory=list)
 
     def active_exceptions(self) -> list[Exception_]:
@@ -88,5 +89,18 @@ def load_corpus(data_dir: Path) -> Corpus:
             corpus.exceptions.append(Exception_.parse(raw, str(path)))
     else:
         corpus.load_errors.append(f"{exc_dir}: missing (no exceptions directory)")
+
+    rem_dir = data_dir / "remediations"
+    if rem_dir.exists():
+        for path in sorted(rem_dir.glob("*.yaml")):
+            try:
+                raw = _load_yaml(path)
+            except yaml.YAMLError as exc:  # malformed YAML
+                corpus.load_errors.append(f"{path}: invalid YAML ({exc})")
+                continue
+            if not isinstance(raw, dict):
+                corpus.load_errors.append(f"{path}: expected a mapping at the top level")
+                continue
+            corpus.remediations.append(Remediation.parse(raw, str(path)))
 
     return corpus
