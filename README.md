@@ -6,10 +6,11 @@ residual risk on a mapped risk, measured against a numeric appetite. Read as a
 whole, the corpus of exceptions becomes a measurement instrument for three
 things most organizations cannot see:
 
-- **Drift** — an OKR quietly moving away from its stated intent.
-- **Appetite breach** — a risk pushed past its stated tolerance, often by
+- **Drift**: an OKR quietly moving away from its stated intent.
+- **Appetite breach**: a risk pushed past its stated tolerance, often by
   accumulation rather than any single decision.
-- **The root causes worth fixing** — ranked, assignable, with the theatrical
+- **What to fix first**: funded remediations and unfunded breaching clusters in
+  one ranking, ordered by the risk reduction each buys down, with the theatrical
   exceptions sent back instead of actioned.
 
 There is no server and no database. Records are YAML under version control,
@@ -25,7 +26,7 @@ sits in a workflow tool and the corpus is never read as a whole.
 The motivating case is a cloud migration under a hard deadline. Each exception
 was locally reasonable: accept an unpatched vulnerability, take on some debt,
 pull a few engineers off another project, all to hit the date. Read one at a
-time, every one was fine. Read together they told a different story — an OKR
+time, every one was fine. Read together they told a different story: an OKR
 whose stated intent was a quality rebuild quietly becoming a lift-and-shift with
 accumulated debt, starving other work to do it. No single
 approval was wrong. **The aggregate was the signal, and nothing in a standard
@@ -38,17 +39,18 @@ What has been missing is any tool that measures it. That is the gap this fills.
 
 ## How it works
 
-The model is a deliberately light, domain-neutral adaptation of FAIR's
-frequency-times-magnitude decomposition, generalized so non-adversarial tech
-risks (outages, data integrity) sit in the same model as adversarial ones
-(account takeover, data exfiltration). The FAIR lineage is kept visible; the
-adaptation is the point. Risk is three estimated variables, each a 90%
+The model is a deliberately light, domain-neutral adaptation loosely inspired by
+FAIR's frequency-times-magnitude decomposition, generalized so non-adversarial
+tech risks (outages, data integrity) sit in the same model as adversarial ones
+(account takeover, data exfiltration). It borrows FAIR's shape, not its rigor:
+the lineage is kept visible, the adaptation is the point, and the tool does not
+claim conformance to the standard. Risk is three estimated variables, each a 90%
 confidence interval:
 
 | Variable | Meaning |
 |---|---|
-| **Opportunity Frequency (OF)** | how many times a year a condition arises that could produce this loss — a threat contact, a disruption, a risky deploy (environmental) |
-| **Probability of Realization (PoR)** | given that condition, the chance the loss event is actually realized — control failure is deliberately folded in, so a preventive-control gap has a clean home |
+| **Opportunity Frequency (OF)** | how many times a year a condition arises that could produce this loss: a threat contact, a disruption, a risky deploy (environmental) |
+| **Probability of Realization (PoR)** | given that condition, the chance the loss event is actually realized; control failure is deliberately folded in, so a preventive-control gap has a clean home |
 | **Loss Magnitude (LM)** | loss in dollars if the loss event occurs |
 
 ```
@@ -58,13 +60,13 @@ Annual Loss Exposure (ALE) = LEF × LM
 
 An exception names the **one** variable it moves and supplies the new range. The
 tool runs a light Monte Carlo to get the baseline ALE per risk, the marginal
-contribution of each exception, and the current residual per risk — every result
-a band, never a point. It compares each residual band to the risk's numeric
+contribution of each exception, and the current residual per risk. Every result
+is a band, never a point. It compares each residual band to the risk's numeric
 appetite and reports three states: **over**, **straddling**, **within**.
 
-The same residual-contribution math underlies all three outputs — one engine,
-three lenses. See [`docs/methodology.md`](docs/methodology.md) for the
-distribution and iteration choices, and the breach-classification rules.
+The same residual-contribution math underlies all the outputs: one engine, a few
+lenses. See [`docs/methodology.md`](docs/methodology.md) for the distribution and
+iteration choices, the breach-classification rules, and the remediation model.
 
 ## Install
 
@@ -96,10 +98,10 @@ risk-ledger --as-of 2026-06-18 --seed 20260617 appetite RISK-ACCT-TAKEOVER
 
 ## The records
 
-Four YAML file types under version control. The first three are the SPEC's; the
-fourth (`okrs.yaml`) is a minimal addition documented below.
+Five YAML file types under version control. The first three are the SPEC's;
+`okrs.yaml` and `remediations/REM-*.yaml` are additions documented below.
 
-### `risks.yaml` — the light register
+### `risks.yaml`: the light register
 
 One entry per tracked risk, holding the shared baseline and the appetite so they
 are not duplicated across exceptions and cannot drift.
@@ -114,7 +116,7 @@ RISK-ACCT-TAKEOVER:
   appetite_threshold: 500000                     # residual annual loss this risk must stay under
 ```
 
-### `exceptions/EXC-*.yaml` — one file per exception
+### `exceptions/EXC-*.yaml`: one file per exception
 
 ```yaml
 id: EXC-2026-0142
@@ -149,7 +151,7 @@ renewals:
   justification_changed_last: null     # renewed N times unchanged flags "temporary forever"
 ```
 
-### `estimators.yaml` — the calibration gate
+### `estimators.yaml`: the calibration gate
 
 ```yaml
 r.chen@company.com:
@@ -157,7 +159,7 @@ r.chen@company.com:
   calibrated_on: 2026-03-15            # flagged if missing, or older than the refresh window
 ```
 
-### `okrs.yaml` — objective and key results per OKR
+### `okrs.yaml`: objective and key results per OKR
 
 Not one of the SPEC's three file types. The drift view's headline names the OKR's
 *objective* ("a quality microservices rebuild") and displays its *key results* as
@@ -177,6 +179,55 @@ gcloud-migration:
   period_end: 2026-06-30
 ```
 
+### `remediations/REM-*.yaml`: the funded plan
+
+A remediation is a static, version-controlled record of work that buys risk
+back down. There is no workflow and no scheduling here: a remediation is filed,
+reviewed by pull request, and given a `status`. Only `funded` and `in_progress`
+remediations are projected into the post-remediation ("after the plan") figures;
+a `proposed` one is carried but not counted, so the projection never credits
+work nobody has committed to. Each does exactly one thing:
+
+- **`restore`** returns a control's accepted exceptions to baseline (the gap is
+  closed, the cluster's contribution clears). It names `restores_control`.
+- **`strengthen`** moves one factor of one mapped risk to an explicit calibrated
+  band (a new, better number, not a return to baseline). It names `mapped_risk`,
+  the factor it `moves`, the `post_control_90ci` it moves to, and an
+  `estimated_by` that passes the same calibration gate as an exception.
+
+```yaml
+# restore: close the gap, clear the cluster
+id: REM-2026-0001
+title: Enforce SSO via the IdP across legacy consoles
+type: restore                          # restore | strengthen
+status: funded                         # funded | in_progress | proposed
+target_date: 2026-09-01
+owner: platform-lead@company.com
+mechanism: enforce_sso_via_idp
+restores_control: IAM-LEGACY-AUTH-001  # the control whose exceptions return to baseline
+```
+
+```yaml
+# strengthen: move one factor to a new calibrated band
+id: REM-2026-0005
+title: Implement automated data-residency controls
+type: strengthen
+status: funded
+target_date: 2026-10-01
+owner: data-platform-lead@company.com
+mechanism: implement_automated_data_residency_controls
+mapped_risk: RISK-DATA-RESIDENCY
+moves: loss_magnitude                  # the one factor it improves
+post_control_90ci: [1000000, 3000000]  # the new 90% CI for that factor
+estimated_by: r.chen@company.com       # calibration-gated, like an exception
+estimated_on: 2026-06-01
+```
+
+Post-remediation composition is first-order: the projection clears or improves
+the addressed factors and recomputes, it does not model second-round
+interactions. See [`docs/methodology.md`](docs/methodology.md) for how risk
+reduction is quantified.
+
 ## The honesty gates
 
 Each rule exists because the matching field is where exceptions get gamed. They
@@ -187,10 +238,10 @@ come in two tiers:
   point-estimate `with_exception_90ci`, a probability range outside `(0,1)`. The
   CLI exits non-zero, so a malformed record cannot be merged silently.
 - **Flags (kept, handled specially):**
-  - *Trust flags* — the number cannot be believed (uncalibrated or stale
+  - *Trust flags*: the number cannot be believed (uncalibrated or stale
     estimator, vague scope). Excluded from every computed band and surfaced
     separately as untrusted exposure.
-  - *Action flags* — the number is fine but the record is not actionable as
+  - *Action flags*: the number is fine but the record is not actionable as
     written (no remediation plan, a `resource_reallocation` with no
     `diverted_to`). It still counts in the residual, but is pulled out of the
     ranked list and sent back.
