@@ -134,6 +134,26 @@ def _cmd_ranked(args: argparse.Namespace) -> int:
 def _cmd_report(args: argparse.Namespace) -> int:
     corpus, cfg, _, engine = _prepare(args)
     text = render_report(engine, corpus, cfg)
+
+    if args.html:
+        from .render import html_document, markdown_to_html
+
+        out = Path(args.out) if args.out else Path("report.html")
+        out.write_text(html_document(markdown_to_html(text)))
+        message = f"Wrote {out}"
+        if not args.no_open:
+            import webbrowser
+
+            try:
+                if webbrowser.open(out.resolve().as_uri()):
+                    message += " and opened it in your browser"
+                else:
+                    message += f" — open it by double-clicking {out}"
+            except Exception:
+                message += f" — open it by double-clicking {out}"
+        print(message)
+        return 0
+
     if args.out:
         Path(args.out).write_text(text)
         print(f"Wrote {args.out}")
@@ -171,6 +191,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_report = sub.add_parser("report", help="full narrative report")
     p_report.add_argument("--out", default=None, help="write to a file instead of stdout")
+    p_report.add_argument(
+        "--html",
+        action="store_true",
+        help="render a formatted HTML page (default file: report.html) and open it in the browser",
+    )
+    p_report.add_argument(
+        "--no-open",
+        action="store_true",
+        help="with --html, write the file but do not open a browser",
+    )
 
     return parser
 

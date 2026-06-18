@@ -76,7 +76,8 @@ pip install -e .          # the only runtime dependency is PyYAML
 
 ```bash
 risk-ledger validate                 # run the honesty gates; non-zero exit on errors
-risk-ledger report                   # the full narrative report (all three lenses)
+risk-ledger report                   # the full narrative report (markdown, to stdout)
+risk-ledger report --html            # formatted HTML report, written to report.html and opened in your browser
 risk-ledger drift [OKR]              # per-OKR drift lens
 risk-ledger appetite [RISK]          # per-risk appetite-breach lens
 risk-ledger ranked                   # the ranked action list
