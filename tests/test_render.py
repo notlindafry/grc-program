@@ -52,5 +52,5 @@ def test_cli_html_writes_file(tmp_path, capsys):
     assert main(["report", "--html", "--no-open", "--out", str(out)]) == 0
     text = out.read_text()
     assert text.startswith("<!DOCTYPE html>")
-    assert "<table>" in text and "Exception Risk Report" in text
+    assert "<table>" in text and "Company Corp Exceptions Risk Report" in text
     assert "Wrote" in capsys.readouterr().out

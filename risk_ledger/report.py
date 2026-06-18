@@ -106,7 +106,7 @@ def render_report(engine: Engine, corpus: Corpus, config: Config) -> str:
     mapped_risks = sum(1 for rid in corpus.risks if engine.risk_is_computable(rid))
 
     out = [
-        "# Exception Risk Report",
+        "# Company Corp Exceptions Risk Report",
         "",
         f"**Generated {config.as_of.isoformat()} · Scope: all active exceptions · "
         f"{plural(records, 'record')}, {plural(okrs, 'OKR')}, "

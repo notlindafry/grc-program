@@ -199,7 +199,7 @@ ul { margin: .5rem 0 1rem; }
 """
 
 
-def html_document(body_html: str, title: str = "Exception Risk Report") -> str:
+def html_document(body_html: str, title: str = "Company Corp Exceptions Risk Report") -> str:
     """Wrap rendered body HTML in a clean, self-contained page (inline CSS)."""
     for cls, label in (
         ("over", "OVER appetite"),

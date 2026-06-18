@@ -1,4 +1,4 @@
-# Exception Risk Report
+# Company Corp Exceptions Risk Report
 
 **Generated 2026-06-18 · Scope: all active exceptions · 49 records, 7 OKRs, 13 mapped risks**
 
