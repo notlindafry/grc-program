@@ -239,21 +239,27 @@ def _transition(current_state: str, post_state: str | None) -> str:
     return f"{current_state} {ARROW} {word}"
 
 
-def appetite_ranges_svg(plots: list[AppetitePlot]) -> str:
+def appetite_ranges_svg(plots: list[AppetitePlot], *,
+                        axis_label: str = "annual loss exposure ($M)") -> str:
     """One mini-plot per breaching risk, each on its own scale (magnitudes differ
     by more than an order of magnitude, so a shared scale would crush the small
     risks). Current band a solid neutral bar, projected band a neutral outline
     (solid vs outline is the realized-vs-projected distinction), and a dashed
     per-risk appetite line across both.
+
+    Because each mini-plot is on its own scale, each carries its own numbered
+    x-axis (ticks in $M); the shared axis label sits once at the foot of the chart.
     """
     W, M_PAD_L = 600, 88
     PLOT_X0, PLOT_X1 = M_PAD_L, W - 14
     PLOT_W = PLOT_X1 - PLOT_X0
-    HEADER_H, APP_LABEL_H, BAR_H, BAR_GAP, BOTTOM_GAP = 22, 17, 15, 9, 16
-    MINI_H = HEADER_H + APP_LABEL_H + 2 * BAR_H + BAR_GAP + BOTTOM_GAP
-    OUTER_TOP, MINI_GAP, OUTER_BOTTOM = 8, 12, 6
+    HEADER_H, APP_LABEL_H, BAR_H, BAR_GAP = 22, 17, 15, 9
+    AXIS_GAP, TICK_H, MINI_BOTTOM = 8, 16, 6
+    MINI_H = HEADER_H + APP_LABEL_H + 2 * BAR_H + BAR_GAP + AXIS_GAP + TICK_H + MINI_BOTTOM
+    OUTER_TOP, MINI_GAP, AXIS_LABEL_H, OUTER_BOTTOM = 8, 14, 22, 6
 
-    height = OUTER_TOP + len(plots) * MINI_H + max(len(plots) - 1, 0) * MINI_GAP + OUTER_BOTTOM
+    stacked = OUTER_TOP + len(plots) * MINI_H + max(len(plots) - 1, 0) * MINI_GAP
+    height = stacked + AXIS_LABEL_H + OUTER_BOTTOM
     body: list[str] = []
 
     for k, plot in enumerate(plots):
@@ -268,6 +274,7 @@ def appetite_ranges_svg(plots: list[AppetitePlot]) -> str:
 
         cur_top = y0 + HEADER_H + APP_LABEL_H
         after_top = cur_top + BAR_H + BAR_GAP
+        axis_y = after_top + BAR_H + AXIS_GAP
 
         # Header: risk name, a colon, a tab, then the (neutral) transition.
         trans_text = _transition(plot.current_state, plot.post_state)
@@ -291,11 +298,21 @@ def appetite_ranges_svg(plots: list[AppetitePlot]) -> str:
                               X(plot.post.high) - X(plot.post.low), BAR_H,
                               fill=NEUTRAL, fill_opacity=0.12, stroke=NEUTRAL, stroke_w=1.5))
 
-        # Dashed appetite line across both bars, labelled with the annual figure.
+        # Dashed appetite line, down to the axis, labelled with the annual figure.
         ax = X(plot.appetite)
-        body.append(_line(ax, cur_top - 3, ax, after_top + BAR_H + 3,
-                          stroke=TEXT, stroke_w=1.3, dash="5 4"))
+        body.append(_line(ax, cur_top - 3, ax, axis_y, stroke=TEXT, stroke_w=1.3, dash="5 4"))
         body.append(_text(ax, y0 + HEADER_H + 12, f"annual appetite {compact_money(plot.appetite)}",
                           cls="rl-muted", anchor=_anchor_for(ax, PLOT_X0, PLOT_X1)))
+
+        # This mini-plot's own x-axis: its own scale, so its own tick numbers ($M).
+        body.append(_line(PLOT_X0, axis_y, PLOT_X1, axis_y, stroke=AXIS))
+        for t in _axis_ticks(axis_max):
+            tx = X(t)
+            body.append(_line(tx, axis_y, tx, axis_y + 4, stroke=AXIS))
+            body.append(_text(tx, axis_y + 14, f"{round(t / 1e6):,}", cls="rl-muted", anchor="middle"))
+
+    # One shared axis label at the foot: the unit is common; only the scale differs.
+    body.append(_text((PLOT_X0 + PLOT_X1) / 2, stacked + 14, axis_label,
+                      cls="rl-label", anchor="middle"))
 
     return _svg(W, height, "".join(body), title="Per-risk appetite ranges, current vs after plan")

@@ -135,6 +135,15 @@ def test_charts_carry_no_rag_colours():
             assert cls not in svg
 
 
+def test_appetite_ranges_has_numbered_x_axis_and_label():
+    svg = appetite_ranges_svg(_appetite_plots())
+    # One shared axis label at the foot.
+    assert svg.count("annual loss exposure ($M)") == 1
+    # Per-panel tick numbers in $M -- each panel on its own scale.
+    assert ">250</text>" in svg  # PLATFORM panel (axis max 250M)
+    assert ">15</text>" in svg   # ACCT / DATA-EXFIL panels (axis max 15M)
+
+
 def test_appetite_ranges_every_appetite_line_says_annual():
     svg = appetite_ranges_svg(_appetite_plots())
     assert svg.count("annual appetite $") == 3
