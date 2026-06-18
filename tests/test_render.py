@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from risk_ledger.cli import main
-from risk_ledger.render import html_document, markdown_to_html
+from risk_ledger.render import html_document, markdown_to_html, raw_svg_block
 
 
 def test_headings_rules_bold_italic_code():
@@ -45,6 +45,25 @@ def test_document_wraps_and_colours_badges():
     assert doc.startswith("<!DOCTYPE html>")
     assert "<style>" in doc
     assert '<span class="over">OVER appetite</span>' in doc
+
+
+def test_raw_svg_block_passes_through_unescaped():
+    # The one controlled path that bypasses escaping: trusted, self-generated SVG.
+    svg = '<svg class="rl-chart"><rect x="0" y="0" width="4" height="4"/></svg>'
+    html = markdown_to_html(raw_svg_block(svg))
+    assert svg in html  # verbatim, angle brackets intact
+    assert "&lt;svg" not in html
+
+
+def test_raw_svg_passthrough_does_not_weaken_table_escaping():
+    # A raw SVG block and a table with markup in a cell, in the same document: the
+    # SVG passes through, but the record text is still escaped in the table.
+    svg = '<svg class="rl-chart"><rect width="4" height="4"/></svg>'
+    md = raw_svg_block(svg) + "\n\n| Title |\n|---|\n| <script>alert(1)</script> |"
+    html = markdown_to_html(md)
+    assert "<svg" in html and "<rect" in html  # chart passed through
+    assert "&lt;script&gt;" in html  # table cell still escaped
+    assert "<script>" not in html  # no raw injection from a data field
 
 
 def test_cli_html_writes_file(tmp_path, capsys):

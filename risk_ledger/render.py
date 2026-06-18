@@ -137,8 +137,28 @@ def _render_table(rows: list[str]) -> str:
     return f"<table><thead>{thead}</thead><tbody>{''.join(body)}</tbody></table>"
 
 
+# Raw passthrough: the *only* path that bypasses HTML escaping. The report wraps
+# self-generated SVG in these fences; the renderer emits everything between them
+# verbatim. Escaping is unchanged everywhere else -- free-text record fields still
+# flow through the escaping ``_inline`` path into tables.
+RAW_SVG_OPEN = "<!--RL-RAW-SVG-->"
+RAW_SVG_CLOSE = "<!--/RL-RAW-SVG-->"
+
+
+def raw_svg_block(svg: str) -> str:
+    """Wrap trusted, self-generated SVG so ``markdown_to_html`` passes it through
+    unescaped. Opt-in and explicit; it does not relax escaping generally."""
+    return f"{RAW_SVG_OPEN}\n{svg}\n{RAW_SVG_CLOSE}"
+
+
 def _is_special(s: str) -> bool:
-    return s == "---" or s.startswith("#") or s.startswith("|") or s.startswith("- ")
+    return (
+        s == "---"
+        or s == RAW_SVG_OPEN
+        or s.startswith("#")
+        or s.startswith("|")
+        or s.startswith("- ")
+    )
 
 
 def markdown_to_html(md: str) -> str:
@@ -147,7 +167,16 @@ def markdown_to_html(md: str) -> str:
     i, n = 0, len(lines)
     while i < n:
         s = lines[i].strip()
-        if s == "":
+        if s == RAW_SVG_OPEN:
+            # Emit the fenced block verbatim -- the one controlled, unescaped path.
+            i += 1
+            raw: list[str] = []
+            while i < n and lines[i].strip() != RAW_SVG_CLOSE:
+                raw.append(lines[i])
+                i += 1
+            i += 1  # consume the closing fence
+            out.append("\n".join(raw))
+        elif s == "":
             i += 1
         elif s == "---":
             out.append("<hr/>")
@@ -196,6 +225,15 @@ ul { margin: .5rem 0 1rem; }
 .over { color: #b00020; font-weight: 700; }
 .straddling { color: #b06a00; font-weight: 700; }
 .within { color: #0a7d33; font-weight: 700; }
+/* Inline charts (render_svg). SVG text is filled, not coloured, so these set
+   `fill`. Palette matches the badges above. */
+.rl-chart { display: block; margin: 1.1rem 0 1.3rem; max-width: 100%; height: auto; }
+.rl-chart text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+.rl-label { fill: #1a1a1a; font-size: 12px; }
+.rl-muted { fill: #666; font-size: 11px; }
+.rl-over { fill: #b00020; font-size: 12px; font-weight: 600; }
+.rl-straddling { fill: #b06a00; font-size: 12px; font-weight: 600; }
+.rl-within { fill: #0a7d33; font-size: 12px; font-weight: 600; }
 """
 
 

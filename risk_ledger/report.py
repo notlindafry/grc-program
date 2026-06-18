@@ -11,7 +11,8 @@ import datetime as dt
 from .config import Config
 from .engine import Engine
 from .loader import Corpus
-from .render import fmt_band, join_clause, plural
+from .render import fmt_band, join_clause, plural, raw_svg_block
+from .render_svg import ArcRow, compact_money, exposure_arc_svg
 from .views.appetite import render_appetite
 from .views.drift import build_footprint, render_drift
 from .views.ranked import render_ranked, unified_ranking
@@ -83,12 +84,16 @@ def _exposure_arc(engine: Engine, corpus: Corpus, config: Config) -> str:
     if entering is None or mid is None or exiting is None:
         return ""
 
+    entering_over = engine.date_filtered_over_count(config.year_start)
+    mid_over = engine.over_count()
+    exiting_over = engine.post_remediation_over_count()
+
     lines = ["## 2026 risk exposure", ""]
     lines.append(
-        f"Entering 2026 the book carried **{fmt_band(entering)}** in residual annual loss "
-        f"({engine.date_filtered_over_count(config.year_start)} over appetite). Mid-year it stands "
-        f"at **{fmt_band(mid)}** ({engine.over_count()} over). If the funded plan executes it exits "
-        f"2026 at **{fmt_band(exiting)}** ({engine.post_remediation_over_count()} over). The move "
+        f"Entering 2026 the book carried **{fmt_band(entering)}** in residual annual loss exposure "
+        f"({entering_over} over appetite). Mid-year it stands "
+        f"at **{fmt_band(mid)}** ({mid_over} over). If the funded plan executes it exits "
+        f"2026 at **{fmt_band(exiting)}** ({exiting_over} over). The move "
         f"from entering to exiting is the headline; these bands do not add to a to-the-dollar "
         f"waterfall."
     )
@@ -118,6 +123,22 @@ def _exposure_arc(engine: Engine, corpus: Corpus, config: Config) -> str:
             f"{names} {'is' if len(post_over) == 1 else 'are'} projected to remain over, its fix unfunded."
         )
         lines.append("")
+
+    # Inline chart: the exposure arc, after the prose and before the section rule.
+    appetite_total = engine.portfolio_appetite_total()
+    arc_rows = [
+        ArcRow("entering 2026", entering, entering_over),
+        ArcRow("mid-year (today)", mid, mid_over),
+        ArcRow("exiting 2026", exiting, exiting_over),
+    ]
+    svg = exposure_arc_svg(
+        arc_rows,
+        appetite_total,
+        axis_label="annual loss exposure ($M)",
+        appetite_label=f"aggregate annual appetite {compact_money(appetite_total)}",
+    )
+    lines.append(raw_svg_block(svg))
+    lines.append("")
     return "\n".join(lines)
 
 
@@ -170,6 +191,10 @@ def render_report(engine: Engine, corpus: Corpus, config: Config) -> str:
         f"**Generated {config.as_of.isoformat()} · Scope: all active exceptions · "
         f"{plural(records, 'record')}, {plural(okrs, 'OKR')}, "
         f"{plural(mapped_risks, 'mapped risk')}**",
+        "",
+        "Every figure in this report is annual loss exposure: the expected loss per year, with "
+        "event frequency already folded in. None of it is single-loss expectancy — a magnitude is "
+        "multiplied by how often the loss event occurs before it appears here.",
         "",
         "---",
         "",

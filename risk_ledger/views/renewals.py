@@ -50,7 +50,7 @@ def render_renewals(engine: Engine, corpus: Corpus, config: Config) -> str:
     out.append("")
 
     exposure = (
-        f", carrying **{fmt_band(band)}** in residual annual loss" if band is not None else ""
+        f", carrying **{fmt_band(band)}** in residual annual loss exposure" if band is not None else ""
     )
     out.append(
         f"{renewed_once} active "

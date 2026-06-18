@@ -2,6 +2,8 @@
 
 **Generated 2026-06-18 · Scope: all active exceptions · 49 records, 7 OKRs, 14 mapped risks**
 
+Every figure in this report is annual loss exposure: the expected loss per year, with event frequency already folded in. None of it is single-loss expectancy — a magnitude is multiplied by how often the loss event occurs before it appears here.
+
 ---
 
 ## Top line
@@ -12,11 +14,15 @@ The **gcloud-migration** OKR is the dominant source of newly accepted risk. **2 
 
 ## 2026 risk exposure
 
-Entering 2026 the book carried **$21.0M–$38.0M** in residual annual loss (0 over appetite). Mid-year it stands at **$119.4M–$289.6M** (2 over). If the funded plan executes it exits 2026 at **$68.7M–$172.4M** (1 over). The move from entering to exiting is the headline; these bands do not add to a to-the-dollar waterfall.
+Entering 2026 the book carried **$21.0M–$38.0M** in residual annual loss exposure (0 over appetite). Mid-year it stands at **$119.4M–$289.6M** (2 over). If the funded plan executes it exits 2026 at **$68.7M–$172.4M** (1 over). The move from entering to exiting is the headline; these bands do not add to a to-the-dollar waterfall.
 
 Two forces move the book: the 2026 acceptances pushed it up (the gcloud-migration OKR alone adds $84.6M–$252.8M); the funded plan pulls it down (4 funded remediations, the largest buying down $17.5M–$139.4M).
 
 The exit figure is a projection conditional on the funded plan executing; RISK-PLATFORM-OUTAGE is projected to remain over, its fix unfunded.
+
+<!--RL-RAW-SVG-->
+<svg class="rl-chart" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 218" width="720" height="218"><title>2026 annual loss exposure arc</title><rect x="0" y="0" width="720" height="218" fill="#fff"/><line x1="432.5" y1="32" x2="432.5" y2="172" stroke="#1a1a1a" stroke-width="1.3" stroke-dasharray="5 4"/><text x="432.5" y="22" class="rl-muted" text-anchor="middle">aggregate annual appetite $193M</text><text x="140" y="63" class="rl-label" text-anchor="end">entering 2026</text><text x="194.9" y="46" class="rl-muted" text-anchor="middle">$21–38M</text><rect x="182.5" y="51" width="24.7" height="16" rx="2" fill="#5b7a99"/><text x="597" y="63" class="rl-within" text-anchor="start">0 over appetite</text><text x="140" y="109" class="rl-label" text-anchor="end">mid-year (today)</text><text x="449.2" y="92" class="rl-muted" text-anchor="middle">$119–290M</text><rect x="325.6" y="97" width="247.3" height="16" rx="2" fill="#5b7a99"/><text x="597" y="109" class="rl-over" text-anchor="start">2 over appetite</text><text x="140" y="155" class="rl-label" text-anchor="end">exiting 2026</text><text x="327.2" y="138" class="rl-muted" text-anchor="middle">$69–172M</text><rect x="251.8" y="143" width="150.7" height="16" rx="2" fill="#5b7a99"/><text x="597" y="155" class="rl-straddling" text-anchor="start">1 over appetite</text><line x1="152" y1="178" x2="588" y2="178" stroke="#ccc" stroke-width="1.0"/><line x1="152" y1="178" x2="152" y2="182" stroke="#ccc" stroke-width="1.0"/><text x="152" y="193" class="rl-muted" text-anchor="middle">0</text><line x1="297.3" y1="178" x2="297.3" y2="182" stroke="#ccc" stroke-width="1.0"/><text x="297.3" y="193" class="rl-muted" text-anchor="middle">100</text><line x1="442.7" y1="178" x2="442.7" y2="182" stroke="#ccc" stroke-width="1.0"/><text x="442.7" y="193" class="rl-muted" text-anchor="middle">200</text><line x1="588" y1="178" x2="588" y2="182" stroke="#ccc" stroke-width="1.0"/><text x="588" y="193" class="rl-muted" text-anchor="middle">300</text><text x="370" y="210" class="rl-label" text-anchor="middle">annual loss exposure ($M)</text></svg>
+<!--/RL-RAW-SVG-->
 
 ---
 
@@ -63,13 +69,17 @@ Each OKR has two footprints: the risk it accepts on itself, and the risk it push
 
 ## Appetite breach
 
-Stated tolerance across 14 tracked risks sums to **$193.0M**; the acceptances on the books reveal the organization is carrying **$119.4M–$289.6M** in residual annual loss. 2 risks over and 1 risk straddling appetite.
+Stated tolerance across 14 tracked risks sums to **$193.0M**; the acceptances on the books reveal the organization is carrying **$119.4M–$289.6M** in residual annual loss exposure. 2 risks over and 1 risk straddling appetite.
 
 Of the 3 risks over or straddling appetite today, 1 risk (RISK-PLATFORM-OUTAGE) remains over after the funded plan executes. Projections below are conditional on that plan.
 
+<!--RL-RAW-SVG-->
+<svg class="rl-chart" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 320" width="600" height="320"><title>Per-risk appetite ranges, current vs after plan</title><rect x="0" y="0" width="600" height="320" fill="#fff"/><text x="0" y="23" class="rl-label" text-anchor="start">RISK-PLATFORM-OUTAGE <tspan class="rl-over">over → still over</tspan></text><text x="80" y="58.5" class="rl-muted" text-anchor="end">current</text><rect x="184.2" y="47" width="331" height="15" rx="2" fill="#b00020"/><text x="80" y="82.5" class="rl-muted" text-anchor="end">after plan</text><rect x="121.3" y="71" width="200.3" height="15" rx="2" fill="#b00020" fill-opacity="0.12" stroke="#b00020" stroke-width="1.5"/><line x1="117.9" y1="44" x2="117.9" y2="89" stroke="#1a1a1a" stroke-width="1.3" stroke-dasharray="5 4"/><text x="117.9" y="42" class="rl-muted" text-anchor="start">annual appetite $15M</text><text x="0" y="129" class="rl-label" text-anchor="start">RISK-ACCT-TAKEOVER <tspan class="rl-within">over → within</tspan></text><text x="80" y="164.5" class="rl-muted" text-anchor="end">current</text><rect x="313.2" y="153" width="150.1" height="15" rx="2" fill="#b00020"/><text x="80" y="188.5" class="rl-muted" text-anchor="end">after plan</text><rect x="107.4" y="177" width="62.4" height="15" rx="2" fill="#0a7d33" fill-opacity="0.12" stroke="#0a7d33" stroke-width="1.5"/><line x1="254" y1="150" x2="254" y2="195" stroke="#1a1a1a" stroke-width="1.3" stroke-dasharray="5 4"/><text x="254" y="148" class="rl-muted" text-anchor="middle">annual appetite $5M</text><text x="0" y="235" class="rl-label" text-anchor="start">RISK-DATA-EXFIL <tspan class="rl-within">straddling → within</tspan></text><text x="80" y="270.5" class="rl-muted" text-anchor="end">current</text><rect x="204.1" y="259" width="329.7" height="15" rx="2" fill="#b06a00"/><text x="80" y="294.5" class="rl-muted" text-anchor="end">after plan</text><rect x="103" y="283" width="126.2" height="15" rx="2" fill="#0a7d33" fill-opacity="0.12" stroke="#0a7d33" stroke-width="1.5"/><line x1="287.2" y1="256" x2="287.2" y2="301" stroke="#1a1a1a" stroke-width="1.3" stroke-dasharray="5 4"/><text x="287.2" y="254" class="rl-muted" text-anchor="middle">annual appetite $6M</text></svg>
+<!--/RL-RAW-SVG-->
+
 ### RISK-PLATFORM-OUTAGE — OVER appetite
 
-RISK-PLATFORM-OUTAGE carries **$48.3M–$214.5M** in residual annual loss against a **$15.0M** appetite, and the band sits fully above the line. This is a **single-acceptance breach**: EXC-2026-0170 (Run core services single-region to cut infrastructure cost) accounts for 55% of the contributed exposure. One owner, one decision to revisit.
+RISK-PLATFORM-OUTAGE carries **$48.3M–$214.5M** in residual annual loss exposure against a **$15.0M** appetite, and the band sits fully above the line. This is a **single-acceptance breach**: EXC-2026-0170 (Run core services single-region to cut infrastructure cost) accounts for 55% of the contributed annual loss exposure. One owner, one decision to revisit.
 
 | Exception | What was accepted | Contribution | Over alone? | Owner |
 |---|---|---|---|---|
@@ -80,7 +90,7 @@ RISK-PLATFORM-OUTAGE carries **$48.3M–$214.5M** in residual annual loss agains
 
 ### RISK-ACCT-TAKEOVER — OVER appetite
 
-RISK-ACCT-TAKEOVER carries **$6.8M–$11.3M** in residual annual loss against a **$5.0M** appetite, and the band sits fully above the line. This is an **accumulation breach**: no single exception caused it — the top 3 accepted gaps each looked tolerable on its own, and together they breach. There is no individual to send this back to; it is a process signal.
+RISK-ACCT-TAKEOVER carries **$6.8M–$11.3M** in residual annual loss exposure against a **$5.0M** appetite, and the band sits fully above the line. This is an **accumulation breach**: no single exception caused it — the top 3 accepted gaps each looked tolerable on its own, and together they breach. There is no individual to send this back to; it is a process signal.
 
 | Exception | What was accepted | Contribution | Over alone? | Owner |
 |---|---|---|---|---|
@@ -102,7 +112,7 @@ RISK-ACCT-TAKEOVER carries **$6.8M–$11.3M** in residual annual loss against a 
 
 ### RISK-DATA-EXFIL — STRADDLING appetite
 
-RISK-DATA-EXFIL carries **$3.5M–$13.4M** in residual annual loss against a **$6.0M** appetite, and the band crosses the line, so whether you are over depends on the high end. This is a **single-acceptance breach**: EXC-2026-0133 (DLP disabled on the analytics export path) accounts for 76% of the contributed exposure. One owner, one decision to revisit.
+RISK-DATA-EXFIL carries **$3.5M–$13.4M** in residual annual loss exposure against a **$6.0M** appetite, and the band crosses the line, so whether you are over depends on the high end. This is a **single-acceptance breach**: EXC-2026-0133 (DLP disabled on the analytics export path) accounts for 76% of the contributed annual loss exposure. One owner, one decision to revisit.
 
 | Exception | What was accepted | Contribution | Over alone? | Owner |
 |---|---|---|---|---|
@@ -120,7 +130,7 @@ RISK-DATA-EXFIL carries **$3.5M–$13.4M** in residual annual loss against a **$
 
 A temporary exception renewed unchanged is the rule in disguise: the acceptance keeps coming back without anyone revisiting whether it still holds.
 
-8 active exceptions have been renewed at least once; **5 have been renewed 3 or more times with the justification never revisited**, carrying **$765k–$2.6M** in residual annual loss. That is 'temporary' becoming permanent.
+8 active exceptions have been renewed at least once; **5 have been renewed 3 or more times with the justification never revisited**, carrying **$765k–$2.6M** in residual annual loss exposure. That is 'temporary' becoming permanent.
 
 | Exception | What was accepted | Renewals | Mapped risk | Owner |
 |---|---|---|---|---|

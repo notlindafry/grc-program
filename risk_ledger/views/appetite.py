@@ -22,7 +22,9 @@ from ..render import (
     md_table,
     pct,
     plural,
+    raw_svg_block,
 )
+from ..render_svg import AppetitePlot, appetite_ranges_svg
 
 @dataclass
 class Breach:
@@ -89,7 +91,7 @@ def _risk_section(engine: Engine, corpus: Corpus, res: ResidualResult) -> str:
     lines = [f"### {risk.id} — {badge}", ""]
 
     headline = (
-        f"{risk.id} carries **{fmt_band(res.band)}** in residual annual loss against a "
+        f"{risk.id} carries **{fmt_band(res.band)}** in residual annual loss exposure against a "
         f"**{fmt_threshold(res.threshold)}** appetite, and {BAND_POSITION[res.state]}."
     )
 
@@ -116,7 +118,7 @@ def _risk_section(engine: Engine, corpus: Corpus, res: ResidualResult) -> str:
             culprit = _exc_label(corpus, breach.culprit_id) if breach.culprit_id else "one exception"
             headline += (
                 f" This is a **single-acceptance breach**: {culprit} accounts for "
-                f"{pct(breach.dominant_share)} of the contributed exposure. "
+                f"{pct(breach.dominant_share)} of the contributed annual loss exposure. "
                 f"One owner, one decision to revisit."
             )
     lines.append(headline)
@@ -206,7 +208,7 @@ def render_appetite(engine: Engine, corpus: Corpus, config: Config, only_risk: s
         out.append(
             f"Stated tolerance across {plural(len(residuals), 'tracked risk')} sums to "
             f"**{fmt_threshold(stated)}**; the acceptances on the books reveal the organization "
-            f"is carrying **{fmt_band(portfolio)}** in residual annual loss.{breach_clause}"
+            f"is carrying **{fmt_band(portfolio)}** in residual annual loss exposure.{breach_clause}"
         )
         out.append("")
 
@@ -228,6 +230,23 @@ def render_appetite(engine: Engine, corpus: Corpus, config: Config, only_risk: s
             f"Of the {plural(len(breaching), 'risk')} over or straddling appetite today, {tail} after "
             f"the funded plan executes. Projections below are conditional on that plan."
         )
+        out.append("")
+
+        # Inline chart: one mini-plot per breaching risk, each on its own scale.
+        plots = []
+        for r in breaching:
+            post = engine.post_remediation_residual(r.risk.id)
+            plots.append(
+                AppetitePlot(
+                    name=r.risk.id,
+                    current=r.band,
+                    current_state=r.state,
+                    post=post.band if post is not None else None,
+                    post_state=post.state if post is not None else None,
+                    appetite=r.threshold,
+                )
+            )
+        out.append(raw_svg_block(appetite_ranges_svg(plots)))
         out.append("")
 
     if not breaching and not only_risk:

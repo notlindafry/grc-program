@@ -214,6 +214,21 @@ def test_report_renders_exposure_arc(built):
     assert fmt_band(exiting) in text
 
 
+def test_report_html_renders_both_charts(built):
+    corpus, config, engine = built
+    from risk_ledger.render import html_document, markdown_to_html
+    from risk_ledger.report import render_report
+
+    html = html_document(markdown_to_html(render_report(engine, corpus, config)))
+    # One SVG for the exposure arc, one for the appetite ranges.
+    assert html.count("<svg") == 2
+    # Annualization is unmistakable on the charts and in the framing sentence.
+    assert "annual loss exposure ($M)" in html  # arc axis
+    assert "aggregate annual appetite $193M" in html  # arc appetite line
+    assert html.count("annual appetite") >= 4  # 1 aggregate + 3 per-risk lines
+    assert "single-loss expectancy" in html
+
+
 def test_cli_validate_and_report(capsys):
     assert main(["validate"]) == 0
     out = capsys.readouterr().out
