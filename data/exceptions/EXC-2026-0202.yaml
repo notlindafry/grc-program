@@ -3,12 +3,12 @@ title: Deferred fraud-rule tuning (2) — team pulled to migration
 owner: payments-lead@company.com
 filed_on: 2026-05-21
 
-initiative: payments-launch
+okr: payments-launch
 control: FRAUD-RULES-007
 mapped_risk: RISK-PAYMENT-FRAUD
 
 exception_effect:
-  moves: probability_of_action
+  moves: probability_of_realization
   with_exception_90ci: [0.04, 0.09]
   estimated_by: j.okafor@company.com
   estimated_on: 2026-05-30
@@ -22,7 +22,7 @@ scope:
 remediation:
   target_date: 2026-09-01
   mechanism: tune_fraud_rules
-  reduces: probability_of_action
+  reduces: probability_of_realization
 status: active
 expires_on: 2026-09-01
 renewals:

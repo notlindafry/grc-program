@@ -18,10 +18,10 @@ straight from the SPEC, are:
 
 Distribution choices (see ``docs/methodology.md`` for the rationale):
 
-* **Contact Frequency (CF)** and **Loss Magnitude (LM)** -> lognormal. Positive,
+* **Opportunity Frequency (OF)** and **Loss Magnitude (LM)** -> lognormal. Positive,
   right-skewed, multiplicative. The 90% CI ``[low, high]`` is read as the
   5th/95th percentiles and the lognormal parameters are solved in log space.
-* **Probability of Action (PoA)** -> logit-normal. Naturally bounded to ``(0, 1)``,
+* **Probability of Realization (PoR)** -> logit-normal. Naturally bounded to ``(0, 1)``,
   fit symmetrically in logit space the same way the lognormal is fit in log
   space. This keeps probabilities inside their valid range without the truncation
   artefacts of a clipped normal.
@@ -38,18 +38,18 @@ from dataclasses import dataclass
 Z95 = 1.6448536269514722
 
 # The three light-FAIR variables an exception is allowed to move.
-CONTACT_FREQUENCY = "contact_frequency"
-PROBABILITY_OF_ACTION = "probability_of_action"
+OPPORTUNITY_FREQUENCY = "opportunity_frequency"
+PROBABILITY_OF_REALIZATION = "probability_of_realization"
 LOSS_MAGNITUDE = "loss_magnitude"
 
-VARIABLES = (CONTACT_FREQUENCY, PROBABILITY_OF_ACTION, LOSS_MAGNITUDE)
+VARIABLES = (OPPORTUNITY_FREQUENCY, PROBABILITY_OF_REALIZATION, LOSS_MAGNITUDE)
 
 # Which distribution family each variable uses.
 _LOGNORMAL = "lognormal"
 _LOGITNORMAL = "logitnormal"
 _FAMILY = {
-    CONTACT_FREQUENCY: _LOGNORMAL,
-    PROBABILITY_OF_ACTION: _LOGITNORMAL,
+    OPPORTUNITY_FREQUENCY: _LOGNORMAL,
+    PROBABILITY_OF_REALIZATION: _LOGITNORMAL,
     LOSS_MAGNITUDE: _LOGNORMAL,
 }
 
@@ -194,7 +194,7 @@ class MonteCarlo:
         *,
         key: str,
     ) -> list[float]:
-        """Annual Loss Exposure draws: ``ALE = CF * PoA * LM`` (LEF = CF*PoA)."""
+        """Annual Loss Exposure draws: ``ALE = OF * PoR * LM`` (LEF = OF*PoR)."""
         z_cf = self._standard_normals(key, "cf")
         z_poa = self._standard_normals(key, "poa")
         z_lm = self._standard_normals(key, "lm")
@@ -236,8 +236,8 @@ class MonteCarlo:
 
         n = self.iterations
         z = {
-            CONTACT_FREQUENCY: self._standard_normals(key, "cf"),
-            PROBABILITY_OF_ACTION: self._standard_normals(key, "poa"),
+            OPPORTUNITY_FREQUENCY: self._standard_normals(key, "cf"),
+            PROBABILITY_OF_REALIZATION: self._standard_normals(key, "poa"),
             LOSS_MAGNITUDE: self._standard_normals(key, "lm"),
         }
         base_s = {v: baseline[v].transform(z[v]) for v in VARIABLES}

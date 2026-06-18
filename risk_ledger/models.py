@@ -84,8 +84,8 @@ class Estimator:
 class Risk:
     id: str
     title: str
-    contact_frequency_90ci: Optional[list[float]]
-    probability_of_action_90ci: Optional[list[float]]
+    opportunity_frequency_90ci: Optional[list[float]]
+    probability_of_realization_90ci: Optional[list[float]]
     loss_magnitude_90ci: Optional[list[float]]
     appetite_threshold: Optional[float]
     raw: dict[str, Any] = field(default_factory=dict)
@@ -96,8 +96,8 @@ class Risk:
         return cls(
             id=rid,
             title=str(raw.get("title", rid)),
-            contact_frequency_90ci=_ci(baseline.get("contact_frequency_90ci")),
-            probability_of_action_90ci=_ci(baseline.get("probability_of_action_90ci")),
+            opportunity_frequency_90ci=_ci(baseline.get("opportunity_frequency_90ci")),
+            probability_of_realization_90ci=_ci(baseline.get("probability_of_realization_90ci")),
             loss_magnitude_90ci=_ci(baseline.get("loss_magnitude_90ci")),
             appetite_threshold=_num(raw.get("appetite_threshold")),
             raw=raw,
@@ -106,41 +106,47 @@ class Risk:
     @property
     def baseline_by_variable(self) -> dict[str, Optional[list[float]]]:
         from .montecarlo import (
-            CONTACT_FREQUENCY,
+            OPPORTUNITY_FREQUENCY,
             LOSS_MAGNITUDE,
-            PROBABILITY_OF_ACTION,
+            PROBABILITY_OF_REALIZATION,
         )
 
         return {
-            CONTACT_FREQUENCY: self.contact_frequency_90ci,
-            PROBABILITY_OF_ACTION: self.probability_of_action_90ci,
+            OPPORTUNITY_FREQUENCY: self.opportunity_frequency_90ci,
+            PROBABILITY_OF_REALIZATION: self.probability_of_realization_90ci,
             LOSS_MAGNITUDE: self.loss_magnitude_90ci,
         }
 
 
 @dataclass
-class Initiative:
-    """A program the exceptions attach to.
+class OKR:
+    """An Objective and its Key Results, that the exceptions attach to.
 
     Not in the original three-file list, but the drift view's headline names the
-    initiative's *stated objective* ("a quality microservices rebuild"), which
-    has to live somewhere git-native. This minimal register is that home; the
-    optional ``cutover_date`` lets the trajectory analysis measure the run-up to
-    a real deadline rather than guessing one.
+    OKR's *objective* ("a quality microservices rebuild") and displays its key
+    results as the commitments the exception footprint is eroding, which has to
+    live somewhere git-native. This minimal register is that home; the optional
+    ``period_end`` lets the trajectory analysis measure the run-up to a real
+    deadline rather than guessing one.
     """
 
     id: str
     title: str
-    stated_objective: str
-    cutover_date: Optional[dt.date]
+    objective: str
+    key_results: list[str]
+    period_end: Optional[dt.date]
 
     @classmethod
-    def parse(cls, iid: str, raw: dict[str, Any]) -> "Initiative":
+    def parse(cls, oid: str, raw: dict[str, Any]) -> "OKR":
+        krs = raw.get("key_results") or []
+        if not isinstance(krs, list):
+            krs = [krs]
         return cls(
-            id=iid,
-            title=str(raw.get("title", iid)),
-            stated_objective=str(raw.get("stated_objective", "")),
-            cutover_date=_as_date(raw.get("cutover_date")),
+            id=oid,
+            title=str(raw.get("title", oid)),
+            objective=str(raw.get("objective", "")),
+            key_results=[str(k) for k in krs],
+            period_end=_as_date(raw.get("period_end")),
         )
 
 
@@ -160,7 +166,7 @@ class Exception_:
     title: str = ""
     owner: str = ""
     filed_on: Optional[dt.date] = None
-    initiative: str = ""
+    okr: str = ""
     control: str = ""
     mapped_risk: str = ""
 
@@ -204,7 +210,7 @@ class Exception_:
             title=str(raw.get("title", "")),
             owner=str(raw.get("owner", "")),
             filed_on=_as_date(raw.get("filed_on")),
-            initiative=str(raw.get("initiative", "")),
+            okr=str(raw.get("okr", "")),
             control=str(raw.get("control", "")),
             mapped_risk=str(raw.get("mapped_risk", "")),
             moves=str(effect.get("moves", "")),

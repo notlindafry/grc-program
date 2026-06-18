@@ -3,7 +3,7 @@ title: DLP disabled on ad-hoc BI export connector
 owner: data-platform-lead@company.com
 filed_on: 2026-05-09
 
-initiative: data-platform
+okr: data-platform
 control: DLP-EXPORT-001
 mapped_risk: RISK-DATA-EXFIL
 

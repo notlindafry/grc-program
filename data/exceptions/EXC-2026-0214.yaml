@@ -3,12 +3,12 @@ title: Deferred HA failover testing (1) — on-call pulled to migration
 owner: data-platform-lead@company.com
 filed_on: 2026-06-06
 
-initiative: data-platform
+okr: data-platform
 control: REL-HA-009
 mapped_risk: RISK-DATA-AVAILABILITY
 
 exception_effect:
-  moves: probability_of_action
+  moves: probability_of_realization
   with_exception_90ci: [0.06, 0.14]
   estimated_by: r.chen@company.com
   estimated_on: 2026-05-30
@@ -22,7 +22,7 @@ scope:
 remediation:
   target_date: 2026-09-01
   mechanism: schedule_failover_drills
-  reduces: probability_of_action
+  reduces: probability_of_realization
 status: active
 expires_on: 2026-09-01
 renewals:

@@ -3,12 +3,12 @@ title: Delayed detection-model retrain — ML team pulled to migration
 owner: tns-lead@company.com
 filed_on: 2026-06-14
 
-initiative: trust-and-safety
+okr: trust-and-safety
 control: DETECT-MODEL-006
 mapped_risk: RISK-ABUSE-DETECTION
 
 exception_effect:
-  moves: probability_of_action
+  moves: probability_of_realization
   with_exception_90ci: [0.05, 0.12]
   estimated_by: a.silva@company.com
   estimated_on: 2026-05-30
@@ -22,7 +22,7 @@ scope:
 remediation:
   target_date: 2026-09-01
   mechanism: retrain_detection_model
-  reduces: probability_of_action
+  reduces: probability_of_realization
 status: active
 expires_on: 2026-09-01
 renewals:

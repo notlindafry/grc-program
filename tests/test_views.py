@@ -20,12 +20,12 @@ def _engine(corpus, config) -> Engine:
 
 
 def test_drift_separates_internal_from_external(config):
-    internal = [make_exc(eid=f"IN{i}", initiative="gcloud-migration",
+    internal = [make_exc(eid=f"IN{i}", okr="gcloud-migration",
                          with_exception_90ci=[0.02, 0.05]) for i in range(3)]
     external = [
-        make_exc(eid="EX1", initiative="payments-launch", reason="resource_reallocation",
+        make_exc(eid="EX1", okr="payments-launch", reason="resource_reallocation",
                  reason_detail={"diverted_to": "gcloud-migration"}, with_exception_90ci=[0.05, 0.12]),
-        make_exc(eid="EX2", initiative="data-platform", reason="resource_reallocation",
+        make_exc(eid="EX2", okr="data-platform", reason="resource_reallocation",
                  reason_detail={"diverted_to": "gcloud-migration"}, with_exception_90ci=[0.05, 0.12]),
     ]
     corpus = make_corpus(exceptions=internal + external)
@@ -39,8 +39,8 @@ def test_drift_separates_internal_from_external(config):
 
 def test_drift_external_invisible_without_destination(config):
     # A reallocation with no destination raises its own project's risk but is not
-    # credited to any initiative's external footprint.
-    orphan = make_exc(eid="ORPH", initiative="payments-launch", reason="resource_reallocation")
+    # credited to any okr's external footprint.
+    orphan = make_exc(eid="ORPH", okr="payments-launch", reason="resource_reallocation")
     corpus = make_corpus(exceptions=[orphan])
     eng = _engine(corpus, config)
     fp = build_footprint(eng, corpus, "gcloud-migration")
@@ -75,7 +75,7 @@ def test_classify_single_acceptance_breach(config):
 
 
 def test_single_acceptance_share_threshold_is_configurable(config):
-    # 12 small, evenly-sized PoA bumps: none breaches alone, the lead share is
+    # 12 small, evenly-sized PoR bumps: none breaches alone, the lead share is
     # small (~1/12). The classification flips purely on the threshold.
     excs = [make_exc(eid=f"A{i}", with_exception_90ci=[0.012, 0.035], control="C") for i in range(12)]
     eng = _engine(make_corpus(exceptions=excs), config)
@@ -97,7 +97,7 @@ def test_clusters_group_by_control_and_split_malformed(config):
     members = [make_exc(eid=f"L{i}", control="IAM-LEGACY", with_exception_90ci=[0.012, 0.035])
                for i in range(4)]
     members += [make_exc(eid=f"LN{i}", control="IAM-LEGACY", with_exception_90ci=[0.012, 0.035],
-                         remediation={"reduces": "probability_of_action"}) for i in range(2)]
+                         remediation={"reduces": "probability_of_realization"}) for i in range(2)]
     eng = _engine(make_corpus(exceptions=members), config)
     clusters = {c.control: c for c in build_clusters(eng, corpus_of(eng))}
     legacy = clusters["IAM-LEGACY"]
@@ -125,8 +125,8 @@ def test_render_smoke_all_views(config):
     excs = [
         make_exc(eid="EXC-OK", with_exception_90ci=[0.05, 0.12]),
         make_exc(eid="EXC-NOPLAN", with_exception_90ci=[0.05, 0.12],
-                 remediation={"reduces": "probability_of_action"}),
-        make_exc(eid="EXC-EXT", initiative="payments-launch", reason="resource_reallocation",
+                 remediation={"reduces": "probability_of_realization"}),
+        make_exc(eid="EXC-EXT", okr="payments-launch", reason="resource_reallocation",
                  reason_detail={"diverted_to": "gcloud-migration"}, with_exception_90ci=[0.05, 0.12]),
     ]
     corpus = make_corpus(exceptions=excs)

@@ -1,7 +1,7 @@
 """Command-line interface.
 
     risk-ledger validate [--data DIR]      run the honesty gates; non-zero exit on errors
-    risk-ledger drift [INITIATIVE]         per-initiative drift lens
+    risk-ledger drift [OKR]                per-OKR drift lens
     risk-ledger appetite [RISK]            per-risk appetite-breach lens
     risk-ledger ranked                     the ranked action list
     risk-ledger report                     the full narrative report (all three lenses)
@@ -115,7 +115,7 @@ def _cmd_validate(args: argparse.Namespace) -> int:
 
 def _cmd_drift(args: argparse.Namespace) -> int:
     corpus, cfg, _, engine = _prepare(args)
-    print(render_drift(engine, corpus, cfg, only_initiative=args.initiative))
+    print(render_drift(engine, corpus, cfg, only_okr=args.okr))
     return 0
 
 
@@ -161,8 +161,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("validate", help="run the validation gates")
 
-    p_drift = sub.add_parser("drift", help="per-initiative drift view")
-    p_drift.add_argument("initiative", nargs="?", default=None, help="limit to one initiative")
+    p_drift = sub.add_parser("drift", help="per-OKR drift view")
+    p_drift.add_argument("okr", nargs="?", default=None, help="limit to one OKR")
 
     p_app = sub.add_parser("appetite", help="per-risk appetite-breach view")
     p_app.add_argument("risk", nargs="?", default=None, help="limit to one risk")

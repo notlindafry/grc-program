@@ -3,12 +3,12 @@ title: Allow legacy TLS on internal-tools gateway
 owner: it-lead@company.com
 filed_on: 2026-05-12
 
-initiative: internal-tools
+okr: internal-tools
 control: CRYPTO-TLS-008
 mapped_risk: RISK-ENDPOINT-MALWARE
 
 exception_effect:
-  moves: probability_of_action
+  moves: probability_of_realization
   with_exception_90ci: [0.05, 0.15]
   estimated_by: t.brooks@company.com
   estimated_on: 2026-05-12
@@ -20,7 +20,7 @@ scope:
 remediation:
   target_date: 2026-09-01
   mechanism: enforce_tls13
-  reduces: probability_of_action
+  reduces: probability_of_realization
 status: active
 expires_on: 2026-09-01
 renewals:

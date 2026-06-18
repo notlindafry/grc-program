@@ -47,7 +47,7 @@ def test_moves_must_name_a_real_variable(config):
 
 
 def test_probability_out_of_range_rejected(config):
-    exc = make_exc(moves="probability_of_action", with_exception_90ci=[0.5, 1.4])
+    exc = make_exc(moves="probability_of_realization", with_exception_90ci=[0.5, 1.4])
     validate_corpus(make_corpus(exceptions=[exc]), config)
     assert "with_exception_out_of_range" in _codes(exc)
 
@@ -83,7 +83,7 @@ def test_unknown_estimator_treated_as_uncalibrated(config):
 
 
 def test_non_plan_is_an_action_flag_that_still_counts_in_bands(config):
-    exc = make_exc(remediation={"reduces": "probability_of_action"})  # no target/mechanism
+    exc = make_exc(remediation={"reduces": "probability_of_realization"})  # no target/mechanism
     validate_corpus(make_corpus(exceptions=[exc]), config)
     assert "remediation_non_plan" in _codes(exc)
     assert exc.counts_in_bands       # the number is fine

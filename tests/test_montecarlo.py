@@ -7,9 +7,9 @@ import math
 import pytest
 
 from risk_ledger.montecarlo import (
-    CONTACT_FREQUENCY,
+    OPPORTUNITY_FREQUENCY,
     LOSS_MAGNITUDE,
-    PROBABILITY_OF_ACTION,
+    PROBABILITY_OF_REALIZATION,
     Band,
     MonteCarlo,
     appetite_state,
@@ -21,10 +21,10 @@ from risk_ledger.montecarlo import (
 @pytest.mark.parametrize(
     "variable,low,high",
     [
-        (CONTACT_FREQUENCY, 12, 50),
+        (OPPORTUNITY_FREQUENCY, 12, 50),
         (LOSS_MAGNITUDE, 250000, 600000),
-        (PROBABILITY_OF_ACTION, 0.01, 0.05),
-        (PROBABILITY_OF_ACTION, 0.08, 0.30),
+        (PROBABILITY_OF_REALIZATION, 0.01, 0.05),
+        (PROBABILITY_OF_REALIZATION, 0.08, 0.30),
     ],
 )
 def test_fit_recovers_90ci(variable, low, high):
@@ -37,18 +37,18 @@ def test_fit_recovers_90ci(variable, low, high):
 
 def test_probability_samples_stay_in_unit_interval():
     mc = MonteCarlo(iterations=10000, seed=2)
-    dist = fit_distribution(PROBABILITY_OF_ACTION, 0.01, 0.4)
+    dist = fit_distribution(PROBABILITY_OF_REALIZATION, 0.01, 0.4)
     samples = dist.transform(mc._standard_normals("p"))
     assert all(0.0 < s < 1.0 for s in samples)
 
 
 def test_fit_rejects_point_estimates_and_bad_ranges():
     with pytest.raises(ValueError):
-        fit_distribution(CONTACT_FREQUENCY, 10, 10)  # not increasing
+        fit_distribution(OPPORTUNITY_FREQUENCY, 10, 10)  # not increasing
     with pytest.raises(ValueError):
         fit_distribution(LOSS_MAGNITUDE, 0, 100)  # lognormal needs positive low
     with pytest.raises(ValueError):
-        fit_distribution(PROBABILITY_OF_ACTION, 0.5, 1.5)  # probability out of (0,1)
+        fit_distribution(PROBABILITY_OF_REALIZATION, 0.5, 1.5)  # probability out of (0,1)
 
 
 def test_percentile_interpolates():
@@ -71,13 +71,13 @@ def test_contribution_is_paired_and_nonnegative_for_upward_move():
     """A clearly-worsening exception adds positive risk in every scenario."""
     mc = MonteCarlo(iterations=8000, seed=3)
     baseline = {
-        CONTACT_FREQUENCY: fit_distribution(CONTACT_FREQUENCY, 10, 40),
-        PROBABILITY_OF_ACTION: fit_distribution(PROBABILITY_OF_ACTION, 0.005, 0.02),
+        OPPORTUNITY_FREQUENCY: fit_distribution(OPPORTUNITY_FREQUENCY, 10, 40),
+        PROBABILITY_OF_REALIZATION: fit_distribution(PROBABILITY_OF_REALIZATION, 0.005, 0.02),
         LOSS_MAGNITUDE: fit_distribution(LOSS_MAGNITUDE, 200000, 500000),
     }
-    worse = fit_distribution(PROBABILITY_OF_ACTION, 0.08, 0.30)
+    worse = fit_distribution(PROBABILITY_OF_REALIZATION, 0.08, 0.30)
     samples = mc.contribution_samples(
-        moved=PROBABILITY_OF_ACTION, baseline=baseline, with_exception=worse, key="e1"
+        moved=PROBABILITY_OF_REALIZATION, baseline=baseline, with_exception=worse, key="e1"
     )
     band = Band.from_samples(samples)
     assert band.low > 0  # whole 90% band positive
@@ -87,14 +87,14 @@ def test_contribution_is_paired_and_nonnegative_for_upward_move():
 def test_reproducible_same_seed():
     mc = MonteCarlo(iterations=5000, seed=42)
     a = mc.ale_samples(
-        fit_distribution(CONTACT_FREQUENCY, 10, 40),
-        fit_distribution(PROBABILITY_OF_ACTION, 0.01, 0.05),
+        fit_distribution(OPPORTUNITY_FREQUENCY, 10, 40),
+        fit_distribution(PROBABILITY_OF_REALIZATION, 0.01, 0.05),
         fit_distribution(LOSS_MAGNITUDE, 200000, 500000),
         key="r",
     )
     b = mc.ale_samples(
-        fit_distribution(CONTACT_FREQUENCY, 10, 40),
-        fit_distribution(PROBABILITY_OF_ACTION, 0.01, 0.05),
+        fit_distribution(OPPORTUNITY_FREQUENCY, 10, 40),
+        fit_distribution(PROBABILITY_OF_REALIZATION, 0.01, 0.05),
         fit_distribution(LOSS_MAGNITUDE, 200000, 500000),
         key="r",
     )

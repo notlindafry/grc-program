@@ -6,7 +6,7 @@ residual risk on a mapped risk, measured against a numeric appetite. Read as a
 whole, the corpus of exceptions becomes a measurement instrument for three
 things most organizations cannot see:
 
-- **Drift** — an initiative quietly moving away from its stated intent.
+- **Drift** — an OKR quietly moving away from its stated intent.
 - **Appetite breach** — a risk pushed past its stated tolerance, often by
   accumulation rather than any single decision.
 - **The root causes worth fixing** — ranked, assignable, with the theatrical
@@ -25,9 +25,9 @@ sits in a workflow tool and the corpus is never read as a whole.
 The motivating case is a cloud migration under a hard deadline. Each exception
 was locally reasonable: accept an unpatched vulnerability, take on some debt,
 pull a few engineers off another project, all to hit the date. Read one at a
-time, every one was fine. Read together they told a different story — an
-initiative whose stated intent was a quality rebuild quietly becoming a
-lift-and-shift with accumulated debt, starving other work to do it. No single
+time, every one was fine. Read together they told a different story — an OKR
+whose stated intent was a quality rebuild quietly becoming a lift-and-shift with
+accumulated debt, starving other work to do it. No single
 approval was wrong. **The aggregate was the signal, and nothing in a standard
 exception workflow surfaces it.**
 
@@ -38,17 +38,21 @@ What has been missing is any tool that measures it. That is the gap this fills.
 
 ## How it works
 
-The organization runs a light version of FAIR. Risk is three estimated
-variables, each a 90% confidence interval:
+The model is a deliberately light, domain-neutral adaptation of FAIR's
+frequency-times-magnitude decomposition, generalized so non-adversarial tech
+risks (outages, data integrity) sit in the same model as adversarial ones
+(account takeover, data exfiltration). The FAIR lineage is kept visible; the
+adaptation is the point. Risk is three estimated variables, each a 90%
+confidence interval:
 
 | Variable | Meaning |
 |---|---|
-| **Contact Frequency (CF)** | threat contacts with the asset per year (environmental) |
-| **Probability of Action (PoA)** | given contact, the probability the actor acts **and succeeds** — vulnerability is deliberately folded in, so a preventive-control gap has a clean home |
-| **Loss Magnitude (LM)** | loss in dollars if a loss event occurs |
+| **Opportunity Frequency (OF)** | how many times a year a condition arises that could produce this loss — a threat contact, a disruption, a risky deploy (environmental) |
+| **Probability of Realization (PoR)** | given that condition, the chance the loss event is actually realized — control failure is deliberately folded in, so a preventive-control gap has a clean home |
+| **Loss Magnitude (LM)** | loss in dollars if the loss event occurs |
 
 ```
-Loss Event Frequency (LEF) = CF × PoA
+Loss Event Frequency (LEF) = OF × PoR
 Annual Loss Exposure (ALE) = LEF × LM
 ```
 
@@ -73,7 +77,7 @@ pip install -e .          # the only runtime dependency is PyYAML
 ```bash
 risk-ledger validate                 # run the honesty gates; non-zero exit on errors
 risk-ledger report                   # the full narrative report (all three lenses)
-risk-ledger drift [INITIATIVE]       # per-initiative drift lens
+risk-ledger drift [OKR]              # per-OKR drift lens
 risk-ledger appetite [RISK]          # per-risk appetite-breach lens
 risk-ledger ranked                   # the ranked action list
 ```
@@ -91,7 +95,7 @@ risk-ledger --as-of 2026-06-18 --seed 20260617 appetite RISK-ACCT-TAKEOVER
 ## The records
 
 Four YAML file types under version control. The first three are the SPEC's; the
-fourth (`initiatives.yaml`) is a minimal addition documented below.
+fourth (`okrs.yaml`) is a minimal addition documented below.
 
 ### `risks.yaml` — the light register
 
@@ -102,8 +106,8 @@ are not duplicated across exceptions and cannot drift.
 RISK-ACCT-TAKEOVER:
   title: Account takeover of an internal system via credential compromise
   baseline:
-    contact_frequency_90ci: [10, 40]
-    probability_of_action_90ci: [0.005, 0.02]   # actor acts AND succeeds (vulnerability folded in)
+    opportunity_frequency_90ci: [10, 40]
+    probability_of_realization_90ci: [0.005, 0.02]   # actor acts AND succeeds (vulnerability folded in)
     loss_magnitude_90ci: [200000, 500000]
   appetite_threshold: 500000                     # residual annual loss this risk must stay under
 ```
@@ -116,26 +120,26 @@ title: Skip MFA on internal analytics console to hit migration cutover
 owner: platform-lead@company.com       # accountable risk owner, not the filer
 filed_on: 2026-05-06
 
-initiative: gcloud-migration           # links to an initiative so drift can be measured
+okr: gcloud-migration                  # links to an OKR so drift can be measured
 control: IAM-LEGACY-AUTH-001           # control being deviated from; used for clustering
 mapped_risk: RISK-ACCT-TAKEOVER        # MANDATORY. references risks.yaml.
 
 exception_effect:
-  moves: probability_of_action         # exactly one of: contact_frequency | probability_of_action | loss_magnitude
+  moves: probability_of_realization    # exactly one of: opportunity_frequency | probability_of_realization | loss_magnitude
   with_exception_90ci: [0.012, 0.035]  # the new range for the moved variable
   estimated_by: r.chen@company.com     # must resolve to a calibrated estimator
   estimated_on: 2026-04-15
 
 reason: timeline                       # resource_reallocation | technical_constraint | timeline | cost | other
 # when reason is resource_reallocation, add reason_detail.diverted_to naming the
-# initiative the resources went TO. The exception is filed on the STARVED project.
+# OKR the resources went TO. The exception is filed on the STARVED OKR.
 scope:
   type: enumerated                     # enumerated | population
   assets: [analytics-console-prod]     # explicit. "all internal systems" is rejected.
 remediation:
   target_date: 2026-09-01              # REQUIRED. absence flags the record as a non-plan.
   mechanism: enforce_sso_via_idp       # REQUIRED.
-  reduces: probability_of_action
+  reduces: probability_of_realization
 status: active                         # active | lapsed | remediated | withdrawn
 expires_on: 2026-09-01
 renewals:
@@ -151,19 +155,24 @@ r.chen@company.com:
   calibrated_on: 2026-03-15            # flagged if missing, or older than the refresh window
 ```
 
-### `initiatives.yaml` — stated objective per initiative
+### `okrs.yaml` — objective and key results per OKR
 
-Not one of the SPEC's three file types. The drift view's headline names the
-initiative's *stated objective* ("a quality microservices rebuild"), and that
-text has to live somewhere git-native; this minimal register is its home. The
-optional `cutover_date` lets the trajectory analysis measure the run-up to a
-real deadline rather than guessing one.
+Not one of the SPEC's three file types. The drift view's headline names the OKR's
+*objective* ("a quality microservices rebuild") and displays its *key results* as
+the commitments the exception footprint is eroding, and that has to live
+somewhere git-native; this minimal register is its home. The optional
+`period_end` lets the trajectory analysis measure the run-up to a real deadline
+rather than guessing one.
 
 ```yaml
 gcloud-migration:
   title: gcloud-migration
-  stated_objective: a quality rebuild from monolith to microservices
-  cutover_date: 2026-06-30
+  objective: a quality rebuild from monolith to microservices
+  key_results:
+    - all services decomposed and hardened by cutover
+    - maintain 99.9% availability through and after cutover
+    - zero critical security findings at cutover
+  period_end: 2026-06-30
 ```
 
 ## The honesty gates

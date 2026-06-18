@@ -1,16 +1,19 @@
-"""Drift view -- the per-initiative lens.
+"""Drift view -- the per-OKR lens.
 
 Turns a pile of individually-approved exceptions into the one sentence that shows
-an initiative betraying its stated intent. An initiative has two distinct risk
-footprints and the view keeps them separate:
+an OKR betraying its stated intent. An OKR has two distinct risk footprints and
+the view keeps them separate:
 
-* **Internal** -- exceptions filed *against* the initiative (``initiative == X``),
-  accepting debt to hit its deadline. These degrade the initiative's own risks:
-  the quality rebuild becoming a lift-and-shift.
-* **External** -- exceptions filed against *other* projects that name this
-  initiative in ``diverted_to``. Their security work did not happen because their
-  people were pulled here. This footprint is invisible on the initiative's own
-  ledger and surfaces only when you read the whole corpus.
+* **Internal** -- exceptions filed *against* the OKR (``okr == X``), accepting
+  debt to hit its deadline. These degrade the OKR's own risks: the quality
+  rebuild becoming a lift-and-shift.
+* **External** -- exceptions filed against *other* OKRs that name this one in
+  ``diverted_to``. Their security work did not happen because their people were
+  pulled here. This footprint is invisible on the OKR's own ledger and surfaces
+  only when you read the whole corpus.
+
+An OKR is an Objective plus Key Results; the view displays the key results as the
+commitments the exception footprint is eroding.
 """
 
 from __future__ import annotations
@@ -29,7 +32,7 @@ from ..render import EN_DASH, fmt_band, join_clause, md_table, plural
 
 @dataclass
 class Footprint:
-    initiative: str
+    okr: str
     internal: list[Exception_]
     external: list[Exception_]
     internal_band: Band | None
@@ -43,27 +46,27 @@ def _band_or_dash(band: Band | None) -> str:
     return fmt_band(band) if band is not None else "—"
 
 
-def build_footprint(engine: Engine, corpus: Corpus, initiative: str) -> Footprint:
+def build_footprint(engine: Engine, corpus: Corpus, okr: str) -> Footprint:
     internal = [
         e for e in corpus.exceptions
-        if e.initiative == initiative and e.is_active and e.counts_in_bands
+        if e.okr == okr and e.is_active and e.counts_in_bands
     ]
     external = [
         e for e in corpus.exceptions
-        if e.diverted_to == initiative and e.is_active and e.counts_in_bands
+        if e.diverted_to == okr and e.is_active and e.counts_in_bands
     ]
     by_project_ids: dict[str, list[str]] = defaultdict(list)
     for e in external:
-        by_project_ids[e.initiative].append(e.id)
+        by_project_ids[e.okr].append(e.id)
     external_by_project = {
         proj: (len(ids), engine.combined_band(ids)) for proj, ids in by_project_ids.items()
     }
     all_filed = [
         e for e in corpus.exceptions
-        if e.initiative == initiative or e.diverted_to == initiative
+        if e.okr == okr or e.diverted_to == okr
     ]
     return Footprint(
-        initiative=initiative,
+        okr=okr,
         internal=internal,
         external=external,
         internal_band=engine.combined_band([e.id for e in internal]),
@@ -86,13 +89,13 @@ class Trajectory:
     accelerating: bool
 
 
-def build_trajectory(footprint: Footprint, config: Config, cutover: dt.date | None) -> Trajectory | None:
+def build_trajectory(footprint: Footprint, config: Config, period_end: dt.date | None) -> Trajectory | None:
     dated = sorted([e for e in footprint.all_filed if e.filed_on], key=lambda e: e.filed_on)
     if not dated:
         return None
     earliest = dated[0].filed_on
     latest = dated[-1].filed_on
-    end = cutover or latest
+    end = period_end or latest
     stretch = dt.timedelta(weeks=config.final_stretch_weeks)
     final_start = end - stretch
     first_quarter_end = earliest + dt.timedelta(days=91)
@@ -134,39 +137,39 @@ def _sparkline(monthly: list[tuple[str, int]]) -> str:
     return "".join(blocks[min(len(blocks) - 1, round((n / hi) * (len(blocks) - 1)))] for n in counts)
 
 
-def _initiative_section(engine: Engine, corpus: Corpus, config: Config, initiative: str) -> str:
-    fp = build_footprint(engine, corpus, initiative)
-    init = corpus.initiatives.get(initiative)
-    objective = init.stated_objective if init and init.stated_objective else None
-    cutover = init.cutover_date if init else None
-    traj = build_trajectory(fp, config, cutover)
+def _okr_section(engine: Engine, corpus: Corpus, config: Config, okr: str) -> str:
+    fp = build_footprint(engine, corpus, okr)
+    meta = corpus.okrs.get(okr)
+    objective = meta.objective if meta and meta.objective else None
+    key_results = meta.key_results if meta else []
+    period_end = meta.period_end if meta else None
+    traj = build_trajectory(fp, config, period_end)
 
-    title = init.title if init else initiative
+    title = meta.title if meta else okr
     lines = [f"### {title}", ""]
 
     # Headline sentence -- the thing a busy executive cannot unsee.
     obj_clause = (
-        f"stated objective: {objective}."
+        f"objective: {objective}."
         if objective
-        else "(no stated objective registered in initiatives.yaml)."
+        else "(no objective registered in okrs.yaml)."
     )
-    parts = [f"**{initiative}** — {obj_clause}"]
+    parts = [f"**{okr}** — {obj_clause}"]
 
     if fp.internal:
         parts.append(
             f"On itself, {plural(len(fp.internal), 'exception')} accept debt or defer "
-            f"hardening to hit the cutover, adding {_band_or_dash(fp.internal_band)} to its own risks."
+            f"hardening to hit the deadline, adding {_band_or_dash(fp.internal_band)} to its own risks."
         )
     if fp.external:
-        n_projects = len(fp.external_by_project)
         breakdown = join_clause(
             [f"{proj} ({cnt})" for proj, (cnt, _) in sorted(
                 fp.external_by_project.items(), key=lambda kv: -kv[1][0])]
         )
         parts.append(
-            f"On other projects, {plural(len(fp.external), 'exception')} name {initiative} "
+            f"On other OKRs, {plural(len(fp.external), 'exception')} name {okr} "
             f"as where their resources went, adding {_band_or_dash(fp.external_band)} to those "
-            f"projects' risks ({breakdown})."
+            f"OKRs' risks ({breakdown})."
         )
     if traj and (traj.first_quarter_count or traj.final_stretch_count):
         parts.append(
@@ -175,17 +178,25 @@ def _initiative_section(engine: Engine, corpus: Corpus, config: Config, initiati
             + (" — accelerating sharply into the deadline." if traj.accelerating else ".")
         )
     if fp.external and len(fp.external_by_project) >= 1:
+        commitments = "these key results" if key_results else "its own quality"
         parts.append(
-            f"The initiative traded its own quality for the date and pulled "
+            f"The work traded {commitments} for the date and pulled "
             f"{plural(len(fp.external_by_project), 'other team')}' capacity to do it."
         )
     lines.append(" ".join(parts))
     lines.append("")
 
+    # Key results: the commitments the footprint above is eroding.
+    if key_results:
+        lines.append("**Key results at stake:**")
+        for kr in key_results:
+            lines.append(f"- {kr}")
+        lines.append("")
+
     # Footprint table.
     rows = [
         ["Internal (on itself)", str(len(fp.internal)), _band_or_dash(fp.internal_band)],
-        ["External (on starved projects)", str(len(fp.external)), _band_or_dash(fp.external_band)],
+        ["External (on starved OKRs)", str(len(fp.external)), _band_or_dash(fp.external_band)],
         ["**Combined**", str(len(fp.internal) + len(fp.external)), _band_or_dash(fp.combined_band)],
     ]
     lines.append(md_table(["Footprint", "Exceptions", "Added residual risk"], rows))
@@ -196,9 +207,9 @@ def _initiative_section(engine: Engine, corpus: Corpus, config: Config, initiati
             [proj, str(cnt), _band_or_dash(band)]
             for proj, (cnt, band) in sorted(fp.external_by_project.items(), key=lambda kv: -kv[1][0])
         ]
-        lines.append("**External footprint by starved project**")
+        lines.append("**External footprint by starved OKR**")
         lines.append("")
-        lines.append(md_table(["Project (filer)", "Exceptions", "Added residual risk"], ext_rows))
+        lines.append(md_table(["OKR (filer)", "Exceptions", "Added residual risk"], ext_rows))
         lines.append("")
 
     if traj:
@@ -218,29 +229,29 @@ def render_drift(
     engine: Engine,
     corpus: Corpus,
     config: Config,
-    only_initiative: str | None = None,
+    only_okr: str | None = None,
     significant_only: bool = False,
 ) -> str:
-    # Every initiative that is either filed-against or diverted-to.
+    # Every OKR that is either filed-against or diverted-to.
     names: set[str] = set()
     diverted_targets: set[str] = set()
     for e in corpus.exceptions:
-        if e.initiative:
-            names.add(e.initiative)
+        if e.okr:
+            names.add(e.okr)
         if e.diverted_to:
             names.add(e.diverted_to)
             diverted_targets.add(e.diverted_to)
 
-    if only_initiative:
-        if only_initiative not in names and only_initiative not in corpus.initiatives:
-            return f"No initiative named {only_initiative!r} appears in the corpus."
-        targets = [only_initiative]
+    if only_okr:
+        if only_okr not in names and only_okr not in corpus.okrs:
+            return f"No OKR named {only_okr!r} appears in the corpus."
+        targets = [only_okr]
     else:
         candidates = names
         if significant_only:
-            # The drift-specific signal is the external footprint: an initiative
-            # that pulled resources from others. An initiative with only its own
-            # accepted debt is already covered, per risk, by the appetite view.
+            # The drift-specific signal is the external footprint: an OKR that
+            # pulled resources from others. An OKR with only its own accepted debt
+            # is already covered, per risk, by the appetite view.
             candidates = {n for n in names if n in diverted_targets}
         scored = []
         for name in candidates:
@@ -250,16 +261,15 @@ def render_drift(
         targets = [name for _, name in sorted(scored, key=lambda s: -s[0])]
 
     out = ["## Drift", ""]
-    if not only_initiative:
+    if not only_okr:
         out.append(
-            "Each initiative has two footprints: the risk it accepts on itself, and the risk it "
-            "pushes onto the projects it pulled resources from. The second is invisible on its own "
-            "ledger."
+            "Each OKR has two footprints: the risk it accepts on itself, and the risk it pushes "
+            "onto the OKRs it pulled resources from. The second is invisible on its own ledger."
         )
         out.append("")
     if not targets:
-        out.append("No initiative shows an external footprint.")
+        out.append("No OKR shows an external footprint.")
         out.append("")
     for name in targets:
-        out.append(_initiative_section(engine, corpus, config, name))
+        out.append(_okr_section(engine, corpus, config, name))
     return "\n".join(out).rstrip() + "\n"

@@ -4,25 +4,36 @@ This document pins the quantitative choices so they are consistent across every
 computation and reproducible from the same corpus. If you change one, change it
 here.
 
-## Light FAIR
+## A light, domain-neutral adaptation of FAIR
+
+The model is a deliberately light adaptation of FAIR's frequency-times-magnitude
+decomposition, generalized so non-adversarial tech risks (outages, data
+integrity) sit in the same model as adversarial ones (account takeover, data
+exfiltration). The FAIR lineage is intentional and kept visible; the adaptation —
+two domain-neutral frequency-side variables — is the point.
 
 Risk is three estimated variables, each a 90% confidence interval:
 
-- **Contact Frequency (CF)** — threat contacts with the asset per year.
-  Environmental.
-- **Probability of Action (PoA)** — given contact, the probability the actor
-  acts **and succeeds**. Vulnerability is folded into this variable on purpose,
-  so a preventive-control gap has a clean home. This is a known light-FAIR
-  simplification; PoA here does not carry its strict canonical meaning of the
-  actor's decision alone.
-- **Loss Magnitude (LM)** — loss in dollars if a loss event occurs.
+- **Opportunity Frequency (OF)** — how many times a year a condition arises that
+  could produce this loss. Environmental. (A threat contact for an adversarial
+  risk; a disruption, a deploy, or a risky write for a non-adversarial one.)
+- **Probability of Realization (PoR)** — given that condition, the chance the
+  loss event is actually realized. Control failure is folded into this variable
+  on purpose, so a preventive-control gap has a clean home. This generalizes
+  FAIR's "probability the actor acts **and succeeds**": for an outage it is the
+  chance a disruption becomes customer-facing; for data integrity, the chance a
+  bad write corrupts downstream. PoR therefore does not carry FAIR's strict
+  canonical meaning of the actor's decision alone — a deliberate, documented
+  simplification.
+- **Loss Magnitude (LM)** — loss in dollars if the loss event occurs.
 
 ```
-LEF = CF × PoA
-ALE = LEF × LM = CF × PoA × LM
+LEF = OF × PoR        (Loss Event Frequency — how often the loss event happens)
+ALE = LEF × LM        (Annual Loss Exposure)
 ```
 
-An exception moves exactly one variable and supplies its new 90% CI.
+Loss Event Frequency and Loss Magnitude are unchanged from FAIR and already read
+neutrally. An exception moves exactly one variable and supplies its new 90% CI.
 
 ## Calibrated estimation is the foundation
 
@@ -46,14 +57,14 @@ interval spans ±`Z95` standard deviations of the transformed-space mean, where
 
 | Variable | Family | Why |
 |---|---|---|
-| CF, LM | **lognormal** | positive, right-skewed, multiplicative; parameters solved in log space |
-| PoA | **logit-normal** | naturally bounded to `(0, 1)`; fit symmetrically in logit space, the same way the lognormal is fit in log space |
+| OF, LM | **lognormal** | positive, right-skewed, multiplicative; parameters solved in log space |
+| PoR | **logit-normal** | naturally bounded to `(0, 1)`; fit symmetrically in logit space, the same way the lognormal is fit in log space |
 
 Fitting (lognormal, in log space): `μ = (ln low + ln high) / 2`,
 `σ = (ln high − ln low) / (2·Z95)`. Logit-normal is identical with
 `logit(p) = ln(p / (1 − p))` in place of `ln`. The logit-normal avoids the
 truncation artefacts of a clipped normal and behaves well even for the small
-probabilities typical of PoA.
+probabilities typical of PoR.
 
 ## Monte Carlo
 
@@ -70,7 +81,7 @@ probabilities typical of PoA.
 
 ### Baseline ALE per risk
 
-Monte Carlo over `CF × PoA × LM` using the risk's baseline ranges.
+Monte Carlo over `OF × PoR × LM` using the risk's baseline ranges.
 
 ### Exception contribution
 
@@ -165,14 +176,16 @@ listed in the send-back bucket.
 
 ## Drift
 
-An initiative has two footprints, reported separately and combined:
+An OKR (an Objective plus Key Results) has two footprints, reported separately
+and combined:
 
-- **Internal** — exceptions filed against the initiative (`initiative == X`),
-  accepting debt on its own risks.
-- **External** — exceptions filed against other projects that name this
-  initiative in `diverted_to`, raising *those* projects' risks. Invisible on the
-  initiative's own ledger; it surfaces only by reading the whole corpus.
+- **Internal** — exceptions filed against the OKR (`okr == X`), accepting debt on
+  its own risks.
+- **External** — exceptions filed against other OKRs that name this one in
+  `diverted_to`, raising *those* OKRs' risks. Invisible on the OKR's own ledger;
+  it surfaces only by reading the whole corpus.
 
-The trajectory is time-aware: it compares the first-quarter filing count to the
-count in the final stretch before the `cutover_date` (default 8 weeks), and flags
-acceleration into a deadline — the tell.
+The view displays the OKR's key results as the commitments the footprint is
+eroding. The trajectory is time-aware: it compares the first-quarter filing count
+to the count in the final stretch before the `period_end` (default 8 weeks), and
+flags acceleration into a deadline — the tell.

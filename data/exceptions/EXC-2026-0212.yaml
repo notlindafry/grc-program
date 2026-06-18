@@ -3,12 +3,12 @@ title: Deferred data-validation checks (2) — engineers on migration
 owner: data-platform-lead@company.com
 filed_on: 2026-06-03
 
-initiative: data-platform
+okr: data-platform
 control: DQ-VALIDATION-005
 mapped_risk: RISK-DATA-QUALITY
 
 exception_effect:
-  moves: probability_of_action
+  moves: probability_of_realization
   with_exception_90ci: [0.08, 0.2]
   estimated_by: j.okafor@company.com
   estimated_on: 2026-05-30
@@ -22,7 +22,7 @@ scope:
 remediation:
   target_date: 2026-09-01
   mechanism: restore_validation_suite
-  reduces: probability_of_action
+  reduces: probability_of_realization
 status: active
 expires_on: 2026-09-01
 renewals:

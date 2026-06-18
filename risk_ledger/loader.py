@@ -5,7 +5,7 @@ Layout::
     data/
       risks.yaml          # the light register: baseline + appetite per risk
       estimators.yaml     # the calibration gate
-      initiatives.yaml    # stated objective (+ optional cutover) per initiative
+      okrs.yaml           # objective + key results (+ optional period_end) per OKR
       exceptions/
         EXC-*.yaml        # one file per exception
       config.yaml         # optional run configuration
@@ -22,14 +22,14 @@ from typing import Any
 
 import yaml
 
-from .models import Estimator, Exception_, Initiative, Risk
+from .models import OKR, Estimator, Exception_, Risk
 
 
 @dataclass
 class Corpus:
     risks: dict[str, Risk] = field(default_factory=dict)
     estimators: dict[str, Estimator] = field(default_factory=dict)
-    initiatives: dict[str, Initiative] = field(default_factory=dict)
+    okrs: dict[str, OKR] = field(default_factory=dict)
     exceptions: list[Exception_] = field(default_factory=list)
     load_errors: list[str] = field(default_factory=list)
 
@@ -65,14 +65,14 @@ def load_corpus(data_dir: Path) -> Corpus:
         else:
             corpus.load_errors.append(f"{est_path}: expected a mapping of email -> spec")
 
-    init_path = data_dir / "initiatives.yaml"
-    if init_path.exists():
-        raw = _load_yaml(init_path) or {}
+    okr_path = data_dir / "okrs.yaml"
+    if okr_path.exists():
+        raw = _load_yaml(okr_path) or {}
         if isinstance(raw, dict):
-            for iid, spec in raw.items():
-                corpus.initiatives[str(iid)] = Initiative.parse(str(iid), spec or {})
+            for oid, spec in raw.items():
+                corpus.okrs[str(oid)] = OKR.parse(str(oid), spec or {})
         else:
-            corpus.load_errors.append(f"{init_path}: expected a mapping of initiative-id -> spec")
+            corpus.load_errors.append(f"{okr_path}: expected a mapping of okr-id -> spec")
 
     exc_dir = data_dir / "exceptions"
     if exc_dir.exists():

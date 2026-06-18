@@ -1,44 +1,59 @@
 # Exception Risk Report
 
-**Generated 2026-06-18 · Scope: all active exceptions · 47 records, 6 initiatives, 12 mapped risks**
+**Generated 2026-06-18 · Scope: all active exceptions · 49 records, 7 OKRs, 13 mapped risks**
 
 ---
 
 ## Top line
 
-Across the active exception corpus, the **gcloud-migration** initiative is the dominant source of newly accepted risk and **2 risks now carry residual exposure above appetite**. Most of that breach comes from accumulation rather than any single decision. Fixing the IAM-LEGACY-AUTH-001 (cluster, 12 exceptions) would clear the largest single share of it.
+Across the active exception corpus, the **gcloud-migration** OKR is the dominant source of newly accepted risk and **3 risks now carry residual exposure above appetite**. Fixing the EXC-2026-0170 — Run core services single-region to cut infrastructure cost would clear the largest single share of it.
 
 ---
 
 ## Drift
 
-Each initiative has two footprints: the risk it accepts on itself, and the risk it pushes onto the projects it pulled resources from. The second is invisible on its own ledger.
+Each OKR has two footprints: the risk it accepts on itself, and the risk it pushes onto the OKRs it pulled resources from. The second is invisible on its own ledger.
 
 ### gcloud-migration
 
-**gcloud-migration** — stated objective: a quality rebuild from monolith to microservices. On itself, 15 exceptions accept debt or defer hardening to hit the cutover, adding $924k–$1.7M to its own risks. On other projects, 18 exceptions name gcloud-migration as where their resources went, adding $2.3M–$3.8M to those projects' risks (payments-launch (9), data-platform (6), and trust-and-safety (3)). Acceptance went from 6 in the first quarter to 27 in the final 8 weeks — accelerating sharply into the deadline. The initiative traded its own quality for the date and pulled 3 other teams' capacity to do it.
+**gcloud-migration** — objective: a quality rebuild from monolith to microservices. On itself, 16 exceptions accept debt or defer hardening to hit the deadline, adding $1.8M–$7.1M to its own risks. On other OKRs, 19 exceptions name gcloud-migration as where their resources went, adding $3.0M–$6.2M to those OKRs' risks (payments-launch (9), data-platform (6), trust-and-safety (3), and core-platform (1)). Acceptance went from 6 in the first quarter to 28 in the final 8 weeks — accelerating sharply into the deadline. The work traded these key results for the date and pulled 4 other teams' capacity to do it.
+
+**Key results at stake:**
+- all services decomposed and hardened by cutover
+- maintain 99.9% availability through and after cutover
+- zero critical security findings at cutover
 
 | Footprint | Exceptions | Added residual risk |
 |---|---|---|
-| Internal (on itself) | 15 | $924k–$1.7M |
-| External (on starved projects) | 18 | $2.3M–$3.8M |
-| **Combined** | 33 | $3.5M–$5.2M |
+| Internal (on itself) | 16 | $1.8M–$7.1M |
+| External (on starved OKRs) | 19 | $3.0M–$6.2M |
+| **Combined** | 35 | $5.4M–$11.9M |
 
-**External footprint by starved project**
+**External footprint by starved OKR**
 
-| Project (filer) | Exceptions | Added residual risk |
+| OKR (filer) | Exceptions | Added residual risk |
 |---|---|---|
 | payments-launch | 9 | $1.1M–$2.1M |
 | data-platform | 6 | $725k–$1.8M |
 | trust-and-safety | 3 | $170k–$546k |
+| core-platform | 1 | $332k–$3.1M |
 
-**Trajectory** (2026-01-12 – 2026-06-14): 2026-01 1, 2026-02 2, 2026-03 3, 2026-05 18, 2026-06 9  `▁▂▂█▅`
+**Trajectory** (2026-01-12 – 2026-06-14): 2026-01 1, 2026-02 2, 2026-03 3, 2026-04 1, 2026-05 19, 2026-06 9  `▁▂▂▁█▄`
 
 ---
 
 ## Appetite breach
 
-Stated tolerance across 12 tracked risks sums to **$16.4M**; the acceptances on the books reveal the organization is carrying **$5.7M–$8.1M** in residual annual loss. 1 risk over and 1 risk straddling appetite.
+Stated tolerance across 13 tracked risks sums to **$17.9M**; the acceptances on the books reveal the organization is carrying **$8.1M–$14.9M** in residual annual loss. 2 risks over and 1 risk straddling appetite.
+
+### RISK-PLATFORM-OUTAGE — OVER appetite
+
+RISK-PLATFORM-OUTAGE carries **$1.6M–$7.9M** in residual annual loss against a **$1.5M** appetite, and the band sits fully above the line. This is a **single-acceptance breach**: EXC-2026-0170 (Run core services single-region to cut infrastructure cost) accounts for 65% of the contributed exposure. One owner, one decision to revisit.
+
+| Exception | What was accepted | Contribution | Over alone? | Owner |
+|---|---|---|---|---|
+| EXC-2026-0170 | Run core services single-region to cut infrastructure cost | $612k–$5.8M | maybe | platform-lead@company.com |
+| EXC-2026-0171 | Skip quarterly platform DR test to free the team for migration | $332k–$3.1M | maybe | platform-lead@company.com |
 
 ### RISK-ACCT-TAKEOVER — OVER appetite
 
@@ -80,9 +95,11 @@ Grouped by root cause (the control deviated from), ranked by expected residual c
 
 | Rank | Cluster / exception | Expected residual | Breaches | Remediation | Owner | Notes |
 |---|---|---|---|---|---|---|
-| 1 | IAM-LEGACY-AUTH-001 (cluster, 12 exceptions) | $567k–$970k | ACCT-TAKEOVER | enforce_sso_via_idp, target Q3 2026 | platform-lead@company.com | 4 of 12 malformed, re-assess first |
-| 2 | DLP-EXPORT-001 (cluster, 3 exceptions) | $229k–$1.1M | DATA-EXFIL | re_enable_dlp_with_tuned_rules, target Q3 2026 | data-platform-lead@company.com | well-formed |
-| 3 | EXC-2026-0151 — Service-account sprawl on migrated workloads | $101k–$718k | ACCT-TAKEOVER | rotate_and_scope_service_accounts, target Q3 2026 | iam-lead@company.com | upper bound alone breaches appetite (tail risk) |
+| 1 | EXC-2026-0170 — Run core services single-region to cut infrastructure cost | $612k–$5.8M | PLATFORM-OUTAGE | deploy_multi_region_active_active, target Q4 2026 | platform-lead@company.com | well-formed |
+| 2 | EXC-2026-0171 — Skip quarterly platform DR test to free the team for migration | $332k–$3.1M | PLATFORM-OUTAGE | resume_quarterly_dr_tests, target Q3 2026 | platform-lead@company.com | well-formed |
+| 3 | IAM-LEGACY-AUTH-001 (cluster, 12 exceptions) | $567k–$970k | ACCT-TAKEOVER | enforce_sso_via_idp, target Q3 2026 | platform-lead@company.com | 4 of 12 malformed, re-assess first |
+| 4 | DLP-EXPORT-001 (cluster, 3 exceptions) | $229k–$1.1M | DATA-EXFIL | re_enable_dlp_with_tuned_rules, target Q3 2026 | data-platform-lead@company.com | well-formed |
+| 5 | EXC-2026-0151 — Service-account sprawl on migrated workloads | $101k–$718k | ACCT-TAKEOVER | rotate_and_scope_service_accounts, target Q3 2026 | iam-lead@company.com | upper bound alone breaches appetite (tail risk) |
 
 *10 further clusters contribute to risks that remain within appetite and are not ranked here.*
 
@@ -98,6 +115,6 @@ A theatrical exception cannot be actioned. These are returned for a real assessm
 
 ## Data confidence
 
-44 of 47 records rest on calibrated, in-window estimates with explicit scope. 3 records rest on uncalibrated, stale, or vaguely-scoped inputs and are excluded from every band until corrected. 8 records are flagged and held out of the rankings until corrected. 
+46 of 49 records rest on calibrated, in-window estimates with explicit scope. 3 records rest on uncalibrated, stale, or vaguely-scoped inputs and are excluded from every band until corrected. 8 records are flagged and held out of the rankings until corrected. 
 
 All figures are 90% confidence ranges from a 10,000-iteration light Monte Carlo (lognormal for frequency and magnitude, logit-normal for probabilities), seeded (seed 20260617) for a reproducible audit trail. Contributions are summed as independent marginal estimates — a deliberate light-fidelity simplification, since real effects can interact. Read these as relative magnitudes, not precise valuations.

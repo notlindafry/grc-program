@@ -29,9 +29,9 @@ from .models import (
     Risk,
 )
 from .montecarlo import (
-    CONTACT_FREQUENCY,
+    OPPORTUNITY_FREQUENCY,
     LOSS_MAGNITUDE,
-    PROBABILITY_OF_ACTION,
+    PROBABILITY_OF_REALIZATION,
     VARIABLES,
 )
 
@@ -48,9 +48,9 @@ def _valid_ci_for(variable: str, ci: list[float] | None) -> bool:
     low, high = ci
     if high <= low:
         return False
-    if variable in (CONTACT_FREQUENCY, LOSS_MAGNITUDE):
+    if variable in (OPPORTUNITY_FREQUENCY, LOSS_MAGNITUDE):
         return low > 0
-    if variable == PROBABILITY_OF_ACTION:
+    if variable == PROBABILITY_OF_REALIZATION:
         return 0.0 < low < high < 1.0
     return False
 
@@ -59,8 +59,8 @@ def validate_risk(risk: Risk) -> list[Issue]:
     """A risk whose baseline or appetite is malformed cannot anchor any estimate."""
     issues: list[Issue] = []
     checks = {
-        CONTACT_FREQUENCY: risk.contact_frequency_90ci,
-        PROBABILITY_OF_ACTION: risk.probability_of_action_90ci,
+        OPPORTUNITY_FREQUENCY: risk.opportunity_frequency_90ci,
+        PROBABILITY_OF_REALIZATION: risk.probability_of_realization_90ci,
         LOSS_MAGNITUDE: risk.loss_magnitude_90ci,
     }
     for variable, ci in checks.items():

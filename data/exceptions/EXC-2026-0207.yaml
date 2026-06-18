@@ -3,12 +3,12 @@ title: Deferred PCI segmentation work (2) — staff on migration
 owner: payments-lead@company.com
 filed_on: 2026-05-28
 
-initiative: payments-launch
+okr: payments-launch
 control: PCI-SEG-002
 mapped_risk: RISK-PCI-SCOPE
 
 exception_effect:
-  moves: probability_of_action
+  moves: probability_of_realization
   with_exception_90ci: [0.04, 0.1]
   estimated_by: j.okafor@company.com
   estimated_on: 2026-05-30
@@ -22,7 +22,7 @@ scope:
 remediation:
   target_date: 2026-09-01
   mechanism: complete_network_segmentation
-  reduces: probability_of_action
+  reduces: probability_of_realization
 status: active
 expires_on: 2026-09-01
 renewals:

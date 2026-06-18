@@ -14,8 +14,10 @@ reads; this script just lets us regenerate and re-tune them in one place. Run::
 The numeric ranges below are the tuning knobs. They are chosen so that:
   * RISK-ACCT-TAKEOVER breaches by *accumulation* (no single exception over alone),
   * RISK-DATA-EXFIL straddles via a *single-acceptance* (EXC-...-0133 dominates),
+  * RISK-PLATFORM-OUTAGE breaches via a *single-acceptance* (region concentration,
+    EXC-...-0170, dominates) -- the availability-domain parallel to the DLP case,
   * the gcloud-migration external footprint outweighs its internal one,
-  * acceptance accelerates into the cutover.
+  * acceptance accelerates into the period_end.
 """
 
 from __future__ import annotations
@@ -41,98 +43,106 @@ RISKS = """\
 RISK-ACCT-TAKEOVER:
   title: Account takeover of an internal system via credential compromise
   baseline:
-    contact_frequency_90ci: [10, 40]          # threat contacts per year (environmental)
-    probability_of_action_90ci: [0.005, 0.02] # prob the actor acts AND succeeds (Vulnerability folded in)
-    loss_magnitude_90ci: [200000, 500000]     # loss if a loss event occurs, USD
+    opportunity_frequency_90ci: [10, 40]           # conditions per year that could produce this loss
+    probability_of_realization_90ci: [0.005, 0.02] # given the condition, chance the loss is realized (control failure folded in)
+    loss_magnitude_90ci: [200000, 500000]          # loss if a loss event occurs, USD
   appetite_threshold: 500000
 
 RISK-DATA-EXFIL:
   title: Exfiltration of regulated data from an analytics or export path
   baseline:
-    contact_frequency_90ci: [20, 80]
-    probability_of_action_90ci: [0.01, 0.04]
+    opportunity_frequency_90ci: [20, 80]
+    probability_of_realization_90ci: [0.01, 0.04]
     loss_magnitude_90ci: [100000, 300000]
   appetite_threshold: 600000
 
 RISK-PAYMENT-FRAUD:
   title: Fraudulent transactions against the payments platform
   baseline:
-    contact_frequency_90ci: [15, 50]
-    probability_of_action_90ci: [0.02, 0.06]
+    opportunity_frequency_90ci: [15, 50]
+    probability_of_realization_90ci: [0.02, 0.06]
     loss_magnitude_90ci: [120000, 300000]
   appetite_threshold: 3000000
 
 RISK-PCI-SCOPE:
   title: PCI scope expansion / cardholder data handling gap
   baseline:
-    contact_frequency_90ci: [5, 20]
-    probability_of_action_90ci: [0.01, 0.04]
+    opportunity_frequency_90ci: [5, 20]
+    probability_of_realization_90ci: [0.01, 0.04]
     loss_magnitude_90ci: [200000, 700000]
   appetite_threshold: 2500000
 
 RISK-DATA-QUALITY:
   title: Corrupted or unvalidated data feeding downstream decisions
   baseline:
-    contact_frequency_90ci: [10, 50]
-    probability_of_action_90ci: [0.02, 0.10]
+    opportunity_frequency_90ci: [10, 50]
+    probability_of_realization_90ci: [0.02, 0.10]
     loss_magnitude_90ci: [50000, 200000]
   appetite_threshold: 1500000
 
 RISK-DATA-AVAILABILITY:
   title: Loss of availability of a core data platform service
   baseline:
-    contact_frequency_90ci: [10, 40]
-    probability_of_action_90ci: [0.02, 0.08]
+    opportunity_frequency_90ci: [10, 40]
+    probability_of_realization_90ci: [0.02, 0.08]
     loss_magnitude_90ci: [80000, 250000]
   appetite_threshold: 1500000
 
 RISK-ABUSE-ESCALATION:
   title: Unmitigated abuse escalating on the platform
   baseline:
-    contact_frequency_90ci: [20, 80]
-    probability_of_action_90ci: [0.03, 0.10]
+    opportunity_frequency_90ci: [20, 80]
+    probability_of_realization_90ci: [0.03, 0.10]
     loss_magnitude_90ci: [40000, 150000]
   appetite_threshold: 1500000
 
 RISK-ABUSE-DETECTION:
   title: Gaps in automated detection of policy-violating content
   baseline:
-    contact_frequency_90ci: [20, 70]
-    probability_of_action_90ci: [0.02, 0.08]
+    opportunity_frequency_90ci: [20, 70]
+    probability_of_realization_90ci: [0.02, 0.08]
     loss_magnitude_90ci: [50000, 180000]
   appetite_threshold: 1500000
 
 RISK-MIGRATION-AVAILABILITY:
   title: Availability regressions introduced by the migration
   baseline:
-    contact_frequency_90ci: [10, 40]
-    probability_of_action_90ci: [0.02, 0.08]
+    opportunity_frequency_90ci: [10, 40]
+    probability_of_realization_90ci: [0.02, 0.08]
     loss_magnitude_90ci: [60000, 200000]
   appetite_threshold: 1000000
 
 RISK-MIGRATION-DATAINTEGRITY:
   title: Data integrity loss during monolith-to-microservices cutover
   baseline:
-    contact_frequency_90ci: [5, 20]
-    probability_of_action_90ci: [0.01, 0.05]
+    opportunity_frequency_90ci: [5, 20]
+    probability_of_realization_90ci: [0.01, 0.05]
     loss_magnitude_90ci: [100000, 400000]
   appetite_threshold: 1000000
 
 RISK-VENDOR-ACCESS:
   title: Excessive third-party vendor access to internal systems
   baseline:
-    contact_frequency_90ci: [5, 20]
-    probability_of_action_90ci: [0.01, 0.04]
+    opportunity_frequency_90ci: [5, 20]
+    probability_of_realization_90ci: [0.01, 0.04]
     loss_magnitude_90ci: [80000, 300000]
   appetite_threshold: 800000
 
 RISK-ENDPOINT-MALWARE:
   title: Malware on a corporate endpoint leading to lateral movement
   baseline:
-    contact_frequency_90ci: [30, 100]
-    probability_of_action_90ci: [0.02, 0.08]
+    opportunity_frequency_90ci: [30, 100]
+    probability_of_realization_90ci: [0.02, 0.08]
     loss_magnitude_90ci: [30000, 120000]
   appetite_threshold: 1000000
+
+RISK-PLATFORM-OUTAGE:
+  title: Customer-facing outage of a core platform service
+  baseline:
+    opportunity_frequency_90ci: [20, 60]            # disruptions per year that could cause an outage
+    probability_of_realization_90ci: [0.01, 0.04]   # given a disruption, chance it becomes a customer outage (resilient baseline)
+    loss_magnitude_90ci: [150000, 800000]           # revenue, SLA credits, reputational loss per outage
+  appetite_threshold: 1500000
 """
 
 ESTIMATORS = """\
@@ -166,35 +176,68 @@ l.romano@company.com:
   calibrated_on: 2024-02-01
 """
 
-INITIATIVES = """\
-# Initiatives the exceptions attach to. The drift view's headline names the
-# stated objective, so it lives here, git-native. cutover_date lets the
-# trajectory analysis measure the run-up to a real deadline.
+OKRS = """\
+# OKRs the exceptions attach to. An OKR is an Objective plus Key Results. The
+# drift view's headline names the objective and displays the key results as the
+# commitments the exception footprint is eroding. period_end lets the trajectory
+# analysis measure the run-up to a real deadline.
 
 gcloud-migration:
   title: gcloud-migration
-  stated_objective: a quality rebuild from monolith to microservices
-  cutover_date: 2026-06-30
+  objective: a quality rebuild from monolith to microservices
+  key_results:
+    - all services decomposed and hardened by cutover
+    - maintain 99.9% availability through and after cutover
+    - zero critical security findings at cutover
+  period_end: 2026-06-30
 
 payments-launch:
   title: payments-launch
-  stated_objective: launch the new payments platform to general availability
+  objective: launch the new payments platform to general availability
+  key_results:
+    - pass the external PCI assessment before launch
+    - fraud loss rate under target at GA
+  period_end: 2026-07-31
 
 data-platform:
   title: data-platform
-  stated_objective: a governed, reliable central data platform
+  objective: a governed, reliable central data platform
+  key_results:
+    - DLP enforced on every export path
+    - 99.9% pipeline availability
+  period_end: 2026-09-30
 
 trust-and-safety:
   title: trust-and-safety
-  stated_objective: keep abuse and policy-violating content off the platform
+  objective: keep abuse and policy-violating content off the platform
+  key_results:
+    - abuse-escalation SLA met
+    - detection-model recall above target
+  period_end: 2026-09-30
 
 mobile-app:
   title: mobile-app
-  stated_objective: ship the redesigned mobile application
+  objective: ship the redesigned mobile application
+  key_results:
+    - redesigned app in general availability
+    - crash-free sessions above target
+  period_end: 2026-08-31
 
 internal-tools:
   title: internal-tools
-  stated_objective: modernize internal developer and operations tooling
+  objective: modernize internal developer and operations tooling
+  key_results:
+    - legacy toolchain decommissioned
+    - TLS 1.3 enforced across internal tools
+  period_end: 2026-10-31
+
+core-platform:
+  title: core-platform
+  objective: keep the core platform reliable and available
+  key_results:
+    - 99.9% availability across core services
+    - quarterly DR test passing
+  period_end: 2026-12-31
 """
 
 CONFIG = """\
@@ -225,7 +268,7 @@ def write_exception(
     title,
     owner,
     filed_on,
-    initiative,
+    okr,
     control,
     mapped_risk,
     moves,
@@ -253,7 +296,7 @@ def write_exception(
         f"owner: {owner}",
         f"filed_on: {filed_on}",
         "",
-        f"initiative: {initiative}",
+        f"okr: {okr}",
         f"control: {control}",
         f"mapped_risk: {mapped_risk}",
         "",
@@ -314,7 +357,7 @@ def build() -> None:
 
     (DATA / "risks.yaml").write_text(RISKS)
     (DATA / "estimators.yaml").write_text(ESTIMATORS)
-    (DATA / "initiatives.yaml").write_text(INITIATIVES)
+    (DATA / "okrs.yaml").write_text(OKRS)
     (DATA / "config.yaml").write_text(CONFIG)
 
     migration_dates = iter(EARLY + LATE)  # 33 dates: 6 early, 27 late
@@ -356,8 +399,8 @@ def build() -> None:
     for i, (eid, title, ci, assets, mech, non_plan) in enumerate(legacy):
         write_exception(
             eid, title=title, owner=PLATFORM, filed_on=next(migration_dates),
-            initiative="gcloud-migration", control="IAM-LEGACY-AUTH-001",
-            mapped_risk="RISK-ACCT-TAKEOVER", moves="probability_of_action",
+            okr="gcloud-migration", control="IAM-LEGACY-AUTH-001",
+            mapped_risk="RISK-ACCT-TAKEOVER", moves="probability_of_realization",
             with_ci=ci, estimated_by=cal[i % len(cal)], estimated_on="2026-04-15",
             reason="timeline" if i % 3 else "technical_constraint",
             assets=assets, mechanism=mech, non_plan=non_plan,
@@ -366,9 +409,9 @@ def build() -> None:
     # --- service-account sprawl (its own control) on ACCT-TAKEOVER ----------
     write_exception(
         "EXC-2026-0151", title="Service-account sprawl on migrated workloads",
-        owner=IAM, filed_on=next(migration_dates), initiative="gcloud-migration",
+        owner=IAM, filed_on=next(migration_dates), okr="gcloud-migration",
         control="IAM-SVCACCT-003", mapped_risk="RISK-ACCT-TAKEOVER",
-        moves="probability_of_action", with_ci=[0.03, 0.09],
+        moves="probability_of_realization", with_ci=[0.03, 0.09],
         estimated_by="r.chen@company.com", estimated_on="2026-05-20",
         reason="timeline", assets=["svcacct-pool-prod"],
         mechanism="rotate_and_scope_service_accounts", target_date="2026-08-15",
@@ -377,17 +420,17 @@ def build() -> None:
     # --- 2 other migration-internal exceptions on migration-owned risks -----
     write_exception(
         "EXC-2026-0160", title="Defer chaos/availability testing on migrated order service",
-        owner=PLATFORM, filed_on=next(migration_dates), initiative="gcloud-migration",
+        owner=PLATFORM, filed_on=next(migration_dates), okr="gcloud-migration",
         control="REL-AVAIL-010", mapped_risk="RISK-MIGRATION-AVAILABILITY",
-        moves="probability_of_action", with_ci=[0.05, 0.14],
+        moves="probability_of_realization", with_ci=[0.05, 0.14],
         estimated_by="j.okafor@company.com", estimated_on="2026-05-22",
         reason="timeline", assets=["order-service"], mechanism="add_chaos_suite",
     )
     write_exception(
         "EXC-2026-0161", title="Skip dual-write verification during inventory cutover",
-        owner=PLATFORM, filed_on=next(migration_dates), initiative="gcloud-migration",
+        owner=PLATFORM, filed_on=next(migration_dates), okr="gcloud-migration",
         control="DATA-INTEG-004", mapped_risk="RISK-MIGRATION-DATAINTEGRITY",
-        moves="probability_of_action", with_ci=[0.03, 0.10],
+        moves="probability_of_realization", with_ci=[0.03, 0.10],
         estimated_by="p.nguyen@company.com", estimated_on="2026-05-25",
         reason="technical_constraint", assets=["inventory-service"],
         mechanism="enable_dual_write_checks",
@@ -396,7 +439,7 @@ def build() -> None:
     # --- DLP cluster on DATA-EXFIL (data-platform's own decisions) -----------
     write_exception(
         "EXC-2026-0133", title="DLP disabled on the analytics export path",
-        owner=DATAPLAT, filed_on=dt.date(2026, 4, 28), initiative="data-platform",
+        owner=DATAPLAT, filed_on=dt.date(2026, 4, 28), okr="data-platform",
         control="DLP-EXPORT-001", mapped_risk="RISK-DATA-EXFIL",
         moves="loss_magnitude", with_ci=[400000, 900000],
         estimated_by="a.silva@company.com", estimated_on="2026-04-28",
@@ -405,7 +448,7 @@ def build() -> None:
     )
     write_exception(
         "EXC-2026-0134", title="DLP sampling reduced on warehouse export job",
-        owner=DATAPLAT, filed_on=dt.date(2026, 5, 2), initiative="data-platform",
+        owner=DATAPLAT, filed_on=dt.date(2026, 5, 2), okr="data-platform",
         control="DLP-EXPORT-001", mapped_risk="RISK-DATA-EXFIL",
         moves="loss_magnitude", with_ci=[150000, 400000],
         estimated_by="a.silva@company.com", estimated_on="2026-05-02",
@@ -414,7 +457,7 @@ def build() -> None:
     )
     write_exception(
         "EXC-2026-0135", title="DLP disabled on ad-hoc BI export connector",
-        owner=DATAPLAT, filed_on=dt.date(2026, 5, 9), initiative="data-platform",
+        owner=DATAPLAT, filed_on=dt.date(2026, 5, 9), okr="data-platform",
         control="DLP-EXPORT-001", mapped_risk="RISK-DATA-EXFIL",
         moves="loss_magnitude", with_ci=[150000, 380000],
         estimated_by="m.haddad@company.com", estimated_on="2026-05-09",
@@ -423,58 +466,83 @@ def build() -> None:
     )
 
     # --- External: 18 exceptions diverted_to gcloud-migration ---------------
-    def external(eid, title, owner, initiative, control, risk, moves, ci, est, mech, reduces=None):
+    def external(eid, title, owner, okr, control, risk, moves, ci, est, mech, reduces=None):
         write_exception(
             eid, title=title, owner=owner, filed_on=next(migration_dates),
-            initiative=initiative, control=control, mapped_risk=risk, moves=moves,
+            okr=okr, control=control, mapped_risk=risk, moves=moves,
             with_ci=ci, estimated_by=est, estimated_on="2026-05-30",
             reason="resource_reallocation", diverted_to="gcloud-migration",
-            assets=[f"{initiative}-system"], mechanism=mech, reduces=reduces or moves,
+            assets=[f"{okr}-system"], mechanism=mech, reduces=reduces or moves,
         )
 
     # payments-launch: 9 (PAYMENT-FRAUD x5, PCI-SCOPE x4)
     for n in range(5):
         external(f"EXC-2026-020{n + 1}", f"Deferred fraud-rule tuning ({n + 1}) — team pulled to migration",
                  "payments-lead@company.com", "payments-launch", "FRAUD-RULES-007",
-                 "RISK-PAYMENT-FRAUD", "probability_of_action", [0.04, 0.09],
+                 "RISK-PAYMENT-FRAUD", "probability_of_realization", [0.04, 0.09],
                  cal[n % len(cal)], "tune_fraud_rules")
     for n in range(4):
         external(f"EXC-2026-020{n + 6}", f"Deferred PCI segmentation work ({n + 1}) — staff on migration",
                  "payments-lead@company.com", "payments-launch", "PCI-SEG-002",
-                 "RISK-PCI-SCOPE", "probability_of_action", [0.04, 0.10],
+                 "RISK-PCI-SCOPE", "probability_of_realization", [0.04, 0.10],
                  cal[n % len(cal)], "complete_network_segmentation")
     # data-platform: 6 (DATA-QUALITY x3, DATA-AVAILABILITY x3)
     for n in range(3):
         external(f"EXC-2026-021{n + 1}", f"Deferred data-validation checks ({n + 1}) — engineers on migration",
                  DATAPLAT, "data-platform", "DQ-VALIDATION-005",
-                 "RISK-DATA-QUALITY", "probability_of_action", [0.08, 0.20],
+                 "RISK-DATA-QUALITY", "probability_of_realization", [0.08, 0.20],
                  cal[n % len(cal)], "restore_validation_suite")
     for n in range(3):
         external(f"EXC-2026-021{n + 4}", f"Deferred HA failover testing ({n + 1}) — on-call pulled to migration",
                  DATAPLAT, "data-platform", "REL-HA-009",
-                 "RISK-DATA-AVAILABILITY", "probability_of_action", [0.06, 0.14],
+                 "RISK-DATA-AVAILABILITY", "probability_of_realization", [0.06, 0.14],
                  cal[n % len(cal)], "schedule_failover_drills")
     # trust-and-safety: 3 (ABUSE-ESCALATION x2, ABUSE-DETECTION x1)
     external("EXC-2026-0221", "Deferred abuse-escalation playbook update — team on migration",
              "tns-lead@company.com", "trust-and-safety", "ABUSE-PLAYBOOK-003",
-             "RISK-ABUSE-ESCALATION", "probability_of_action", [0.05, 0.13],
+             "RISK-ABUSE-ESCALATION", "probability_of_realization", [0.05, 0.13],
              "j.okafor@company.com", "refresh_escalation_playbook")
     external("EXC-2026-0222", "Deferred reviewer staffing for abuse queue — staff on migration",
              "tns-lead@company.com", "trust-and-safety", "ABUSE-PLAYBOOK-003",
-             "RISK-ABUSE-ESCALATION", "probability_of_action", [0.05, 0.12],
+             "RISK-ABUSE-ESCALATION", "probability_of_realization", [0.05, 0.12],
              "p.nguyen@company.com", "refresh_escalation_playbook")
     external("EXC-2026-0223", "Delayed detection-model retrain — ML team pulled to migration",
              "tns-lead@company.com", "trust-and-safety", "DETECT-MODEL-006",
-             "RISK-ABUSE-DETECTION", "probability_of_action", [0.05, 0.12],
+             "RISK-ABUSE-DETECTION", "probability_of_realization", [0.05, 0.12],
              "a.silva@company.com", "retrain_detection_model")
+
+    # --- Tech Risk: customer-facing platform outage (RISK-PLATFORM-OUTAGE) ---
+    # Region concentration is the dominant single-acceptance contributor (a cost
+    # decision, internal to the migration); the skipped DR test extends the
+    # migration's *external* footprint into the availability domain.
+    write_exception(
+        "EXC-2026-0170", title="Run core services single-region to cut infrastructure cost",
+        owner=PLATFORM, filed_on=dt.date(2026, 4, 20), okr="gcloud-migration",
+        control="REL-MULTIREGION-014", mapped_risk="RISK-PLATFORM-OUTAGE",
+        moves="probability_of_realization", with_ci=[0.10, 0.30],
+        estimated_by="j.okafor@company.com", estimated_on="2026-04-20",
+        reason="cost", assets=["core-services-prod"],
+        mechanism="deploy_multi_region_active_active", target_date="2026-12-01",
+        expires_on="2026-12-01",
+    )
+    write_exception(
+        "EXC-2026-0171", title="Skip quarterly platform DR test to free the team for migration",
+        owner=PLATFORM, filed_on=dt.date(2026, 5, 20), okr="core-platform",
+        control="REL-DR-TEST-015", mapped_risk="RISK-PLATFORM-OUTAGE",
+        moves="probability_of_realization", with_ci=[0.06, 0.18],
+        estimated_by="p.nguyen@company.com", estimated_on="2026-05-20",
+        reason="resource_reallocation", diverted_to="gcloud-migration",
+        assets=["platform-failover"], mechanism="resume_quarterly_dr_tests",
+        target_date="2026-09-30", expires_on="2026-09-30",
+    )
 
     # --- Malformed / send-back examples -------------------------------------
     # Uncalibrated estimator -> trust flag.
     write_exception(
         "EXC-2026-0149", title="Allow legacy TLS on internal-tools gateway",
-        owner="it-lead@company.com", filed_on=dt.date(2026, 5, 12), initiative="internal-tools",
+        owner="it-lead@company.com", filed_on=dt.date(2026, 5, 12), okr="internal-tools",
         control="CRYPTO-TLS-008", mapped_risk="RISK-ENDPOINT-MALWARE",
-        moves="probability_of_action", with_ci=[0.05, 0.15],
+        moves="probability_of_realization", with_ci=[0.05, 0.15],
         estimated_by="t.brooks@company.com", estimated_on="2026-05-12",
         reason="technical_constraint", assets=["internal-tools-gateway"],
         mechanism="enforce_tls13",
@@ -482,9 +550,9 @@ def build() -> None:
     # resource_reallocation with no destination -> action flag.
     write_exception(
         "EXC-2026-0140", title="Deferred PCI logging review (resources reallocated, destination unstated)",
-        owner="payments-lead@company.com", filed_on=dt.date(2026, 5, 1), initiative="payments-launch",
+        owner="payments-lead@company.com", filed_on=dt.date(2026, 5, 1), okr="payments-launch",
         control="PCI-LOG-011", mapped_risk="RISK-PCI-SCOPE",
-        moves="probability_of_action", with_ci=[0.03, 0.10],
+        moves="probability_of_realization", with_ci=[0.03, 0.10],
         estimated_by="m.haddad@company.com", estimated_on="2026-05-01",
         reason="resource_reallocation", diverted_to=None,
         assets=["pci-logging-pipeline"], mechanism="restore_log_review",
@@ -492,17 +560,17 @@ def build() -> None:
     # 2 stale-estimator exceptions -> trust flag (excluded from bands).
     write_exception(
         "EXC-2026-0301", title="Broad vendor VPN access retained on mobile build farm",
-        owner="mobile-lead@company.com", filed_on=dt.date(2026, 4, 10), initiative="mobile-app",
+        owner="mobile-lead@company.com", filed_on=dt.date(2026, 4, 10), okr="mobile-app",
         control="VENDOR-ACCESS-012", mapped_risk="RISK-VENDOR-ACCESS",
-        moves="probability_of_action", with_ci=[0.03, 0.09],
+        moves="probability_of_realization", with_ci=[0.03, 0.09],
         estimated_by="l.romano@company.com", estimated_on="2026-04-10",
         reason="cost", assets=["mobile-build-farm"], mechanism="scope_vendor_access",
     )
     write_exception(
         "EXC-2026-0302", title="Defer endpoint EDR upgrade on mobile team laptops",
-        owner="mobile-lead@company.com", filed_on=dt.date(2026, 4, 14), initiative="mobile-app",
+        owner="mobile-lead@company.com", filed_on=dt.date(2026, 4, 14), okr="mobile-app",
         control="EDR-COVERAGE-013", mapped_risk="RISK-ENDPOINT-MALWARE",
-        moves="probability_of_action", with_ci=[0.04, 0.10],
+        moves="probability_of_realization", with_ci=[0.04, 0.10],
         estimated_by="l.romano@company.com", estimated_on="2026-04-14",
         reason="cost", assets=["mobile-team-laptops"], mechanism="deploy_edr_agent",
     )
@@ -524,12 +592,12 @@ def build() -> None:
         ("EXC-2026-0316", "Defer secondary reviewer on low-severity abuse queue", "tns-lead@company.com",
          "trust-and-safety", "DETECT-MODEL-006", "RISK-ABUSE-DETECTION", [0.03, 0.07], "retrain_detection_model"),
     ]
-    for i, (eid, title, owner, initiative, control, risk, ci, mech) in enumerate(fillers):
+    for i, (eid, title, owner, okr, control, risk, ci, mech) in enumerate(fillers):
         write_exception(
             eid, title=title, owner=owner, filed_on=dt.date(2026, 3, 1) + dt.timedelta(days=i * 5),
-            initiative=initiative, control=control, mapped_risk=risk,
-            moves="probability_of_action", with_ci=ci, estimated_by=cal[i % len(cal)],
-            estimated_on="2026-03-10", reason="cost", assets=[f"{initiative}-asset-{i}"],
+            okr=okr, control=control, mapped_risk=risk,
+            moves="probability_of_realization", with_ci=ci, estimated_by=cal[i % len(cal)],
+            estimated_on="2026-03-10", reason="cost", assets=[f"{okr}-asset-{i}"],
             mechanism=mech,
         )
 

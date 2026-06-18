@@ -20,9 +20,9 @@ from .config import Config
 from .loader import Corpus
 from .models import Exception_, Risk
 from .montecarlo import (
-    CONTACT_FREQUENCY,
+    OPPORTUNITY_FREQUENCY,
     LOSS_MAGNITUDE,
-    PROBABILITY_OF_ACTION,
+    PROBABILITY_OF_REALIZATION,
     Band,
     Distribution,
     MonteCarlo,
@@ -79,8 +79,8 @@ class Engine:
                 continue
             self._risk_dists[rid] = dists
             samples = self.mc.ale_samples(
-                dists[CONTACT_FREQUENCY],
-                dists[PROBABILITY_OF_ACTION],
+                dists[OPPORTUNITY_FREQUENCY],
+                dists[PROBABILITY_OF_REALIZATION],
                 dists[LOSS_MAGNITUDE],
                 key=f"baseline|{rid}",
             )
@@ -90,9 +90,9 @@ class Engine:
     def _fit_risk(self, risk: Risk) -> dict[str, Distribution] | None:
         try:
             return {
-                CONTACT_FREQUENCY: fit_distribution(CONTACT_FREQUENCY, *risk.contact_frequency_90ci),
-                PROBABILITY_OF_ACTION: fit_distribution(
-                    PROBABILITY_OF_ACTION, *risk.probability_of_action_90ci
+                OPPORTUNITY_FREQUENCY: fit_distribution(OPPORTUNITY_FREQUENCY, *risk.opportunity_frequency_90ci),
+                PROBABILITY_OF_REALIZATION: fit_distribution(
+                    PROBABILITY_OF_REALIZATION, *risk.probability_of_realization_90ci
                 ),
                 LOSS_MAGNITUDE: fit_distribution(LOSS_MAGNITUDE, *risk.loss_magnitude_90ci),
             }

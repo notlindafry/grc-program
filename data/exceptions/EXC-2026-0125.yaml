@@ -3,12 +3,12 @@ title: Skip MFA on legacy reporting console (cutover)
 owner: platform-lead@company.com
 filed_on: 2026-05-09
 
-initiative: gcloud-migration
+okr: gcloud-migration
 control: IAM-LEGACY-AUTH-001
 mapped_risk: RISK-ACCT-TAKEOVER
 
 exception_effect:
-  moves: probability_of_action
+  moves: probability_of_realization
   with_exception_90ci: [0.011, 0.031]
   estimated_by: a.silva@company.com
   estimated_on: 2026-04-15
@@ -19,7 +19,7 @@ scope:
   assets: [legacy-reporting-console]
 remediation:
   # NON-PLAN: no target_date and no mechanism -- will be sent back.
-  reduces: probability_of_action
+  reduces: probability_of_realization
 status: active
 expires_on: 2026-09-01
 renewals:

@@ -18,11 +18,11 @@ from .views.ranked import fix_first_clusters, render_ranked
 
 
 def _top_line(engine: Engine, corpus: Corpus, config: Config) -> str:
-    # Dominant initiative by combined footprint.
+    # Dominant OKR by combined footprint.
     names: set[str] = set()
     for e in corpus.exceptions:
-        if e.initiative:
-            names.add(e.initiative)
+        if e.okr:
+            names.add(e.okr)
         if e.diverted_to:
             names.add(e.diverted_to)
     dominant = None
@@ -47,7 +47,7 @@ def _top_line(engine: Engine, corpus: Corpus, config: Config) -> str:
     parts = []
     if dominant:
         parts.append(
-            f"the **{dominant}** initiative is the dominant source of newly accepted risk"
+            f"the **{dominant}** OKR is the dominant source of newly accepted risk"
         )
     if breaching:
         parts.append(f"**{plural(len(breaching), 'risk')} now carry residual exposure above appetite**")
@@ -102,14 +102,14 @@ def _data_confidence(engine: Engine, corpus: Corpus, config: Config) -> str:
 
 def render_report(engine: Engine, corpus: Corpus, config: Config) -> str:
     records = len(corpus.exceptions)
-    initiatives = len({e.initiative for e in corpus.exceptions if e.initiative})
+    okrs = len({e.okr for e in corpus.exceptions if e.okr})
     mapped_risks = sum(1 for rid in corpus.risks if engine.risk_is_computable(rid))
 
     out = [
         "# Exception Risk Report",
         "",
         f"**Generated {config.as_of.isoformat()} · Scope: all active exceptions · "
-        f"{plural(records, 'record')}, {plural(initiatives, 'initiative')}, "
+        f"{plural(records, 'record')}, {plural(okrs, 'OKR')}, "
         f"{plural(mapped_risks, 'mapped risk')}**",
         "",
         "---",

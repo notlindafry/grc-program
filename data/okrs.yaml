@@ -1,0 +1,61 @@
+# OKRs the exceptions attach to. An OKR is an Objective plus Key Results. The
+# drift view's headline names the objective and displays the key results as the
+# commitments the exception footprint is eroding. period_end lets the trajectory
+# analysis measure the run-up to a real deadline.
+
+gcloud-migration:
+  title: gcloud-migration
+  objective: a quality rebuild from monolith to microservices
+  key_results:
+    - all services decomposed and hardened by cutover
+    - maintain 99.9% availability through and after cutover
+    - zero critical security findings at cutover
+  period_end: 2026-06-30
+
+payments-launch:
+  title: payments-launch
+  objective: launch the new payments platform to general availability
+  key_results:
+    - pass the external PCI assessment before launch
+    - fraud loss rate under target at GA
+  period_end: 2026-07-31
+
+data-platform:
+  title: data-platform
+  objective: a governed, reliable central data platform
+  key_results:
+    - DLP enforced on every export path
+    - 99.9% pipeline availability
+  period_end: 2026-09-30
+
+trust-and-safety:
+  title: trust-and-safety
+  objective: keep abuse and policy-violating content off the platform
+  key_results:
+    - abuse-escalation SLA met
+    - detection-model recall above target
+  period_end: 2026-09-30
+
+mobile-app:
+  title: mobile-app
+  objective: ship the redesigned mobile application
+  key_results:
+    - redesigned app in general availability
+    - crash-free sessions above target
+  period_end: 2026-08-31
+
+internal-tools:
+  title: internal-tools
+  objective: modernize internal developer and operations tooling
+  key_results:
+    - legacy toolchain decommissioned
+    - TLS 1.3 enforced across internal tools
+  period_end: 2026-10-31
+
+core-platform:
+  title: core-platform
+  objective: keep the core platform reliable and available
+  key_results:
+    - 99.9% availability across core services
+    - quarterly DR test passing
+  period_end: 2026-12-31

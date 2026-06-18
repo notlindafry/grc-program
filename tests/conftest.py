@@ -30,8 +30,8 @@ def make_risk(rid="RISK-X", cf=(10, 40), poa=(0.005, 0.02), lm=(200000, 500000),
         {
             "title": rid,
             "baseline": {
-                "contact_frequency_90ci": list(cf),
-                "probability_of_action_90ci": list(poa),
+                "opportunity_frequency_90ci": list(cf),
+                "probability_of_realization_90ci": list(poa),
                 "loss_magnitude_90ci": list(lm),
             },
             "appetite_threshold": appetite,
@@ -50,11 +50,11 @@ def make_exc(eid="EXC-0001", **over) -> Exception_:
         "title": over.get("title", f"exception {eid}"),
         "owner": over.get("owner", "owner@company.com"),
         "filed_on": over.get("filed_on", "2026-05-01"),
-        "initiative": over.get("initiative", "gcloud-migration"),
+        "okr": over.get("okr", "gcloud-migration"),
         "control": over.get("control", "CTRL-1"),
         "mapped_risk": over.get("mapped_risk", "RISK-X"),
         "exception_effect": {
-            "moves": over.get("moves", "probability_of_action"),
+            "moves": over.get("moves", "probability_of_realization"),
             "with_exception_90ci": over.get("with_exception_90ci", [0.05, 0.15]),
             "estimated_by": over.get("estimated_by", "r.chen@company.com"),
             "estimated_on": over.get("estimated_on", "2026-05-01"),
@@ -63,7 +63,7 @@ def make_exc(eid="EXC-0001", **over) -> Exception_:
         "scope": over.get("scope", {"type": "enumerated", "assets": ["asset-a"]}),
         "remediation": over.get(
             "remediation",
-            {"target_date": "2026-09-01", "mechanism": "enforce_sso", "reduces": "probability_of_action"},
+            {"target_date": "2026-09-01", "mechanism": "enforce_sso", "reduces": "probability_of_realization"},
         ),
         "status": over.get("status", "active"),
         "expires_on": over.get("expires_on", "2026-09-01"),

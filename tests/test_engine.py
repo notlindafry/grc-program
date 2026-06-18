@@ -22,7 +22,7 @@ def test_baseline_within_appetite_with_no_exceptions(config):
 
 
 def test_worsening_exceptions_accumulate_over_appetite(config):
-    # Many individually-tolerable PoA bumps that together breach.
+    # Many individually-tolerable PoR bumps that together breach.
     excs = [
         make_exc(eid=f"EXC-{i:04d}", with_exception_90ci=[0.012, 0.035], control="IAM-LEGACY")
         for i in range(12)
@@ -52,7 +52,7 @@ def test_single_large_exception_dominates(config):
 def test_trust_flagged_excluded_from_band_but_action_flagged_included(config):
     clean = make_exc(eid="EXC-CLEAN", with_exception_90ci=[0.05, 0.12])
     nonplan = make_exc(eid="EXC-NONPLAN", with_exception_90ci=[0.05, 0.12],
-                       remediation={"reduces": "probability_of_action"})
+                       remediation={"reduces": "probability_of_realization"})
     uncal = make_exc(eid="EXC-UNCAL", with_exception_90ci=[0.05, 0.12],
                      estimated_by="u@company.com")
     corpus = make_corpus(
