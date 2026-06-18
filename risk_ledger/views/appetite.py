@@ -152,6 +152,28 @@ def _risk_section(engine: Engine, corpus: Corpus, res: ResidualResult) -> str:
             f"until corrected.*"
         )
         lines.append("")
+
+    # Projected residual once the risk's funded remediations land.
+    post = engine.post_remediation_residual(risk.id)
+    if post is not None and post.applied:
+        names = join_clause([r.title or r.id for r in post.applied])
+        if post.state == "within":
+            verdict = "projected **within** appetite"
+        elif post.state == "straddling":
+            verdict = "projected to **still straddle** the line"
+        else:
+            verdict = "projected to **remain over** appetite"
+        lines.append(
+            f"**After the funded plan** ({names}): {verdict}, at **{fmt_band(post.band)}** "
+            f"residual. Conditional on the funded plan executing."
+        )
+        lines.append("")
+    elif post is not None:
+        lines.append(
+            "*No funded remediation addresses this risk yet, so the projected residual is "
+            "unchanged.*"
+        )
+        lines.append("")
     return "\n".join(lines)
 
 
@@ -190,6 +212,23 @@ def render_appetite(engine: Engine, corpus: Corpus, config: Config, only_risk: s
 
     breaching = [r for r in residuals if r.state in ("over", "straddling")]
     within = [r for r in residuals if r.state == "within"]
+
+    # Summary: of the risks breaching today, how many remain over after the plan.
+    if breaching and not only_risk:
+        still_over = [
+            r for r in breaching
+            if (post := engine.post_remediation_residual(r.risk.id)) is not None and post.state == "over"
+        ]
+        if still_over:
+            names = join_clause([r.risk.id for r in still_over])
+            tail = f"{plural(len(still_over), 'risk')} ({names}) {'remains' if len(still_over) == 1 else 'remain'} over"
+        else:
+            tail = "none remain over"
+        out.append(
+            f"Of the {plural(len(breaching), 'risk')} over or straddling appetite today, {tail} after "
+            f"the funded plan executes. Projections below are conditional on that plan."
+        )
+        out.append("")
 
     if not breaching and not only_risk:
         out.append("All tracked risks are within appetite.")

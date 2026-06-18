@@ -366,23 +366,40 @@ class Engine:
             return Band.from_samples(reduction)
         return None
 
+    def _date_filtered_risk_samples(self, rid: str, before) -> list[float]:
+        """Per-risk residual samples over only exceptions filed before ``before``."""
+        streams = [self._baseline_samples[rid]]
+        for exc in self.corpus.exceptions:
+            if (
+                exc.mapped_risk == rid
+                and exc.is_active
+                and exc.counts_in_bands
+                and exc.filed_on is not None
+                and exc.filed_on < before
+                and exc.id in self._contrib_samples
+            ):
+                streams.append(self._contrib_samples[exc.id])
+        return self.mc.sum_streams(streams)
+
     def date_filtered_portfolio_band(self, before) -> Band | None:
         """Portfolio residual over only exceptions filed before ``before``, with
         no remediations applied (the book entering a period)."""
-        risk_streams = []
-        for rid in self._risk_dists:
-            streams = [self._baseline_samples[rid]]
-            for exc in self.corpus.exceptions:
-                if (
-                    exc.mapped_risk == rid
-                    and exc.is_active
-                    and exc.counts_in_bands
-                    and exc.filed_on is not None
-                    and exc.filed_on < before
-                    and exc.id in self._contrib_samples
-                ):
-                    streams.append(self._contrib_samples[exc.id])
-            risk_streams.append(self.mc.sum_streams(streams))
+        risk_streams = [self._date_filtered_risk_samples(rid, before) for rid in self._risk_dists]
         if not risk_streams:
             return None
         return Band.from_samples(self.mc.sum_streams(risk_streams))
+
+    def date_filtered_over_count(self, before) -> int:
+        """How many risks are over appetite using only exceptions filed before ``before``."""
+        n = 0
+        for rid in self._risk_dists:
+            band = Band.from_samples(self._date_filtered_risk_samples(rid, before))
+            if appetite_state(band, self.corpus.risks[rid].appetite_threshold) == "over":
+                n += 1
+        return n
+
+    def over_count(self) -> int:
+        return sum(1 for r in self._residual.values() if r.state == "over")
+
+    def post_remediation_over_count(self) -> int:
+        return sum(1 for r in self._post_residual.values() if r.state == "over")

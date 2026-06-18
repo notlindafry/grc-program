@@ -42,6 +42,7 @@ class Cluster:
     band: Band | None = None
     breaches: list[str] = field(default_factory=list)
     tail_risk: bool = False
+    dominant_risk: str = ""
     mechanism: str = ""
     reduces: str = ""
     deadline: dt.date | None = None
@@ -107,6 +108,7 @@ def build_clusters(engine: Engine, corpus: Corpus) -> list[Cluster]:
         # Tail-risk catch on the cluster's dominant risk.
         if risk_means:
             dominant = max(risk_means, key=risk_means.get)
+            cl.dominant_risk = dominant
             ids = [m.id for m in members if m.mapped_risk == dominant]
             rb = engine.residual_with(dominant, ids)
             threshold = corpus.risks[dominant].appetite_threshold
@@ -133,6 +135,115 @@ def fix_first_clusters(engine: Engine, corpus: Corpus) -> list[Cluster]:
     ranked view and the report's top line so they cannot disagree.
     """
     return [c for c in build_clusters(engine, corpus) if c.breaches or c.tail_risk]
+
+
+# ---------------------------------------------------------------------------
+# Unified ranking -- remediations and unfunded clusters together, by risk
+# reduction (the dollars an action buys down).
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class RankItem:
+    label: str
+    reduction: Band
+    breaches: str   # rendered Breaches cell
+    action: str
+    owner: str
+    kind: str       # "remediation" | "cluster"
+    source_id: str  # remediation id or control
+
+
+def _remediation_breaches(engine: Engine, corpus: Corpus, rem) -> list[str]:
+    """Over/straddling risks this remediation addresses (short form)."""
+    if rem.type == "restore":
+        risks = {
+            e.mapped_risk
+            for e in corpus.exceptions
+            if e.is_active and e.counts_in_bands and e.control == rem.restores_control
+        }
+    else:
+        risks = {rem.mapped_risk}
+    out = []
+    for rid in risks:
+        res = engine.residual(rid)
+        if res and res.state in ("over", "straddling"):
+            out.append(_short_risk(rid))
+    return sorted(out)
+
+
+def _remediation_reduces(corpus: Corpus, rem) -> str:
+    if rem.type == "strengthen":
+        return rem.moves or "residual risk"
+    # restore: the factor the cleared exceptions were degrading
+    return _modal(
+        [
+            e.remediation_reduces
+            for e in corpus.exceptions
+            if e.is_active and e.control == rem.restores_control
+        ]
+    ) or "residual risk"
+
+
+def _remediation_action(corpus: Corpus, rem) -> str:
+    if not rem.mechanism:
+        return "—"
+    when = rem.target_date.isoformat() if rem.target_date else "—"
+    text = (
+        f"{rem.mechanism} in order to reduce {_remediation_reduces(corpus, rem)} no later than {when}"
+    ).replace("_", " ")
+    return text[:1].upper() + text[1:]
+
+
+def _cluster_breaches_cell(c: Cluster) -> str:
+    if c.breaches:
+        return join_clause(c.breaches)
+    if c.tail_risk and c.dominant_risk:
+        return f"{_short_risk(c.dominant_risk)} (tail)"
+    return "—"
+
+
+def unified_ranking(engine: Engine, corpus: Corpus) -> list[RankItem]:
+    """Funded remediations and unfunded breaching clusters, ranked by the risk
+    reduction each buys down. A cluster a funded restore covers is represented by
+    the remediation row, not separately."""
+    items: list[RankItem] = []
+    funded = engine.funded_remediations()
+    funded_restored = {r.restores_control for r in funded if r.type == "restore" and r.restores_control}
+
+    for rem in funded:
+        reduction = engine.risk_reduction(rem)
+        if reduction is None:
+            continue
+        items.append(
+            RankItem(
+                label=f"{rem.id} — {rem.title}" if rem.title else rem.id,
+                reduction=reduction,
+                breaches=join_clause(_remediation_breaches(engine, corpus, rem)) or "—",
+                action=_remediation_action(corpus, rem),
+                owner=rem.owner or "—",
+                kind="remediation",
+                source_id=rem.id,
+            )
+        )
+
+    for c in fix_first_clusters(engine, corpus):
+        if c.control in funded_restored:
+            continue  # dedup: a funded restore already represents this cluster
+        items.append(
+            RankItem(
+                label=c.label,
+                reduction=c.band,
+                breaches=_cluster_breaches_cell(c),
+                action=c.action_to_take,
+                owner=c.owner,
+                kind="cluster",
+                source_id=c.control,
+            )
+        )
+
+    items.sort(key=lambda it: it.reduction.mean, reverse=True)
+    return items
 
 
 # Send-back buckets, in the order we present them.
@@ -168,62 +279,32 @@ def _bucket_for(code: str) -> str:
 
 
 def render_ranked(engine: Engine, corpus: Corpus, config: Config) -> str:
-    clusters = build_clusters(engine, corpus)
+    items = unified_ranking(engine, corpus)
 
-    # "What to fix first" is the action layer: the leverage is in clusters that
-    # push a risk over or straddling appetite, plus any whose upper bound alone
-    # would breach (the tail-risk catch). Clusters that sit entirely within
-    # appetite are real accepted risk but not urgent; they surface in the drift
-    # view (they are largely the migration's external footprint), not here.
-    fix_first = [c for c in clusters if c.breaches or c.tail_risk]
-    within_only = [c for c in clusters if not (c.breaches or c.tail_risk)]
-
-    out = ["## Ranked list — what to fix first", ""]
+    out = ["## What to fix first", ""]
     out.append(
-        "Grouped by root cause (the control deviated from), ranked by expected residual "
-        "contribution. Each row is ready to assign. Only clusters that breach an appetite — or "
-        "whose upper bound alone would — are listed; clusters that sit within appetite appear in "
-        "the drift view, not here."
+        "This ranks the work that moves quantified risk, by the residual it buys down, whether the "
+        "lever is clearing an accepted exception or executing a funded remediation. A risk with no "
+        "exception and no funded plan does not appear; a risk over appetite with no acceptance "
+        "behind it is a control-sufficiency problem this view surfaces but does not remediate by "
+        "clearing an exception."
     )
     out.append("")
 
-    rows = []
-    for i, c in enumerate(fix_first, start=1):
-        notes = []
-        if c.action_flagged:
-            notes.append(f"{len(c.action_flagged)} of {len(c.members)} malformed, re-assess first")
-        if c.tail_risk:
-            notes.append("upper bound alone breaches appetite (tail risk)")
-        if not notes:
-            notes.append("well-formed")
-        rows.append(
-            [
-                str(i),
-                c.label,
-                fmt_band(c.band),
-                join_clause(c.breaches) or "—",
-                c.action_to_take,
-                c.owner,
-                "; ".join(notes),
-            ]
-        )
+    rows = [
+        [str(i), it.label, fmt_band(it.reduction), it.breaches, it.action, it.owner]
+        for i, it in enumerate(items, start=1)
+    ]
     if rows:
         out.append(
             md_table(
-                ["Rank", "Cluster / exception", "Expected residual", "Breaches", "Action to take", "Owner", "Notes"],
+                ["Rank", "Item", "Risk reduction", "Breaches", "Action to take", "Owner"],
                 rows,
             )
         )
         out.append("")
     else:
-        out.append("No cluster currently breaches an appetite. Real accepted risk remains; see the drift view.")
-        out.append("")
-
-    if within_only:
-        out.append(
-            f"*{plural(len(within_only), 'further cluster')} contribute to risks that remain within "
-            f"appetite and {'is' if len(within_only) == 1 else 'are'} not ranked here.*"
-        )
+        out.append("No funded remediation and no breaching exception cluster.")
         out.append("")
 
     # Send-back bucket.

@@ -17,7 +17,7 @@ from risk_ledger.engine import Engine
 from risk_ledger.loader import load_corpus
 from risk_ledger.validation import validate_corpus
 from risk_ledger.views.drift import build_footprint
-from risk_ledger.views.ranked import fix_first_clusters
+from risk_ledger.views.ranked import unified_ranking
 from risk_ledger.views.renewals import flagged_renewals
 
 DATA = Path(__file__).resolve().parent.parent / "data"
@@ -88,20 +88,38 @@ def test_platform_outage_is_single_acceptance(built):
     assert top.band.mean / total > 0.5
 
 
-def test_ranked_fix_first_order(built):
+def test_unified_ranking(built):
     corpus, _, engine = built
-    fix = fix_first_clusters(engine, corpus)
-    controls = [c.control for c in fix]
-    # The two biggest single contributors are the platform-outage exceptions;
-    # the legacy-auth accumulation and the DLP cluster follow.
-    assert controls[:4] == [
-        "REL-MULTIREGION-014",
-        "REL-DR-TEST-015",
-        "IAM-LEGACY-AUTH-001",
-        "DLP-EXPORT-001",
-    ]
-    legacy = next(c for c in fix if c.control == "IAM-LEGACY-AUTH-001")
-    assert len(legacy.action_flagged) == 4  # 4 non-plan members carried as malformed
+    items = unified_ranking(engine, corpus)
+
+    # The list mixes both levers: funded remediations and unfunded breaching
+    # clusters appear in the same ranking.
+    kinds = {it.kind for it in items}
+    assert kinds == {"remediation", "cluster"}
+
+    # Ordered by the risk reduction each buys down (mean), descending.
+    means = [it.reduction.mean for it in items]
+    assert means == sorted(means, reverse=True)
+
+    # Dedup: a cluster whose control a funded restore covers is not also shown as
+    # its own row -- the remediation row stands in for it.
+    funded_restored = {
+        r.restores_control
+        for r in engine.funded_remediations()
+        if r.type == "restore" and r.restores_control
+    }
+    cluster_controls = {it.source_id for it in items if it.kind == "cluster"}
+    assert funded_restored.isdisjoint(cluster_controls)
+    # Concretely: the three funded restores stand in for their clusters; the
+    # DR-test restore is only proposed, so that cluster still appears on its own.
+    assert "REL-DR-TEST-015" in cluster_controls          # REM-0004 only proposed
+    assert "REL-MULTIREGION-014" not in cluster_controls  # REM-0003 funded restore
+    assert "IAM-LEGACY-AUTH-001" not in cluster_controls  # REM-0001 funded restore
+    assert "DLP-EXPORT-001" not in cluster_controls       # REM-0002 funded restore
+
+    # The largest single lever is the funded multi-region remediation.
+    assert items[0].kind == "remediation"
+    assert items[0].source_id == "REM-2026-0003"
 
 
 def test_migration_external_footprint(built):
@@ -179,6 +197,21 @@ def test_exposure_arc_bands(built):
     exiting = engine.post_remediation_portfolio_band()
     assert entering.mean < current.mean  # 2026 acceptances pushed the book up
     assert exiting.mean < current.mean    # the funded plan pulls it down
+
+
+def test_report_renders_exposure_arc(built):
+    corpus, config, engine = built
+    from risk_ledger.render import fmt_band
+    from risk_ledger.report import render_report
+
+    text = render_report(engine, corpus, config)
+    assert "## 2026 risk exposure" in text
+    # The section names both ends of the arc: the entering band and the exiting
+    # (post-funded-plan) band.
+    entering = engine.date_filtered_portfolio_band(config.year_start)
+    exiting = engine.post_remediation_portfolio_band()
+    assert fmt_band(entering) in text
+    assert fmt_band(exiting) in text
 
 
 def test_cli_validate_and_report(capsys):

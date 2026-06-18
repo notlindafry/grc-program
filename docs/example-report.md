@@ -6,7 +6,17 @@
 
 ## Top line
 
-Across the active exception corpus, the **gcloud-migration** OKR is the dominant source of newly accepted risk and **3 risks now carry residual exposure above appetite**. Fixing the EXC-2026-0170 — Run core services single-region to cut infrastructure cost would clear the largest single share of it.
+The **gcloud-migration** OKR is the dominant source of newly accepted risk. **2 risks over appetite** and 1 risk straddling today; the funded plan is projected to clear all but 1 risk (PLATFORM-OUTAGE), whose fix is not funded. This reads the accepted-exception and funded-remediation book, not a complete risk register.
+
+---
+
+## 2026 risk exposure
+
+Entering 2026 the book carried **$21.0M–$38.0M** in residual annual loss (0 over appetite). Mid-year it stands at **$119.4M–$289.6M** (2 over). If the funded plan executes it exits 2026 at **$68.7M–$172.4M** (1 over). The move from entering to exiting is the headline; these bands do not add to a to-the-dollar waterfall.
+
+Two forces move the book: the 2026 acceptances pushed it up (the gcloud-migration OKR alone adds $84.6M–$252.8M); the funded plan pulls it down (4 funded remediations, the largest buying down $17.5M–$139.4M).
+
+The exit figure is a projection conditional on the funded plan executing; RISK-PLATFORM-OUTAGE is projected to remain over, its fix unfunded.
 
 ---
 
@@ -55,6 +65,8 @@ Each OKR has two footprints: the risk it accepts on itself, and the risk it push
 
 Stated tolerance across 14 tracked risks sums to **$193.0M**; the acceptances on the books reveal the organization is carrying **$119.4M–$289.6M** in residual annual loss. 2 risks over and 1 risk straddling appetite.
 
+Of the 3 risks over or straddling appetite today, 1 risk (RISK-PLATFORM-OUTAGE) remains over after the funded plan executes. Projections below are conditional on that plan.
+
 ### RISK-PLATFORM-OUTAGE — OVER appetite
 
 RISK-PLATFORM-OUTAGE carries **$48.3M–$214.5M** in residual annual loss against a **$15.0M** appetite, and the band sits fully above the line. This is a **single-acceptance breach**: EXC-2026-0170 (Run core services single-region to cut infrastructure cost) accounts for 55% of the contributed exposure. One owner, one decision to revisit.
@@ -63,6 +75,8 @@ RISK-PLATFORM-OUTAGE carries **$48.3M–$214.5M** in residual annual loss agains
 |---|---|---|---|---|
 | EXC-2026-0170 | Run core services single-region to cut infrastructure cost | $17.5M–$139.4M | yes | platform-lead@company.com |
 | EXC-2026-0171 | Skip quarterly platform DR test to free the team for migration | $13.8M–$114.3M | yes | platform-lead@company.com |
+
+**After the funded plan** (Deploy multi-region active-active for core services): projected to **remain over** appetite, at **$16.7M–$117.3M** residual. Conditional on the funded plan executing.
 
 ### RISK-ACCT-TAKEOVER — OVER appetite
 
@@ -84,6 +98,8 @@ RISK-ACCT-TAKEOVER carries **$6.8M–$11.3M** in residual annual loss against a 
 | EXC-2026-0126 | Relax auth on internal scheduler UI (cutover) | $180k–$1.0M | no | platform-lead@company.com |
 | EXC-2026-0121 | Skip MFA on internal metrics dashboard for cutover window | $173k–$989k | no | platform-lead@company.com |
 
+**After the funded plan** (Enforce SSO via the IdP across legacy consoles): projected **within** appetite, at **$584k–$2.5M** residual. Conditional on the funded plan executing.
+
 ### RISK-DATA-EXFIL — STRADDLING appetite
 
 RISK-DATA-EXFIL carries **$3.5M–$13.4M** in residual annual loss against a **$6.0M** appetite, and the band crosses the line, so whether you are over depends on the high end. This is a **single-acceptance breach**: EXC-2026-0133 (DLP disabled on the analytics export path) accounts for 76% of the contributed exposure. One owner, one decision to revisit.
@@ -93,6 +109,8 @@ RISK-DATA-EXFIL carries **$3.5M–$13.4M** in residual annual loss against a **$
 | EXC-2026-0133 | DLP disabled on the analytics export path | $1.2M–$9.7M | maybe | data-platform-lead@company.com |
 | EXC-2026-0134 | DLP sampling reduced on warehouse export job | $206k–$1.6M | no | data-platform-lead@company.com |
 | EXC-2026-0135 | DLP disabled on ad-hoc BI export connector | $192k–$1.4M | no | data-platform-lead@company.com |
+
+**After the funded plan** (Re-enable DLP with tuned rules on export paths): projected **within** appetite, at **$452k–$4.3M** residual. Conditional on the funded plan executing.
 
 **Within appetite:** RISK-PCI-SCOPE, RISK-PAYMENT-FRAUD, RISK-DATA-QUALITY, RISK-DATA-RESIDENCY, RISK-DATA-AVAILABILITY, RISK-ABUSE-ESCALATION, RISK-ABUSE-DETECTION, RISK-MIGRATION-AVAILABILITY, RISK-ENDPOINT-MALWARE, RISK-MIGRATION-DATAINTEGRITY, and RISK-VENDOR-ACCESS.
 
@@ -114,19 +132,18 @@ A temporary exception renewed unchanged is the rule in disguise: the acceptance 
 
 ---
 
-## Ranked list — what to fix first
+## What to fix first
 
-Grouped by root cause (the control deviated from), ranked by expected residual contribution. Each row is ready to assign. Only clusters that breach an appetite — or whose upper bound alone would — are listed; clusters that sit within appetite appear in the drift view, not here.
+This ranks the work that moves quantified risk, by the residual it buys down, whether the lever is clearing an accepted exception or executing a funded remediation. A risk with no exception and no funded plan does not appear; a risk over appetite with no acceptance behind it is a control-sufficiency problem this view surfaces but does not remediate by clearing an exception.
 
-| Rank | Cluster / exception | Expected residual | Breaches | Action to take | Owner | Notes |
-|---|---|---|---|---|---|---|
-| 1 | EXC-2026-0170 — Run core services single-region to cut infrastructure cost | $17.5M–$139.4M | PLATFORM-OUTAGE | Deploy multi region active active in order to reduce probability of realization no later than 2026-12-01 | platform-lead@company.com | well-formed |
-| 2 | EXC-2026-0171 — Skip quarterly platform DR test to free the team for migration | $13.8M–$114.3M | PLATFORM-OUTAGE | Resume quarterly dr tests in order to reduce probability of realization no later than 2026-09-30 | platform-lead@company.com | well-formed |
-| 3 | IAM-LEGACY-AUTH-001 (cluster, 12 exceptions) | $5.7M–$9.7M | ACCT-TAKEOVER | Enforce sso via idp in order to reduce probability of realization no later than 2026-09-01 | platform-lead@company.com | 4 of 12 malformed, re-assess first |
-| 4 | DLP-EXPORT-001 (cluster, 3 exceptions) | $2.3M–$11.1M | DATA-EXFIL | Re enable dlp with tuned rules in order to reduce loss magnitude no later than 2026-09-01 | data-platform-lead@company.com | well-formed |
-| 5 | EXC-2026-0151 — Service-account sprawl on migrated workloads | $198k–$1.1M | ACCT-TAKEOVER | Rotate and scope service accounts in order to reduce probability of realization no later than 2026-09-01 | iam-lead@company.com | well-formed |
-
-*10 further clusters contribute to risks that remain within appetite and are not ranked here.*
+| Rank | Item | Risk reduction | Breaches | Action to take | Owner |
+|---|---|---|---|---|---|
+| 1 | REM-2026-0003 — Deploy multi-region active-active for core services | $17.5M–$139.4M | PLATFORM-OUTAGE | Deploy multi region active active in order to reduce probability of realization no later than 2026-12-01 | platform-lead@company.com |
+| 2 | EXC-2026-0171 — Skip quarterly platform DR test to free the team for migration | $13.8M–$114.3M | PLATFORM-OUTAGE | Resume quarterly dr tests in order to reduce probability of realization no later than 2026-09-30 | platform-lead@company.com |
+| 3 | REM-2026-0001 — Enforce SSO via the IdP across legacy consoles | $5.7M–$9.7M | ACCT-TAKEOVER | Enforce sso via idp in order to reduce probability of realization no later than 2026-09-01 | platform-lead@company.com |
+| 4 | REM-2026-0005 — Implement automated data-residency controls | $3.4M–$8.5M | — | Implement automated data residency controls in order to reduce loss magnitude no later than 2026-10-01 | data-platform-lead@company.com |
+| 5 | REM-2026-0002 — Re-enable DLP with tuned rules on export paths | $2.3M–$11.1M | DATA-EXFIL | Re enable dlp with tuned rules in order to reduce loss magnitude no later than 2026-09-01 | data-platform-lead@company.com |
+| 6 | EXC-2026-0151 — Service-account sprawl on migrated workloads | $198k–$1.1M | ACCT-TAKEOVER | Rotate and scope service accounts in order to reduce probability of realization no later than 2026-09-01 | iam-lead@company.com |
 
 ### Sent back, not ranked
 
