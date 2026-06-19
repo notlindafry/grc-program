@@ -736,6 +736,45 @@ def build() -> None:
         post_control_90ci=[1000000, 3000000],
         estimated_by="r.chen@company.com", estimated_on="2026-06-01",
     )
+    # REM-0006..0009: four more strengthens. 0006/0007 land on RISK-ACCT-TAKEOVER
+    # and RISK-DATA-EXFIL, which also carry restores -- the engine composes clear-
+    # the-cluster with swap-the-factor, so both drop further below baseline. 0008/
+    # 0009 land on within-appetite risks, buying a risk down with no breach to point
+    # at, so their Breaches cell is empty (like REM-0005). Every post band sits below
+    # that risk's baseline on the moved factor (see risks.yaml).
+    write_remediation(
+        "REM-2026-0006",
+        title="Deploy phishing-resistant MFA (FIDO2 passkeys) across all consoles",
+        rtype="strengthen", status="funded", owner=IAM,
+        mechanism="deploy_phishing_resistant_mfa", target_date="2026-11-01",
+        mapped_risk="RISK-ACCT-TAKEOVER", moves="probability_of_realization",
+        post_control_90ci=[0.002, 0.008],  # below baseline PoR [0.005, 0.02]
+        estimated_by="j.okafor@company.com", estimated_on="2026-06-01",
+    )
+    write_remediation(
+        "REM-2026-0007", title="Tokenize PII fields in the analytics warehouse",
+        rtype="strengthen", status="funded", owner=DATAPLAT,
+        mechanism="tokenize_pii_in_warehouse", target_date="2026-11-15",
+        mapped_risk="RISK-DATA-EXFIL", moves="loss_magnitude",
+        post_control_90ci=[400000, 1200000],  # below baseline LM [1000000, 3000000]
+        estimated_by="r.chen@company.com", estimated_on="2026-06-01",
+    )
+    write_remediation(
+        "REM-2026-0008", title="Deploy device fingerprinting and step-up 3DS on checkout",
+        rtype="strengthen", status="funded", owner="payments-lead@company.com",
+        mechanism="deploy_device_fingerprinting_and_3ds", target_date="2026-10-15",
+        mapped_risk="RISK-PAYMENT-FRAUD", moves="probability_of_realization",
+        post_control_90ci=[0.005, 0.03],  # below baseline PoR [0.02, 0.06]
+        estimated_by="p.nguyen@company.com", estimated_on="2026-06-01",
+    )
+    write_remediation(
+        "REM-2026-0009", title="Add write-time schema validation and integrity gates",
+        rtype="strengthen", status="in_progress", owner=DATAPLAT,
+        mechanism="add_write_time_integrity_gates", target_date="2026-09-15",
+        mapped_risk="RISK-MIGRATION-DATAINTEGRITY", moves="opportunity_frequency",
+        post_control_90ci=[2, 8],  # below baseline OF [5, 20]
+        estimated_by="m.haddad@company.com", estimated_on="2026-06-01",
+    )
 
     n = len(list(EXC.glob("*.yaml")))
     r = len(list(REM.glob("*.yaml")))

@@ -1,0 +1,12 @@
+id: REM-2026-0008
+title: Deploy device fingerprinting and step-up 3DS on checkout
+type: strengthen
+status: funded
+target_date: 2026-10-15
+owner: payments-lead@company.com
+mechanism: deploy_device_fingerprinting_and_3ds
+mapped_risk: RISK-PAYMENT-FRAUD
+moves: probability_of_realization
+post_control_90ci: [0.005, 0.03]
+estimated_by: p.nguyen@company.com
+estimated_on: 2026-06-01

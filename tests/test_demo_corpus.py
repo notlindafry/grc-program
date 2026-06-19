@@ -121,6 +121,13 @@ def test_unified_ranking(built):
     assert items[0].kind == "remediation"
     assert items[0].source_id == "REM-2026-0003"
 
+    # The four added strengthens rank as funded remediations; the two on
+    # within-appetite risks (REM-0008, REM-0009) carry an empty Breaches cell.
+    by_id = {it.source_id: it for it in items}
+    assert {"REM-2026-0006", "REM-2026-0007", "REM-2026-0008", "REM-2026-0009"} <= set(by_id)
+    assert by_id["REM-2026-0008"].breaches == "—"
+    assert by_id["REM-2026-0009"].breaches == "—"
+
 
 def test_migration_external_footprint(built):
     corpus, _, engine = built
@@ -166,10 +173,12 @@ def test_new_risk_data_residency(built):
 
 def test_remediations_loaded(built):
     corpus, _, _ = built
-    assert len(corpus.remediations) == 5
+    assert len(corpus.remediations) == 9
     assert [r.id for r in corpus.remediations if r.rejected] == []
     funded = {r.id for r in corpus.remediations if r.is_funded}
     assert "REM-2026-0004" not in funded  # proposed DR-test fix, not funded
+    # The four added strengthens are funded/in_progress (REM-0009 is in_progress).
+    assert {"REM-2026-0006", "REM-2026-0007", "REM-2026-0008", "REM-2026-0009"} <= funded
 
 
 def test_over_after_funded_plan_is_platform_only(built):
@@ -179,6 +188,18 @@ def test_over_after_funded_plan_is_platform_only(built):
     assert post["RISK-ACCT-TAKEOVER"] == "within"   # legacy-auth restore clears it
     assert post["RISK-DATA-EXFIL"] == "within"      # DLP restore clears it
     assert post["RISK-DATA-RESIDENCY"] == "within"  # strengthen keeps it under
+
+
+def test_compose_restore_and_strengthen(built):
+    # ACCT-TAKEOVER and DATA-EXFIL each carry a restore AND a strengthen; the engine
+    # composes them (clear the cluster, then swap the strengthened factor), pulling
+    # the post-remediation band below the risk's own baseline.
+    corpus, _, engine = built
+    for rid in ("RISK-ACCT-TAKEOVER", "RISK-DATA-EXFIL"):
+        post = engine.post_remediation_residual(rid)
+        assert {r.type for r in post.applied} == {"restore", "strengthen"}  # both compose
+        assert post.state == "within"
+        assert post.band.high < engine.residual(rid).baseline.high  # below baseline
 
 
 def test_demo_risk_reductions(built):

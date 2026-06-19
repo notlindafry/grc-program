@@ -1,0 +1,12 @@
+id: REM-2026-0006
+title: Deploy phishing-resistant MFA (FIDO2 passkeys) across all consoles
+type: strengthen
+status: funded
+target_date: 2026-11-01
+owner: iam-lead@company.com
+mechanism: deploy_phishing_resistant_mfa
+mapped_risk: RISK-ACCT-TAKEOVER
+moves: probability_of_realization
+post_control_90ci: [0.002, 0.008]
+estimated_by: j.okafor@company.com
+estimated_on: 2026-06-01
