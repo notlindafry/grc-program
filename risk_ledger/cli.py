@@ -178,11 +178,14 @@ def _cmd_report(args: argparse.Namespace) -> int:
         print(message)
         return 0
 
+    from .render import strip_raw_svg
+
+    plain = strip_raw_svg(text)  # inline SVG is an HTML-only enhancement
     if args.out:
-        Path(args.out).write_text(text)
+        Path(args.out).write_text(plain)
         print(f"Wrote {args.out}")
     else:
-        print(text)
+        print(plain)
     return 0
 
 

@@ -259,9 +259,5 @@ def render_appetite(engine: Engine, corpus: Corpus, config: Config, only_risk: s
     if only_risk:
         for res in within:
             out.append(_risk_section(engine, corpus, res))
-    elif within:
-        names = join_clause([r.risk.id for r in within])
-        out.append(f"**Within appetite:** {names}.")
-        out.append("")
 
     return "\n".join(out).rstrip() + "\n"

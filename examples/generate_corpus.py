@@ -824,7 +824,7 @@ def write_example_report() -> None:
     from risk_ledger.config import Config
     from risk_ledger.engine import Engine
     from risk_ledger.loader import load_corpus
-    from risk_ledger.render import html_document, markdown_to_html
+    from risk_ledger.render import html_document, markdown_to_html, strip_raw_svg
     from risk_ledger.report import render_report
     from risk_ledger.validation import validate_corpus
 
@@ -835,7 +835,7 @@ def write_example_report() -> None:
     text = render_report(Engine(corpus, cfg), corpus, cfg)
 
     docs = ROOT / "docs"
-    (docs / "example-report.md").write_text(text)
+    (docs / "example-report.md").write_text(strip_raw_svg(text))
     (docs / "example-report.html").write_text(html_document(markdown_to_html(text)))
     print(f"Wrote {docs / 'example-report.md'} and {docs / 'example-report.html'}")
 

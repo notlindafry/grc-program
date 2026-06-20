@@ -151,6 +151,32 @@ def raw_svg_block(svg: str) -> str:
     return f"{RAW_SVG_OPEN}\n{svg}\n{RAW_SVG_CLOSE}"
 
 
+def strip_raw_svg(md: str) -> str:
+    """Drop the raw-SVG fenced blocks from report markdown.
+
+    The inline charts are an HTML-rendering enhancement: ``markdown_to_html``
+    inlines them, but a plain-markdown viewer (e.g. GitHub) sanitizes inline
+    ``<svg>`` and renders its ``<text>`` content as a garbled run-on string.
+    Plain markdown -- the committed ``.md`` snapshot, stdout, and ``--out`` --
+    therefore omits the blocks. The prose states every figure, and the HTML
+    report carries the charts."""
+    out: list[str] = []
+    lines = md.split("\n")
+    i, n = 0, len(lines)
+    while i < n:
+        if lines[i].strip() == RAW_SVG_OPEN:
+            i += 1
+            while i < n and lines[i].strip() != RAW_SVG_CLOSE:
+                i += 1
+            i += 1  # consume the closing fence
+            if i < n and lines[i].strip() == "":
+                i += 1  # collapse the trailing blank so no double gap remains
+            continue
+        out.append(lines[i])
+        i += 1
+    return "\n".join(out)
+
+
 def _is_special(s: str) -> bool:
     return (
         s == "---"
