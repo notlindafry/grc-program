@@ -13,6 +13,9 @@ venv/
 /report.html
 /report.md
 
+# Prebuilt static site assembled by the deploy workflow (.github/workflows).
+/public/
+
 # Local throwaway experiments (e.g. testing a deliberately broken corpus).
 /data-broken/
 /broken-report.html

@@ -92,6 +92,34 @@ there, and the report it produces is committed at
 [`docs/example-report.html`](docs/example-report.html) alongside it. Regenerate
 the corpus and both snapshots with `python examples/generate_corpus.py`.
 
+The charts only render in the HTML, and GitHub serves committed `.html` as
+source rather than a live page, so the rendered report is also published to
+Vercel — open it in a browser, no download needed:
+
+**▶ [Live report](https://YOUR-PROJECT.vercel.app)** *(replace with your Vercel URL)*
+
+A GitHub Action ([`.github/workflows/deploy-report.yml`](.github/workflows/deploy-report.yml))
+regenerates the report from the corpus and redeploys on every push to `main`, so
+the live page never drifts from the data.
+
+<details>
+<summary>One-time Vercel setup</summary>
+
+The Action ships a prebuilt static page, so the Vercel project needs no framework
+or build settings.
+
+1. Create a Vercel project — `vercel link` locally, or "Add New… → Project" in the
+   dashboard. (Disable Vercel's own Git integration for this repo so it doesn't
+   double-deploy alongside the Action.)
+2. Add three repository secrets under **Settings → Secrets and variables → Actions**:
+   - `VERCEL_TOKEN` — Vercel **Account Settings → Tokens**.
+   - `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` — from `.vercel/project.json` after a
+     local `vercel link`, or the project's settings.
+3. Push to `main` (or run the workflow manually from the Actions tab) to deploy,
+   then replace the URL above with the one Vercel assigns.
+
+</details>
+
 ```bash
 risk-ledger --data data report --out report.md
 risk-ledger --as-of 2026-06-18 --seed 20260617 appetite RISK-ACCT-TAKEOVER

@@ -1,0 +1,50 @@
+name: Deploy report
+
+# Regenerate the sample report from the corpus and publish the rendered HTML to
+# Vercel, so the live page never drifts from the committed data. The report is
+# rendered here (Python runs on the runner) and shipped to Vercel as a prebuilt
+# static page -- Vercel only serves it, it does not build anything.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "data/**"
+      - "risk_ledger/**"
+      - "examples/generate_corpus.py"
+      - ".github/workflows/deploy-report.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-report
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Regenerate the sample report
+        run: python examples/generate_corpus.py
+
+      - name: Assemble static site
+        run: |
+          mkdir -p public
+          cp docs/example-report.html public/index.html
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm install --global vercel@latest
+          vercel deploy public --prod --yes --token="$VERCEL_TOKEN"
