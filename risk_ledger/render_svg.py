@@ -1,5 +1,5 @@
-"""Hand-rolled SVG for the two report charts: the 2026 exposure arc and the
-per-risk appetite ranges.
+"""Hand-rolled SVG for the three report charts: the 2026 exposure arc, the
+per-risk appetite ranges, and the drift two-ledgers chart.
 
 Pure Python, no dependency, only rectangles / lines / text. The palette matches
 the report (see ``render._CSS``). Geometry is generated from the data, never
@@ -316,3 +316,63 @@ def appetite_ranges_svg(plots: list[AppetitePlot], *,
                       cls="rl-label", anchor="middle"))
 
     return _svg(W, height, "".join(body), title="Per-risk appetite ranges, current vs after plan")
+
+
+# -- chart 3: drift two-ledgers (reported vs true OKR footprint) ---------------
+
+def drift_ledgers_svg(okr_name, internal, true_band, *,
+                      axis_label: str = "annual loss exposure ($M)") -> str:
+    """Two neutral range bars on one shared linear axis: an OKR's footprint *on
+    its own ledger* (the ``internal`` band) and its *true* footprint (the
+    ``true_band`` -- internal plus the external risk it pushed onto starved
+    teams). Each bar spans its band's 5th-95th percentile.
+
+    The solid full bar is the reality; the on-ledger bar is the same neutral blue
+    at reduced opacity, the partial view the OKR's own register shows. Solid vs
+    outline already means realized-vs-projected on the appetite chart, and neither
+    bar here is a projection, so the distinction is fill opacity, not outline.
+
+    The rightward shift of the true bar carries the externality; the bands do not
+    add to a to-the-dollar waterfall (see docs/methodology.md), so the gap is not
+    drawn, labelled, or summed -- the two bars and their own ranges are the chart.
+    """
+    rows = [
+        ("on its own ledger", internal, 0.55),
+        ("true footprint", true_band, None),
+    ]
+    W, PAD_L, PAD_R = 720, 152, 24
+    PLOT_X0, PLOT_X1 = PAD_L, W - PAD_R
+    PLOT_W = PLOT_X1 - PLOT_X0
+    TOP, ROW_PITCH, RANGE_GAP, BAR_H = 34, 46, 17, 16
+
+    axis_max = nice_ceiling(max(true_band.high, internal.high))
+    plot_bottom = TOP + len(rows) * ROW_PITCH
+    axis_y = plot_bottom + 6
+    height = axis_y + 40
+
+    def X(v: float) -> float:
+        return PLOT_X0 + (v / axis_max) * PLOT_W
+
+    body: list[str] = []
+
+    # One neutral range bar per ledger: the on-ledger bar faded, the true bar solid.
+    for i, (label, b, opacity) in enumerate(rows):
+        bar_top = TOP + i * ROW_PITCH + RANGE_GAP
+        mid_y = bar_top + BAR_H / 2
+        x_lo, x_hi = X(b.low), X(b.high)
+        mid_x = (x_lo + x_hi) / 2
+        body.append(_text(PAD_L - 12, mid_y + 4, label, cls="rl-label", anchor="end"))
+        body.append(_text(mid_x, bar_top - 5, range_label(b),
+                          cls="rl-muted", anchor=_anchor_for(mid_x, PLOT_X0, PLOT_X1)))
+        body.append(_rect(x_lo, bar_top, x_hi - x_lo, BAR_H, fill=NEUTRAL, fill_opacity=opacity))
+
+    # Axis line, ticks, and the annualization-bearing title.
+    body.append(_line(PLOT_X0, axis_y, PLOT_X1, axis_y, stroke=AXIS))
+    for t in _axis_ticks(axis_max):
+        tx = X(t)
+        body.append(_line(tx, axis_y, tx, axis_y + 4, stroke=AXIS))
+        body.append(_text(tx, axis_y + 15, f"{round(t / 1e6):,}", cls="rl-muted", anchor="middle"))
+    body.append(_text((PLOT_X0 + PLOT_X1) / 2, axis_y + 32, axis_label,
+                      cls="rl-label", anchor="middle"))
+
+    return _svg(W, height, "".join(body), title=f"{okr_name}: reported vs true footprint")

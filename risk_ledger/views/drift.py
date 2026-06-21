@@ -27,7 +27,8 @@ from ..engine import Engine
 from ..loader import Corpus
 from ..models import Exception_
 from ..montecarlo import Band
-from ..render import EN_DASH, fmt_band, join_clause, md_table, plural
+from ..render import EN_DASH, fmt_band, join_clause, md_table, plural, raw_svg_block
+from ..render_svg import drift_ledgers_svg
 
 
 @dataclass
@@ -190,6 +191,13 @@ def _okr_section(engine: Engine, corpus: Corpus, config: Config, okr: str) -> st
     ]
     lines.append(md_table(["Footprint", "Exceptions", "Added residual risk"], rows))
     lines.append("")
+
+    # Two-ledger chart: the on-ledger (internal) footprint vs the true
+    # (internal + external) footprint. Only when both footprints exist, so the
+    # reported-vs-true contrast is meaningful; the prose above states both bands.
+    if fp.internal_band is not None and fp.external_band is not None:
+        lines.append(raw_svg_block(drift_ledgers_svg(okr, fp.internal_band, fp.combined_band)))
+        lines.append("")
 
     if fp.external_by_project:
         ext_rows = [

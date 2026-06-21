@@ -13,6 +13,7 @@ from risk_ledger.render_svg import (
     ArcRow,
     appetite_ranges_svg,
     compact_money,
+    drift_ledgers_svg,
     exposure_arc_svg,
     nice_ceiling,
     range_label,
@@ -156,3 +157,42 @@ def test_appetite_ranges_escapes_risk_names():
     svg = appetite_ranges_svg(plots)
     assert "RISK-&lt;x&gt;" in svg  # data text is escaped even on the raw path
     assert "RISK-<x>" not in svg
+
+
+# -- chart 3: drift two-ledgers (reported vs true OKR footprint) --------------
+
+
+def test_drift_ledgers_two_neutral_bars_one_faded():
+    svg = drift_ledgers_svg("gcloud-migration", band(27e6, 149e6), band(85e6, 253e6))
+    assert svg.startswith("<svg") and svg.rstrip().endswith("</svg>")
+    # Exactly two bars, both the neutral blue; the on-ledger bar is faded so the
+    # solid full bar reads as the reality and the faded one as the partial view.
+    assert svg.count(f'fill="{NEUTRAL}"') == 2
+    assert f'fill="{NEUTRAL}" fill-opacity="0.55"' in svg
+    assert svg.count('fill-opacity="0.55"') == 1
+    # No outline bar here -- outline already means "projected" on the appetite chart.
+    assert f'stroke="{NEUTRAL}"' not in svg
+
+
+def test_drift_ledgers_prints_both_ranges_and_axis_label():
+    internal, true_band = band(27e6, 149e6), band(85e6, 253e6)
+    svg = drift_ledgers_svg("gcloud-migration", internal, true_band)
+    assert range_label(internal) in svg   # $27–149M, the on-ledger band
+    assert range_label(true_band) in svg  # $85–253M, the true (combined) band
+    assert "on its own ledger" in svg
+    assert "true footprint" in svg
+    assert "annual loss exposure ($M)" in svg  # the annualization-bearing axis title
+
+
+def test_drift_ledgers_escapes_okr_name():
+    svg = drift_ledgers_svg("RISK-<x>", band(1e6, 4e6), band(2e6, 9e6))
+    assert "RISK-&lt;x&gt;" in svg  # the OKR name is escaped even on the raw path
+    assert "RISK-<x>" not in svg
+
+
+def test_drift_ledgers_carries_no_rag_colours():
+    svg = drift_ledgers_svg("gcloud-migration", band(27e6, 149e6), band(85e6, 253e6))
+    for rag in ("#b00020", "#b06a00", "#0a7d33"):
+        assert rag not in svg
+    for cls in ("rl-over", "rl-straddling", "rl-within"):
+        assert cls not in svg
