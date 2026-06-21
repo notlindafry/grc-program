@@ -158,7 +158,7 @@ RISK-ACCT-TAKEOVER:
 ```yaml
 id: EXC-2026-0142
 title: Skip MFA on internal analytics console to hit migration cutover
-owner: platform-lead@company.com       # accountable risk owner, not the filer
+owner: platform-lead@company.com       # accountable owner; see "On owner" below
 filed_on: 2026-05-06
 
 okr: gcloud-migration                  # links to an OKR so drift can be measured
@@ -187,6 +187,32 @@ renewals:
   count: 0
   justification_changed_last: null     # renewed N times unchanged flags "temporary forever"
 ```
+
+**On `owner`.** The exception `owner` is the party accountable for the gap this
+exception accepts. Accountability here is defined by the remediation lever, not the
+blast radius: the owner is whoever holds the authority to close the gap (patch the
+vulnerability, re-enable the control, rearchitect the asset), and whose decision it
+therefore is to keep it open or to revisit it. If an unpatched vulnerability is
+accepted, the accountable owner is the asset or application owner who controls the
+patch, not the security organization that answers for overall posture. Second line
+owns the appetite this is measured against and the aggregate read across the whole
+corpus; it does not own the individual acceptances it exists to measure
+independently. One exception, one accountable owner.
+
+The owner is deliberately not the filer (who merely logged the record), not the
+`estimated_by` calibrator (who supplied the numbers, not the authority), and not
+whoever later executes the remediation. The accountable owner decides; a remediation
+owner does. These are usually the same person, and when they differ, the exception
+owner is the one who decided to accept.
+
+This is also the unit the views attribute exposure to. When the appetite and
+persistence lenses ask whose decisions the carried exposure traces to, the answer is
+read from `owner`, so the field must name a specific accountable party, not a queue
+or a team alias.
+
+*Other ownership roles are distinct and will be named separately as they are added*
+(an OKR's owner, a remediation's owner, the owner of a risk's stated appetite). They
+answer different questions and must not be conflated with the exception owner above.
 
 ### `estimators.yaml`: the calibration gate
 
