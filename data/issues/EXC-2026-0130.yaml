@@ -1,0 +1,26 @@
+id: EXC-2026-0130
+type: exception
+title: Run core services single-region to cut infrastructure cost
+owner: platform-lead@company.com
+filed_on: 2026-04-20
+status: active
+mapped_scenarios: [SCN-2026-0013]
+control: [A.8.14]
+okr: gcloud-migration
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.03, 0.09]
+  estimated_by: j.okafor@company.com
+  estimated_on: 2026-04-20
+reason: cost
+scope:
+  type: enumerated
+  assets: [scn-2026-0013]
+remediation:
+  target_date: 2026-12-01
+  mechanism: deploy_multi_region_active_active
+  reduces: probability_of_realization
+expires_on: 2026-12-01
+renewals:
+  count: 0
+  justification_changed_last: null

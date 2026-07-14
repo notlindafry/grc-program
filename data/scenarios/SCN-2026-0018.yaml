@@ -1,17 +1,16 @@
 # Tier 3 -- the quantified loss event the Monte Carlo runs on (SPEC §2.4). The
-# baseline OF/PoR/LM lives here (it moved down from the legacy risks.yaml). Each
-# scenario names its Tier-2 named_risk (many-to-one), carries cross-cutting
-# impact + vector tags, and a lifecycle_state (managed | emerging) with a
-# trajectory. `legacy_risk`, when present, bridges the migrated exceptions (which
-# still name a mapped_risk) to this scenario during graph assembly. All synthetic.
+# baseline OF/PoR/LM lives here. Baselines are rescaled (SPEC v2.1 §D4) so the
+# aggregate sits near the enterprise appetite rather than 12-30x over it. Each
+# scenario names its Tier-2 named_risk, carries impact + vector tags, and a
+# lifecycle_state (managed | emerging) with a trajectory. All synthetic.
 
 id: SCN-2026-0018
 title: Subprocessor mishandles regulated data without a governed DPA
 named_risk: NR-SUBPROCESSOR-GOV
 baseline:
   opportunity_frequency_90ci: [4, 12]
-  probability_of_realization_90ci: [0.03, 0.09]
-  loss_magnitude_90ci: [2000000, 6000000]
+  probability_of_realization_90ci: [0.02, 0.06]
+  loss_magnitude_90ci: [200000, 900000]
 impact: [regulatory, individual_harm]
 vectors: [third_party]
 lifecycle_state: managed

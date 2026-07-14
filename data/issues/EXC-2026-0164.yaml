@@ -1,0 +1,26 @@
+id: EXC-2026-0164
+type: exception
+title: Accept legacy TLS on an internal supplier gateway
+owner: it-lead@company.com
+filed_on: 2025-03-09
+status: active
+mapped_scenarios: [SCN-2026-0020]
+control: [A.8.24]
+okr: internal-tools
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.025, 0.07]
+  estimated_by: m.haddad@company.com
+  estimated_on: 2025-03-09
+reason: technical_constraint
+scope:
+  type: enumerated
+  assets: [scn-2026-0020]
+remediation:
+  target_date: 2026-09-01
+  mechanism: remediate_gap
+  reduces: probability_of_realization
+expires_on: 2026-09-01
+renewals:
+  count: 3
+  justification_changed_last: null

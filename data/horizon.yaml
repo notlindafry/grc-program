@@ -1,8 +1,6 @@
-# The emerging watch list at the edge (SPEC §2.10) -- signals too green to write a
-# credible scenario yet. Mechanistic-test fence: an item earns a slot ONLY if it
-# names both a candidate_domain (where it would manifest) and a watched_kri (its
-# leading indicator). No domain and no indicator means it is a news alert, not a
-# tracked risk -- validation enforces this. All synthetic.
+# The emerging watch list at the edge (SPEC §2.10). Mechanistic-test fence: an
+# item earns a slot ONLY if it names both a candidate_domain and a watched_kri.
+# All synthetic.
 
 
 HZN-AGENT-AUTONOMY:

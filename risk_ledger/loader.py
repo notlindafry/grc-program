@@ -200,11 +200,14 @@ def load_graph(data_dir: Path) -> Graph:
     scenarios = _load_record_dir(data_dir / "scenarios", Scenario.parse, errors)
     graph.scenarios = {s.id: s for s in scenarios if s.id}
 
-    # Issues: the new typed records under issues/, plus the migrated legacy
-    # exceptions under exceptions/ (read as type: exception).
+    # Issues: the v2 corpus is self-contained under issues/ (exceptions, vulns,
+    # findings), independently calibrated. The legacy exceptions/ directory feeds
+    # the v1 engine only and is not read here, so the two corpora stay decoupled
+    # and the v2 effects can be rescaled without disturbing the frozen v1 tests.
     graph.issues = _load_record_dir(data_dir / "issues", IssueRecord.parse, errors)
-    graph.issues += _load_record_dir(data_dir / "exceptions", IssueRecord.parse, errors)
 
-    graph.remediations = _load_record_dir(data_dir / "remediations", Remediation.parse, errors)
+    # v2 remediations live in graph_remediations/ (native-queue work with m2m
+    # links to scenarios/issues), kept apart from the legacy remediations/ set.
+    graph.remediations = _load_record_dir(data_dir / "graph_remediations", Remediation.parse, errors)
 
     return assemble_graph(graph)

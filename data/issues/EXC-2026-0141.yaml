@@ -1,0 +1,26 @@
+id: EXC-2026-0141
+type: exception
+title: DLP sampling reduced on warehouse export job
+owner: data-platform-lead@company.com
+filed_on: 2026-05-02
+status: active
+mapped_scenarios: [SCN-2026-0002]
+control: [A.8.12]
+okr: data-platform
+exception_effect:
+  moves: loss_magnitude
+  with_exception_90ci: [500000, 1600000]
+  estimated_by: a.silva@company.com
+  estimated_on: 2026-05-02
+reason: technical_constraint
+scope:
+  type: enumerated
+  assets: [scn-2026-0002]
+remediation:
+  target_date: 2026-09-01
+  mechanism: re_enable_dlp_with_tuned_rules
+  reduces: loss_magnitude
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

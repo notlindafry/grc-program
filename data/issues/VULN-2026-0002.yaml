@@ -3,14 +3,14 @@
 # enters the residual bands. Synthetic.
 id: VULN-2026-0002
 type: vuln
-title: Unpatched privilege-escalation CVE accepted on endpoint fleet
+title: Unpatched privilege-escalation CVE on the endpoint fleet
 owner: it-lead@company.com
 filed_on: 2026-05-22
 status: active
 mapped_scenarios: [SCN-2026-0012]
 control: [A.8.8, A.8.7]
 moves: probability_of_realization
-with_acceptance_90ci: [0.03, 0.09]
+with_acceptance_90ci: [0.02, 0.05]
 estimated_by: j.okafor@company.com
 estimated_on: 2026-05-22
 asset: corp-endpoint-fleet

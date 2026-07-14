@@ -1,19 +1,17 @@
 # Tier 3 -- the quantified loss event the Monte Carlo runs on (SPEC §2.4). The
-# baseline OF/PoR/LM lives here (it moved down from the legacy risks.yaml). Each
-# scenario names its Tier-2 named_risk (many-to-one), carries cross-cutting
-# impact + vector tags, and a lifecycle_state (managed | emerging) with a
-# trajectory. `legacy_risk`, when present, bridges the migrated exceptions (which
-# still name a mapped_risk) to this scenario during graph assembly. All synthetic.
+# baseline OF/PoR/LM lives here. Baselines are rescaled (SPEC v2.1 §D4) so the
+# aggregate sits near the enterprise appetite rather than 12-30x over it. Each
+# scenario names its Tier-2 named_risk, carries impact + vector tags, and a
+# lifecycle_state (managed | emerging) with a trajectory. All synthetic.
 
 id: SCN-2026-0012
 title: Malware on a corporate endpoint leads to lateral movement
 named_risk: NR-ENDPOINT-MALWARE
 baseline:
-  opportunity_frequency_90ci: [30, 100]
-  probability_of_realization_90ci: [0.02, 0.08]
-  loss_magnitude_90ci: [300000, 1200000]
+  opportunity_frequency_90ci: [30, 90]
+  probability_of_realization_90ci: [0.008, 0.03]
+  loss_magnitude_90ci: [120000, 600000]
 impact: [financial]
 vectors: [adversarial]
 lifecycle_state: managed
 trajectory: stable
-legacy_risk: RISK-ENDPOINT-MALWARE

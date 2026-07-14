@@ -1,0 +1,25 @@
+id: EXC-2026-0163
+type: exception
+title: Defer secondary reviewer on low-severity abuse queue
+owner: tns-lead@company.com
+filed_on: 2026-05-01
+status: active
+mapped_scenarios: [SCN-2026-0007]
+control: [A.8.16]
+okr: trust-and-safety
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.02, 0.055]
+  estimated_by: a.silva@company.com
+  estimated_on: 2026-05-01
+reason: timeline
+scope:
+  type: enumerated
+  assets: [scn-2026-0007]
+remediation:
+  # NON-PLAN: no target_date and no mechanism -- sent back.
+  reduces: probability_of_realization
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

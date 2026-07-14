@@ -1,0 +1,10 @@
+id: REM-2026-0117
+title: Refresh subprocessor DPAs
+type: restore
+status: proposed
+target_date: 2026-05-10
+owner: platform-lead@company.com
+operational_owner: legal-oncall@company.com
+mechanism: refresh_subprocessor_dpas
+restores_control: A.5.20
+addresses_scenarios: [SCN-2026-0018]

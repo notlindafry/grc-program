@@ -1,0 +1,9 @@
+id: REM-2026-0122
+title: Passkey rollout wave 2 (contractor consoles)
+type: restore
+status: in_progress
+target_date: 2026-05-05
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: passkey_rollout_wave_2_(contractor_conso
+addresses_scenarios: [SCN-2026-0001]

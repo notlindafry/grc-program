@@ -1,0 +1,14 @@
+id: REM-2026-0103
+title: Tokenize PII fields in the analytics warehouse
+type: strengthen
+status: funded
+target_date: 2026-11-15
+owner: data-platform-lead@company.com
+operational_owner: data-oncall@company.com
+mechanism: tokenize_pii_in_warehouse
+mapped_risk: NR-DATA-EXFIL
+moves: loss_magnitude
+post_control_90ci: [120000, 500000]
+estimated_by: r.chen@company.com
+estimated_on: 2026-06-01
+addresses_scenarios: [SCN-2026-0002]

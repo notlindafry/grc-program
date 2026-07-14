@@ -1,0 +1,9 @@
+id: REM-2026-0134
+title: Pipeline dead-letter validation
+type: restore
+status: in_progress
+target_date: 2026-06-08
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: pipeline_dead-letter_validation
+addresses_scenarios: [SCN-2026-0016]

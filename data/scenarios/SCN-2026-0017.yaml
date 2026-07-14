@@ -1,17 +1,16 @@
 # Tier 3 -- the quantified loss event the Monte Carlo runs on (SPEC §2.4). The
-# baseline OF/PoR/LM lives here (it moved down from the legacy risks.yaml). Each
-# scenario names its Tier-2 named_risk (many-to-one), carries cross-cutting
-# impact + vector tags, and a lifecycle_state (managed | emerging) with a
-# trajectory. `legacy_risk`, when present, bridges the migrated exceptions (which
-# still name a mapped_risk) to this scenario during graph assembly. All synthetic.
+# baseline OF/PoR/LM lives here. Baselines are rescaled (SPEC v2.1 §D4) so the
+# aggregate sits near the enterprise appetite rather than 12-30x over it. Each
+# scenario names its Tier-2 named_risk, carries impact + vector tags, and a
+# lifecycle_state (managed | emerging) with a trajectory. All synthetic.
 
 id: SCN-2026-0017
 title: Missed quarterly regulatory filing triggers a penalty
 named_risk: NR-REG-FILINGS
 baseline:
   opportunity_frequency_90ci: [2, 6]
-  probability_of_realization_90ci: [0.05, 0.15]
-  loss_magnitude_90ci: [1000000, 4000000]
+  probability_of_realization_90ci: [0.03, 0.1]
+  loss_magnitude_90ci: [150000, 700000]
 impact: [regulatory, financial]
 vectors: []
 lifecycle_state: managed

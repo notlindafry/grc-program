@@ -390,6 +390,10 @@ def validate_graph(graph, config: Config) -> list[Issue]:
                                       "enterprise.yaml: declared appetite exceeds capacity/materiality "
                                       "— appetite should sit beneath the hard line (SPEC §4)"))
 
+    # Enterprise lines the individual thresholds are checked against (SPEC v2.1 §D1).
+    capacity = ent.capacity_materiality if ent else None
+    declared_appetite = ent.declared_appetite if ent else None
+
     # -- Named risk -> Domain (tree) ---------------------------------------
     for nid, nr in graph.named_risks.items():
         if not nr.domain:
@@ -401,10 +405,34 @@ def validate_graph(graph, config: Config) -> list[Issue]:
         if nr.appetite_threshold is None or nr.appetite_threshold <= 0:
             problems.append(Issue("named_risk_appetite_invalid", ERROR, STRUCTURAL,
                                   f"{nid}: appetite_threshold must be a positive number"))
+        elif capacity is not None:
+            # A single risk may not be permitted to breach the whole company's
+            # hard line, and consuming a quarter of it is implausible-but-allowed.
+            if nr.appetite_threshold > capacity:
+                problems.append(Issue("named_risk_threshold_over_capacity", ERROR, STRUCTURAL,
+                                      f"{nid}: appetite_threshold {nr.appetite_threshold:.0f} exceeds "
+                                      f"enterprise capacity {capacity:.0f} -- no single risk may be "
+                                      f"permitted to breach the company's hard line (SPEC v2.1 §D1)"))
+            elif nr.appetite_threshold > 0.25 * capacity:
+                problems.append(Issue("named_risk_threshold_large", FLAG, ACTION,
+                                      f"{nid}: appetite_threshold {nr.appetite_threshold:.0f} is over a "
+                                      f"quarter of enterprise capacity {capacity:.0f} -- justify it"))
         for okr_id in nr.threatens_okrs:
             if okr_id not in graph.okrs:
                 problems.append(Issue("named_risk_okr_unknown", FLAG, ACTION,
                                       f"{nid}: threatens_okrs names {okr_id!r}, not in okrs.yaml"))
+
+    # Bottom-up thresholds summing above top-down appetite is normal; 24x is not.
+    # This flag is the model telling on itself, which is on-thesis (SPEC v2.1 §D1).
+    threshold_sum = sum(
+        nr.appetite_threshold for nr in graph.named_risks.values()
+        if nr.appetite_threshold is not None
+    )
+    if declared_appetite and threshold_sum > 3 * declared_appetite:
+        problems.append(Issue("threshold_sum_far_over_appetite", FLAG, ACTION,
+                              f"sum of named-risk thresholds {threshold_sum:.0f} exceeds 3x declared "
+                              f"appetite {declared_appetite:.0f} -- bottom-up appetite has drifted far "
+                              f"above the top-down line (SPEC v2.1 §D1)"))
 
     # -- Scenario -> Named risk (tree) + baseline --------------------------
     for sid, sc in graph.scenarios.items():

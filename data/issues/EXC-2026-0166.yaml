@@ -1,0 +1,26 @@
+id: EXC-2026-0166
+type: exception
+title: Deferred DPA refresh for a low-volume subprocessor
+owner: dpo@company.com
+filed_on: 2026-03-22
+status: active
+mapped_scenarios: [SCN-2026-0018]
+control: [A.5.20]
+okr: data-platform
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.03, 0.08]
+  estimated_by: j.okafor@company.com
+  estimated_on: 2026-03-22
+reason: cost
+scope:
+  type: enumerated
+  assets: [scn-2026-0018]
+remediation:
+  target_date: 2026-09-01
+  mechanism: remediate_gap
+  reduces: probability_of_realization
+expires_on: 2026-09-01
+renewals:
+  count: 2
+  justification_changed_last: null

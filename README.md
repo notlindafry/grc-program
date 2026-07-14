@@ -148,8 +148,12 @@ entity shapes, one populated example each, and the cardinality confirmation; run
 `risk-ledger graph` to load and validate it. The engine that aggregates residual
 up the tree (scenario → named risk → domain → portfolio), applies the two-sided
 appetite banding, and derives control health is documented in
-**[`docs/engine.md`](docs/engine.md)**; run `risk-ledger portfolio` to see it.
-This is a staged build; the legacy exception-ledger commands above are unchanged.
+**[`docs/engine.md`](docs/engine.md)**; run `risk-ledger portfolio` to see it. The
+synthetic corpus is seeded backward from the stories the dashboard must tell and
+self-calibrates its appetite thresholds at build time — see
+**[`docs/corpus-stories.md`](docs/corpus-stories.md)**. This v2 corpus is
+decoupled from the frozen legacy v1 corpus, so the legacy exception-ledger
+commands and their output above are unchanged.
 
 ## The records
 

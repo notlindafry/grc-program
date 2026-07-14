@@ -1,0 +1,26 @@
+id: EXC-2026-0106
+type: exception
+title: Defer MFA on internal feature-flag console
+owner: platform-lead@company.com
+filed_on: 2026-05-08
+status: active
+mapped_scenarios: [SCN-2026-0001]
+control: [A.8.5]
+okr: gcloud-migration
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.01, 0.025]
+  estimated_by: r.chen@company.com
+  estimated_on: 2026-05-08
+reason: timeline
+scope:
+  type: enumerated
+  assets: [scn-2026-0001]
+remediation:
+  target_date: 2026-09-01
+  mechanism: enforce_sso_via_idp
+  reduces: probability_of_realization
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

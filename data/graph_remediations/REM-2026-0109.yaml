@@ -1,0 +1,10 @@
+id: REM-2026-0109
+title: Restore the data-validation suite
+type: restore
+status: funded
+target_date: 2026-09-10
+owner: platform-lead@company.com
+operational_owner: data-oncall@company.com
+mechanism: restore_the_data-validation_suite
+restores_control: A.8.33
+addresses_scenarios: [SCN-2026-0005]

@@ -1,0 +1,26 @@
+id: EXC-2026-0109
+type: exception
+title: Defer privileged-access review on migrated workloads
+owner: platform-lead@company.com
+filed_on: 2026-05-27
+status: active
+mapped_scenarios: [SCN-2026-0019]
+control: [A.8.2]
+okr: gcloud-migration
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.01, 0.026]
+  estimated_by: a.silva@company.com
+  estimated_on: 2026-05-27
+reason: timeline
+scope:
+  type: enumerated
+  assets: [scn-2026-0019]
+remediation:
+  target_date: 2026-09-01
+  mechanism: enforce_sso_via_idp
+  reduces: probability_of_realization
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

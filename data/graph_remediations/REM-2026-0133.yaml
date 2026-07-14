@@ -1,0 +1,9 @@
+id: REM-2026-0133
+title: Vendor access recertification
+type: restore
+status: proposed
+target_date: 2026-03-20
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: vendor_access_recertification
+addresses_scenarios: [SCN-2026-0011]

@@ -114,12 +114,23 @@ on a risk (`kri_signals_for_named_risk`) and the breached set as triggers
 (`breached_kris`) — it does not auto-re-estimate (that would rewrite the record);
 the seam for live ingestion is the KRI record shape (spec §8).
 
-## What is next (Day 3 / Day 4)
+## Day-3 additions (spec v2.1)
 
-- **Day 3 — Corpus.** Tune the synthetic magnitudes so the ten spec §5 stories
-  land cleanly (domain over from a single large risk vs. from accumulation; the
-  orphan risks; the `diverted_to` starvation chain; the offline AI
-  incident→scenario step producing a stored mapping). The engine mechanics here
-  are final; only the data calibration remains.
-- **Day 4 — Dashboard.** The brand HTML/CSS shell and the six views plus the
-  portfolio summary, built on these engine outputs with baked SVG charts.
+- **Threshold-vs-capacity invariants** (`validation.py`): a named-risk threshold
+  above enterprise capacity is a hard **error**; above a quarter of capacity, or
+  a threshold sum above 3× the declared appetite, is a **flag** ("the model
+  telling on itself"). A managed scenario whose residual band high crosses
+  capacity is surfaced by `scenarios_over_capacity()` (engine-side, since it
+  needs the residual).
+- **Domain RAG counts** (`DomainRollup.rag_counts`, `amber_end_to_end`): a rollup
+  of constituent named-risk RAG states — not a per-domain dollar ceiling, so §4
+  still holds — making "this domain is amber end to end" a checkable statement.
+- **Self-calibrated corpus:** named-risk thresholds are computed at build time
+  from each risk's Monte-Carlo residual to land the designed RAG spread (3 OVER /
+  6 AT / 10 BELOW), and exception effects are rescaled to plausible multipliers
+  (max 3.2×). See [`docs/corpus-stories.md`](corpus-stories.md).
+
+## What is next (Day 4)
+
+The dashboard: the brand HTML/CSS shell and the six views plus the portfolio
+summary, built on these engine outputs with baked SVG charts.

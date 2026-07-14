@@ -1,0 +1,10 @@
+id: REM-2026-0101
+title: Re-enable DLP with tuned rules on export paths
+type: restore
+status: funded
+target_date: 2026-09-01
+owner: data-platform-lead@company.com
+operational_owner: data-oncall@company.com
+mechanism: re_enable_dlp_with_tuned_rules
+restores_control: A.8.12
+addresses_scenarios: [SCN-2026-0002]

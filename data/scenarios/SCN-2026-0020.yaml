@@ -1,0 +1,17 @@
+# Tier 3 -- the quantified loss event the Monte Carlo runs on (SPEC §2.4). The
+# baseline OF/PoR/LM lives here. Baselines are rescaled (SPEC v2.1 §D4) so the
+# aggregate sits near the enterprise appetite rather than 12-30x over it. Each
+# scenario names its Tier-2 named_risk, carries impact + vector tags, and a
+# lifecycle_state (managed | emerging) with a trajectory. All synthetic.
+
+id: SCN-2026-0020
+title: A critical supplier outage cascades into our service
+named_risk: NR-SUPPLIER-OUTAGE
+baseline:
+  opportunity_frequency_90ci: [6, 20]
+  probability_of_realization_90ci: [0.02, 0.06]
+  loss_magnitude_90ci: [200000, 900000]
+impact: [financial]
+vectors: [third_party]
+lifecycle_state: managed
+trajectory: stable

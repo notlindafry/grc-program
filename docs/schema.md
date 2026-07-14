@@ -59,23 +59,31 @@ freshness, and KRIs *inform the estimate*; none adds its own term.
 ### Cardinality confirmation (shipped corpus, `risk-ledger graph`)
 
 ```
-Entities: 7 domains · 20 named risks · 22 scenarios · 57 issues
-          (exception=49, vuln=3, finding=5) · 93 controls · 17 policies
-          · 12 evidence · 12 KRIs · 4 horizon · 9 remediations · 8 OKRs
+Entities: 7 domains · 21 named risks · 23 scenarios · 36 issues
+          (exception=28, vuln=3, finding=5) · 93 controls · 17 policies
+          · 14 evidence · 12 KRIs · 4 horizon · 40 remediations · 16 OKRs
 
-named_risk → domain (tree):    20/20 resolve to a parent
-scenario   → named_risk (tree): 22/22 resolve to a parent
+named_risk → domain (tree):    21/21 resolve to a parent
+scenario   → named_risk (tree): 23/23 resolve to a parent
 control    → policy (tree):     93/93 resolve to a parent
-issue      → scenario (m2m):    57/57 issues mapped
+issue      → scenario (m2m):    36/36 issues mapped
 control    → named_risk (m2m):  90/93 controls mapped   (3 deliberate orphans)
 
 orphan_scenarios: 0 · issues_without_scenario: 0 · unmapped_controls: 3
 ```
 
-No hard errors. Six flags, all intended: three legacy trust flags (1
-uncalibrated + 2 stale estimators, inherited from the exceptions corpus) and
-three controls deliberately left unmapped so the "why do we do this?" signal is
-demonstrated as a rare, meaningful flag rather than noise.
+No hard errors. Six flags, all intended: three controls deliberately left
+unmapped so the "why do we do this?" signal is a rare, meaningful flag; two trust
+flags (1 uncalibrated + 1 stale estimator); and one large-threshold
+justification flag (a named risk whose appetite exceeds a quarter of enterprise
+capacity, spec v2.1 §D1).
+
+> **Day-3 note.** The v2 corpus is now **self-contained and decoupled** from the
+> legacy v1 corpus (`risks.yaml`, `exceptions/`), which stays frozen so the v1
+> engine and its tests are untouched. v2 issues live under `issues/` (no legacy
+> bridge) and v2 remediations under `graph_remediations/`. Named-risk thresholds
+> are **calibrated at build time** from each risk's Monte-Carlo residual to land
+> the designed RAG spread — see [`docs/corpus-stories.md`](corpus-stories.md).
 
 ---
 
@@ -88,18 +96,19 @@ registers of reference data are single files.
 data/
   enterprise.yaml      named_risks.yaml    controls.yaml     kris.yaml
   domains.yaml         policies.yaml       evidence.yaml     horizon.yaml
-  estimators.yaml      okrs.yaml (extended)                  config.yaml
-  scenarios/SCN-*.yaml            # Tier 3, one file each
-  issues/{VULN,FND}-*.yaml        # new typed issues, one file each
-  exceptions/EXC-*.yaml           # legacy exceptions, read as type: exception
-  remediations/REM-*.yaml         # extended with m2m links (one file each)
-  risks.yaml                      # legacy register (still read by the v1 engine)
+  estimators.yaml      okrs.yaml                             config.yaml
+  scenarios/SCN-*.yaml               # Tier 3, one file each
+  issues/{EXC,VULN,FND}-*.yaml       # v2 issues (self-contained), one file each
+  graph_remediations/REM-*.yaml      # v2 remediations with m2m links, one file each
+  # --- frozen legacy v1 corpus, read only by the v1 engine ---
+  risks.yaml   exceptions/EXC-*.yaml   remediations/REM-*.yaml
 ```
 
-The v2 graph loader (`load_graph`) reads the new files **and** the existing
-`exceptions/` directory (as `type: exception`), so the migrated corpus links up
-without duplicating 49 exception files. The legacy `load_corpus` / engine path
-is untouched; Day 2 unifies them onto scenarios.
+The v2 graph loader (`load_graph`) reads only the v2 corpus: `issues/` is
+self-contained (no bridge to the legacy `exceptions/`), and remediations come
+from `graph_remediations/`. The legacy `load_corpus` / v1 engine path and its
+frozen corpus are untouched, so the v2 effects could be recalibrated in Day 3
+without disturbing the v1 tests.
 
 ---
 
@@ -386,11 +395,9 @@ the exceptions gates and applies to factor-moving issues the same way.
 
 ---
 
-## What is next (Day 2)
+## The engine and corpus
 
-The engine. Heterogeneous issue quant (exception/vuln move factors; finding
-severity displayed, not simulated); control-health rollup (issues + evidence
-freshness); Tier-3 → named-risk → domain → portfolio aggregation; the
-capacity/appetite model and the two-sided RAG banding; emerging surfacing with
-the amber disambiguation; KRI re-estimation hooks. The Monte Carlo
-(`montecarlo.py`) is reused unchanged.
+The engine that aggregates these entities up the tree, applies the two-sided
+appetite banding, and derives control health is documented in
+[`docs/engine.md`](engine.md); the designed synthetic corpus and the ten stories
+it tells are in [`docs/corpus-stories.md`](corpus-stories.md).

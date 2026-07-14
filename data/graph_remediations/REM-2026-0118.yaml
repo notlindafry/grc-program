@@ -1,0 +1,10 @@
+id: REM-2026-0118
+title: Enable dual-write verification on cutover
+type: restore
+status: funded
+target_date: 2026-08-25
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: enable_dual-write_verification_on_cutove
+restores_control: A.8.28
+addresses_scenarios: [SCN-2026-0010]

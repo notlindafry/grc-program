@@ -1,0 +1,10 @@
+id: REM-2026-0113
+title: Scope vendor access on the mobile build farm
+type: restore
+status: in_progress
+target_date: 2026-03-30
+owner: platform-lead@company.com
+operational_owner: it-oncall@company.com
+mechanism: scope_vendor_access_on_the_mobile_build_
+restores_control: A.5.18
+addresses_scenarios: [SCN-2026-0011]

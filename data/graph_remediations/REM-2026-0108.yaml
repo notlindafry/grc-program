@@ -1,0 +1,11 @@
+id: REM-2026-0108
+title: Patch the out-of-SLA privilege-escalation CVE
+type: restore
+status: in_progress
+target_date: 2026-07-30
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: patch_the_out-of-sla_privilege-escalatio
+restores_control: A.8.8
+addresses_scenarios: [SCN-2026-0012]
+addresses_issues: [VULN-2026-0002]

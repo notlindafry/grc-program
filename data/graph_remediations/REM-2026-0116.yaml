@@ -1,0 +1,10 @@
+id: REM-2026-0116
+title: Residency tagging on new export connectors
+type: restore
+status: in_progress
+target_date: 2026-02-28
+owner: platform-lead@company.com
+operational_owner: data-oncall@company.com
+mechanism: residency_tagging_on_new_export_connecto
+restores_control: A.8.11
+addresses_scenarios: [SCN-2026-0014]

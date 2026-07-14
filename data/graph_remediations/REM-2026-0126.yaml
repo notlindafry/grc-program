@@ -1,0 +1,9 @@
+id: REM-2026-0126
+title: DLP coverage for ad-hoc BI connectors
+type: restore
+status: in_progress
+target_date: 2026-06-10
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: dlp_coverage_for_ad-hoc_bi_connectors
+addresses_scenarios: [SCN-2026-0002]

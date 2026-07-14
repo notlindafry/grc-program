@@ -386,159 +386,181 @@ def render_controls() -> str:
 
 
 # ---------------------------------------------------------------------------
-# 5. Named risks -- Tier 2 (SPEC §2.3). One per legacy risk + a few new.
+# 5. Named risks -- Tier 2 (SPEC §2.3). Thresholds are CALIBRATED at build time
+#    from each risk's Monte-Carlo residual to hit the designed RAG spread
+#    (SPEC v2.1 §D5); the table carries a target_rag, not a hardcoded number.
 # ---------------------------------------------------------------------------
-# (id, title, domain, owner, appetite_threshold, threatens_okrs)
+# (id, title, domain, owner, target_rag, threatens_okrs)
+#   target_rag: over | at | below | standout (a dramatic below) | emerging
 
 NAMED_RISKS = [
+    # TR-SECURITY (7)
     ("NR-PROD-COMPROMISE", "Compromise of production systems via credential or access failure",
-     "TR-SECURITY", "security-eng-lead@company.com", 5000000, ["gcloud-migration"]),
+     "TR-SECURITY", "security-eng-lead@company.com", "over", ["gcloud-migration", "core-platform"]),
     ("NR-DATA-EXFIL", "Exfiltration of regulated data from an analytics or export path",
-     "TR-SECURITY", "security-eng-lead@company.com", 6000000, ["data-platform"]),
+     "TR-SECURITY", "security-eng-lead@company.com", "at", ["data-platform"]),
     ("NR-PAYMENT-FRAUD", "Fraudulent transactions against the payments platform",
-     "TR-SECURITY", "payments-lead@company.com", 30000000, ["payments-launch"]),
-    ("NR-PCI-SCOPE", "PCI scope expansion / cardholder data handling gap",
-     "TR-COMPLIANCE", "payments-lead@company.com", 25000000, ["payments-launch"]),
-    ("NR-DATA-QUALITY", "Corrupted or unvalidated data feeding downstream decisions",
-     "TR-DATA-INTEGRITY", "data-platform-lead@company.com", 15000000, ["data-platform"]),
-    ("NR-DATA-AVAILABILITY", "Loss of availability of a core data platform service",
-     "TR-RESILIENCE", "data-platform-lead@company.com", 15000000, ["data-platform"]),
-    ("NR-ABUSE-ESCALATION", "Unmitigated abuse escalating on the platform",
-     "TR-SECURITY", "tns-lead@company.com", 15000000, ["trust-and-safety"]),
-    ("NR-ABUSE-DETECTION", "Gaps in automated detection of policy-violating content",
-     "TR-SECURITY", "tns-lead@company.com", 15000000, ["trust-and-safety"]),
-    ("NR-MIGRATION-AVAILABILITY", "Availability regressions introduced by the migration",
-     "TR-CHANGE", "platform-lead@company.com", 10000000, ["gcloud-migration"]),
-    ("NR-MIGRATION-DATAINTEGRITY", "Data integrity loss during monolith-to-microservices cutover",
-     "TR-CHANGE", "platform-lead@company.com", 10000000, ["gcloud-migration"]),
-    ("NR-VENDOR-ACCESS", "Excessive third-party vendor access to internal systems",
-     "TR-THIRDPARTY", "ciso-office@company.com", 8000000, ["mobile-app", "internal-tools"]),
+     "TR-SECURITY", "payments-lead@company.com", "at", ["payments-launch"]),
     ("NR-ENDPOINT-MALWARE", "Malware on a corporate endpoint leading to lateral movement",
-     "TR-SECURITY", "it-lead@company.com", 10000000, ["internal-tools"]),
-    ("NR-PLATFORM-OUTAGE", "Customer-facing outage of a core platform service",
-     "TR-RESILIENCE", "platform-lead@company.com", 15000000, ["core-platform"]),
-    ("NR-DATA-RESIDENCY", "Regulated data leaving its required residency region",
-     "TR-PRIVACY", "dpo@company.com", 14000000, ["data-platform"]),
+     "TR-SECURITY", "it-lead@company.com", "below", ["internal-tools"]),
     ("NR-CARD-TESTING", "Automated card-testing against the public checkout flow",
-     "TR-SECURITY", "payments-lead@company.com", 12000000, ["payments-launch"]),
+     "TR-SECURITY", "payments-lead@company.com", "below", ["payments-launch"]),
+    ("NR-ABUSE-ESCALATION", "Unmitigated abuse escalating on the platform",
+     "TR-SECURITY", "tns-lead@company.com", "at", ["trust-and-safety"]),
+    ("NR-ABUSE-DETECTION", "Gaps in automated detection of policy-violating content",
+     "TR-SECURITY", "tns-lead@company.com", "below", ["trust-and-safety"]),
+    # TR-RESILIENCE (2)
+    ("NR-PLATFORM-OUTAGE", "Customer-facing outage of a core platform service",
+     "TR-RESILIENCE", "platform-lead@company.com", "over", ["core-platform"]),
+    ("NR-DATA-AVAILABILITY", "Loss of availability of a core data platform service",
+     "TR-RESILIENCE", "data-platform-lead@company.com", "below", ["data-platform"]),
+    # TR-DATA-INTEGRITY (2) -- the amber-end-to-end domain (SPEC v2.1 §E story 9)
+    ("NR-DATA-QUALITY", "Corrupted or unvalidated data feeding downstream decisions",
+     "TR-DATA-INTEGRITY", "data-platform-lead@company.com", "below", ["data-platform"]),
     ("NR-PIPELINE-INTEGRITY", "Schema-invalid or corrupted writes entering the data pipeline",
-     "TR-DATA-INTEGRITY", "data-platform-lead@company.com", 8000000, ["data-platform"]),
-    # --- New named risks beyond the migrated legacy set ---
-    ("NR-REG-FILINGS", "Missed regulatory filing or lapsed certification",
-     "TR-COMPLIANCE", "compliance-lead@company.com", 8000000, ["run-the-business"]),
+     "TR-DATA-INTEGRITY", "data-platform-lead@company.com", "standout", ["data-platform"]),
+    # TR-PRIVACY (2)
+    ("NR-DATA-RESIDENCY", "Regulated data leaving its required residency region",
+     "TR-PRIVACY", "dpo@company.com", "at", ["data-platform"]),
     ("NR-SUBPROCESSOR-GOV", "Ungoverned subprocessor handling of regulated data",
-     "TR-PRIVACY", "dpo@company.com", 9000000, ["data-platform"]),
+     "TR-PRIVACY", "dpo@company.com", "below", ["data-platform"]),
+    # TR-CHANGE (3; one emerging)
+    ("NR-MIGRATION-AVAILABILITY", "Availability regressions introduced by the migration",
+     "TR-CHANGE", "platform-lead@company.com", "at", ["gcloud-migration"]),
+    ("NR-MIGRATION-DATAINTEGRITY", "Data integrity loss during monolith-to-microservices cutover",
+     "TR-CHANGE", "platform-lead@company.com", "below", ["gcloud-migration"]),
     ("NR-AI-AGENT-AUTONOMY", "Autonomous agents taking unsafe action in production",
-     "TR-CHANGE", "ai-platform-lead@company.com", 6000000, ["core-platform"]),
+     "TR-CHANGE", "ai-platform-lead@company.com", "emerging", ["ai-platform"]),
+    # TR-THIRDPARTY (3; one emerging)
+    ("NR-VENDOR-ACCESS", "Excessive third-party vendor access to internal systems",
+     "TR-THIRDPARTY", "ciso-office@company.com", "below", ["mobile-app", "internal-tools"]),
+    ("NR-SUPPLIER-OUTAGE", "A critical supplier's outage cascades into our service",
+     "TR-THIRDPARTY", "ciso-office@company.com", "at", ["core-platform"]),
     ("NR-MODEL-SUPPLY", "Concentration on a single external model provider",
-     "TR-THIRDPARTY", "ai-platform-lead@company.com", 7000000, ["data-platform"]),
+     "TR-THIRDPARTY", "ai-platform-lead@company.com", "emerging", ["ai-platform"]),
+    # TR-COMPLIANCE (2)
+    ("NR-PCI-SCOPE", "PCI scope expansion / cardholder data handling gap",
+     "TR-COMPLIANCE", "payments-lead@company.com", "over", ["payments-launch"]),
+    ("NR-REG-FILINGS", "Missed regulatory filing or lapsed certification",
+     "TR-COMPLIANCE", "compliance-lead@company.com", "below", ["run-the-business"]),
 ]
 
 NAMED_RISK_YAML_HEAD = """\
 # Tier 2 -- the owned, appetite-bearing risk (executive / VP altitude, SPEC §2.3).
-# Each names its Tier-1 domain (many-to-one), the accountable owner in the mgmt
-# hierarchy, the bottom-up per-risk dollar appetite, and the OKRs it threatens
-# (M2M, SPEC §2.12). All data synthetic.
+# Each names its Tier-1 domain (many-to-one), the accountable owner, the OKRs it
+# threatens (M2M, SPEC §2.12), and a per-risk dollar appetite. Thresholds are
+# CALIBRATED from each risk's Monte-Carlo residual at build time to land the
+# designed RAG spread (SPEC v2.1 §D5): 3 OVER, 6 AT, 10 BELOW. Every threshold
+# sits under the $15M enterprise capacity (SPEC v2.1 §D1). All data synthetic.
 
 """
 
 
-def render_named_risks() -> str:
+def render_named_risks(thresholds: dict) -> str:
     out = [NAMED_RISK_YAML_HEAD]
-    for nid, title, domain, owner, appetite, okrs in NAMED_RISKS:
+    for nid, title, domain, owner, target_rag, okrs in NAMED_RISKS:
         okr_render = "[" + ", ".join(okrs) + "]"
         out.append(
             f"{nid}:\n"
             f"  title: {title}\n"
             f"  domain: {domain}\n"
             f"  owner: {owner}\n"
-            f"  appetite_threshold: {appetite}\n"
+            f"  appetite_threshold: {thresholds[nid]}\n"
             f"  threatens_okrs: {okr_render}\n"
         )
     return "\n".join(out)
 
 
 # ---------------------------------------------------------------------------
-# 6. Scenarios -- Tier 3 (SPEC §2.4). The baseline the Monte Carlo runs on.
+# 6. Scenarios -- Tier 3 (SPEC §2.4). Rescaled baselines (SPEC v2.1 §D4): loss
+#    magnitudes brought down so the baseline-only aggregate sits under the $10M
+#    appetite, leaving room for exceptions to push residual modestly over it.
 # ---------------------------------------------------------------------------
-# (id, title, named_risk, OF, PoR, LM, impact, vectors, lifecycle, trajectory,
-#  legacy_risk). The first 17 carry the legacy baselines and bridge the existing
-#  exceptions via legacy_risk; the rest are new managed + emerging scenarios.
+# (id, title, named_risk, OF, PoR, LM, impact, vectors, lifecycle, trajectory)
 
 SCENARIOS = [
+    # --- TR-SECURITY ---
     ("SCN-2026-0001", "Account takeover of an internal admin console", "NR-PROD-COMPROMISE",
-     [10, 40], [0.005, 0.02], [2000000, 5000000], ["financial", "individual_harm"],
-     ["adversarial"], "managed", "stable", "RISK-ACCT-TAKEOVER"),
+     [10, 40], [0.008, 0.024], [600000, 2000000], ["financial", "individual_harm"],
+     ["adversarial"], "managed", "rising"),
+    ("SCN-2026-0019", "Admin-console takeover via unrotated migrated service accounts", "NR-PROD-COMPROMISE",
+     [8, 24], [0.007, 0.022], [400000, 1500000], ["financial", "individual_harm"],
+     ["adversarial"], "managed", "stable"),
     ("SCN-2026-0002", "Exfiltration of regulated data via an analytics export path", "NR-DATA-EXFIL",
-     [20, 80], [0.01, 0.04], [1000000, 3000000], ["financial", "individual_harm", "regulatory"],
-     ["adversarial"], "managed", "stable", "RISK-DATA-EXFIL"),
+     [20, 70], [0.008, 0.03], [250000, 1100000], ["financial", "individual_harm", "regulatory"],
+     ["adversarial"], "managed", "stable"),
     ("SCN-2026-0003", "Fraudulent transactions against the payments platform", "NR-PAYMENT-FRAUD",
-     [15, 50], [0.02, 0.06], [1200000, 3000000], ["financial", "public_market_harm"],
-     ["adversarial"], "managed", "stable", "RISK-PAYMENT-FRAUD"),
-    ("SCN-2026-0004", "Cardholder data handling gap expands PCI scope", "NR-PCI-SCOPE",
-     [5, 20], [0.01, 0.04], [2000000, 7000000], ["financial", "regulatory"],
-     [], "managed", "stable", "RISK-PCI-SCOPE"),
-    ("SCN-2026-0005", "Corrupted or unvalidated data feeds a downstream decision", "NR-DATA-QUALITY",
-     [10, 50], [0.02, 0.10], [500000, 2000000], ["financial", "individual_harm"],
-     [], "managed", "stable", "RISK-DATA-QUALITY"),
-    ("SCN-2026-0006", "Loss of availability of a core data platform service", "NR-DATA-AVAILABILITY",
-     [10, 40], [0.02, 0.08], [800000, 2500000], ["financial"],
-     [], "managed", "stable", "RISK-DATA-AVAILABILITY"),
-    ("SCN-2026-0007", "Unmitigated abuse escalating on the platform", "NR-ABUSE-ESCALATION",
-     [20, 80], [0.03, 0.10], [400000, 1500000], ["individual_harm", "reputational"],
-     ["adversarial"], "managed", "stable", "RISK-ABUSE-ESCALATION"),
-    ("SCN-2026-0008", "Detection model misses policy-violating content at scale", "NR-ABUSE-DETECTION",
-     [20, 70], [0.02, 0.08], [500000, 1800000], ["individual_harm", "public_market_harm"],
-     ["adversarial"], "managed", "stable", "RISK-ABUSE-DETECTION"),
-    ("SCN-2026-0009", "Availability regression introduced by the migration", "NR-MIGRATION-AVAILABILITY",
-     [10, 40], [0.02, 0.08], [600000, 2000000], ["financial"],
-     [], "managed", "rising", "RISK-MIGRATION-AVAILABILITY"),
-    ("SCN-2026-0010", "Data integrity loss during monolith-to-microservices cutover", "NR-MIGRATION-DATAINTEGRITY",
-     [5, 20], [0.01, 0.05], [1000000, 4000000], ["financial", "individual_harm"],
-     [], "managed", "rising", "RISK-MIGRATION-DATAINTEGRITY"),
-    ("SCN-2026-0011", "Excessive third-party vendor access to internal systems", "NR-VENDOR-ACCESS",
-     [5, 20], [0.01, 0.04], [800000, 3000000], ["financial", "individual_harm"],
-     ["third_party"], "managed", "stable", "RISK-VENDOR-ACCESS"),
+     [15, 45], [0.01, 0.035], [200000, 900000], ["financial", "public_market_harm"],
+     ["adversarial"], "managed", "stable"),
     ("SCN-2026-0012", "Malware on a corporate endpoint leads to lateral movement", "NR-ENDPOINT-MALWARE",
-     [30, 100], [0.02, 0.08], [300000, 1200000], ["financial"],
-     ["adversarial"], "managed", "stable", "RISK-ENDPOINT-MALWARE"),
-    ("SCN-2026-0013", "Customer-facing outage of a core platform service", "NR-PLATFORM-OUTAGE",
-     [20, 60], [0.01, 0.04], [1500000, 8000000], ["financial", "public_market_harm"],
-     [], "managed", "stable", "RISK-PLATFORM-OUTAGE"),
-    ("SCN-2026-0014", "Regulated data leaves its required residency region", "NR-DATA-RESIDENCY",
-     [10, 18], [0.06, 0.11], [5000000, 9000000], ["regulatory", "individual_harm"],
-     [], "managed", "stable", "RISK-DATA-RESIDENCY"),
+     [30, 90], [0.008, 0.03], [120000, 600000], ["financial"],
+     ["adversarial"], "managed", "stable"),
     ("SCN-2026-0015", "Automated card-testing lands fraudulent charges at checkout", "NR-CARD-TESTING",
-     [20, 60], [0.015, 0.05], [800000, 2500000], ["financial", "individual_harm"],
-     ["adversarial"], "managed", "stable", "RISK-CARD-TESTING"),
+     [20, 60], [0.01, 0.035], [150000, 700000], ["financial", "individual_harm"],
+     ["adversarial"], "managed", "stable"),
+    ("SCN-2026-0007", "Unmitigated abuse escalating on the platform", "NR-ABUSE-ESCALATION",
+     [20, 70], [0.015, 0.05], [120000, 550000], ["individual_harm", "reputational"],
+     ["adversarial"], "managed", "stable"),
+    ("SCN-2026-0008", "Detection model misses policy-violating content at scale", "NR-ABUSE-DETECTION",
+     [20, 60], [0.01, 0.04], [120000, 500000], ["individual_harm", "public_market_harm"],
+     ["adversarial"], "managed", "stable"),
+    # --- TR-RESILIENCE ---
+    ("SCN-2026-0013", "Customer-facing outage of a core platform service", "NR-PLATFORM-OUTAGE",
+     [20, 60], [0.008, 0.03], [600000, 3500000], ["financial", "public_market_harm"],
+     [], "managed", "rising"),
+    ("SCN-2026-0006", "Loss of availability of a core data platform service", "NR-DATA-AVAILABILITY",
+     [10, 35], [0.01, 0.04], [200000, 900000], ["financial"],
+     [], "managed", "stable"),
+    # --- TR-DATA-INTEGRITY (amber end-to-end) ---
+    ("SCN-2026-0005", "Corrupted or unvalidated data feeds a downstream decision", "NR-DATA-QUALITY",
+     [10, 40], [0.015, 0.05], [120000, 550000], ["financial", "individual_harm"],
+     [], "managed", "stable"),
     ("SCN-2026-0016", "Schema-invalid writes corrupt a downstream pipeline decision", "NR-PIPELINE-INTEGRITY",
-     [6, 20], [0.02, 0.08], [600000, 2000000], ["financial"],
-     [], "managed", "stable", "RISK-PIPELINE-INTEGRITY"),
-    # --- New managed scenarios (no legacy bridge) ---
-    ("SCN-2026-0017", "Missed quarterly regulatory filing triggers a penalty", "NR-REG-FILINGS",
-     [2, 6], [0.05, 0.15], [1000000, 4000000], ["regulatory", "financial"],
-     [], "managed", "stable", ""),
+     [6, 18], [0.01, 0.035], [100000, 400000], ["financial"],
+     [], "managed", "receding"),
+    # --- TR-PRIVACY ---
+    ("SCN-2026-0014", "Regulated data leaves its required residency region", "NR-DATA-RESIDENCY",
+     [8, 16], [0.03, 0.08], [400000, 1600000], ["regulatory", "individual_harm"],
+     [], "managed", "stable"),
     ("SCN-2026-0018", "Subprocessor mishandles regulated data without a governed DPA", "NR-SUBPROCESSOR-GOV",
-     [4, 12], [0.03, 0.09], [2000000, 6000000], ["regulatory", "individual_harm"],
-     ["third_party"], "managed", "stable", ""),
-    ("SCN-2026-0019", "Second admin-console takeover path via unrotated service accounts", "NR-PROD-COMPROMISE",
-     [8, 30], [0.006, 0.02], [1500000, 4000000], ["financial", "individual_harm"],
-     ["adversarial"], "managed", "stable", ""),
-    # --- Emerging scenarios: wide, moving intervals, AI vector (SPEC §4) ---
+     [4, 12], [0.02, 0.06], [200000, 900000], ["regulatory", "individual_harm"],
+     ["third_party"], "managed", "stable"),
+    # --- TR-CHANGE ---
+    ("SCN-2026-0009", "Availability regression introduced by the migration", "NR-MIGRATION-AVAILABILITY",
+     [10, 35], [0.015, 0.05], [150000, 700000], ["financial"],
+     [], "managed", "rising"),
+    ("SCN-2026-0010", "Data integrity loss during monolith-to-microservices cutover", "NR-MIGRATION-DATAINTEGRITY",
+     [5, 16], [0.01, 0.035], [150000, 650000], ["financial", "individual_harm"],
+     [], "managed", "rising"),
+    # --- TR-THIRDPARTY ---
+    ("SCN-2026-0011", "Excessive third-party vendor access to internal systems", "NR-VENDOR-ACCESS",
+     [5, 18], [0.008, 0.03], [150000, 700000], ["financial", "individual_harm"],
+     ["third_party"], "managed", "stable"),
+    ("SCN-2026-0020", "A critical supplier outage cascades into our service", "NR-SUPPLIER-OUTAGE",
+     [6, 20], [0.02, 0.06], [200000, 900000], ["financial"],
+     ["third_party"], "managed", "stable"),
+    # --- TR-COMPLIANCE ---
+    ("SCN-2026-0004", "Cardholder data handling gap expands PCI scope", "NR-PCI-SCOPE",
+     [4, 14], [0.02, 0.06], [500000, 2200000], ["financial", "regulatory"],
+     [], "managed", "rising"),
+    ("SCN-2026-0017", "Missed quarterly regulatory filing triggers a penalty", "NR-REG-FILINGS",
+     [2, 6], [0.03, 0.1], [150000, 700000], ["regulatory", "financial"],
+     [], "managed", "stable"),
+    # --- Emerging: wide, moving intervals, AI vector (held out of appetite math) ---
     ("SCN-2026-0031", "Confidently-wrong automated decisioning at scale on a single model provider", "NR-MODEL-SUPPLY",
-     [5, 60], [0.02, 0.30], [500000, 12000000], ["financial", "individual_harm", "public_market_harm"],
-     ["ai", "third_party"], "emerging", "rising", ""),
+     [5, 60], [0.02, 0.30], [400000, 9000000], ["financial", "individual_harm", "public_market_harm"],
+     ["ai", "third_party"], "emerging", "rising"),
     ("SCN-2026-0032", "Autonomous agent triggers an unsafe production action", "NR-AI-AGENT-AUTONOMY",
-     [3, 40], [0.01, 0.25], [400000, 9000000], ["financial", "individual_harm"],
-     ["ai"], "emerging", "rising", ""),
+     [3, 40], [0.01, 0.25], [300000, 7000000], ["financial", "individual_harm"],
+     ["ai"], "emerging", "rising"),
     ("SCN-2026-0033", "Silent training-data drift degrades the abuse-detection model", "NR-ABUSE-DETECTION",
-     [10, 90], [0.02, 0.28], [300000, 5000000], ["individual_harm", "public_market_harm"],
-     ["ai"], "emerging", "rising", ""),
+     [10, 90], [0.02, 0.28], [200000, 4000000], ["individual_harm", "public_market_harm"],
+     ["ai"], "emerging", "rising"),
 ]
 
 # One scenario carries the offline AI incident->scenario mapping seam (SPEC §8,
 # §5 story 8), stored as data so the dashboard shows an incident-linked scenario
-# as if the pipeline ran. The live generation is Day-3 work; this is the shape.
+# as if the pipeline ran.
 SCENARIO_INCIDENTS = {
     "SCN-2026-0019": {
         "ticket_id": "INC-2026-0442",
@@ -557,16 +579,15 @@ SCENARIO_INCIDENTS = {
 
 SCENARIO_HEAD = """\
 # Tier 3 -- the quantified loss event the Monte Carlo runs on (SPEC §2.4). The
-# baseline OF/PoR/LM lives here (it moved down from the legacy risks.yaml). Each
-# scenario names its Tier-2 named_risk (many-to-one), carries cross-cutting
-# impact + vector tags, and a lifecycle_state (managed | emerging) with a
-# trajectory. `legacy_risk`, when present, bridges the migrated exceptions (which
-# still name a mapped_risk) to this scenario during graph assembly. All synthetic.
+# baseline OF/PoR/LM lives here. Baselines are rescaled (SPEC v2.1 §D4) so the
+# aggregate sits near the enterprise appetite rather than 12-30x over it. Each
+# scenario names its Tier-2 named_risk, carries impact + vector tags, and a
+# lifecycle_state (managed | emerging) with a trajectory. All synthetic.
 """
 
 
 def render_scenario(spec) -> str:
-    sid, title, nr, of, por, lm, impact, vectors, lifecycle, trajectory, legacy = spec
+    sid, title, nr, of, por, lm, impact, vectors, lifecycle, trajectory = spec
     impact_render = "[" + ", ".join(impact) + "]"
     vectors_render = "[" + ", ".join(vectors) + "]" if vectors else "[]"
     lines = [
@@ -583,13 +604,11 @@ def render_scenario(spec) -> str:
         f"lifecycle_state: {lifecycle}",
         f"trajectory: {trajectory}",
     ]
-    if legacy:
-        lines.append(f"legacy_risk: {legacy}")
     incident = SCENARIO_INCIDENTS.get(sid)
     if incident:
         lines.append("incident:")
         for k, v in incident.items():
-            if k == "description" or k == "note":
+            if k in ("description", "note"):
                 lines.append(f'  {k}: "{v}"')
             else:
                 lines.append(f"  {k}: {v}")
@@ -598,27 +617,203 @@ def render_scenario(spec) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 7. New issues -- vulns + findings (SPEC §2.5). Exceptions stay under
-#    exceptions/ and are read as type: exception.
+# 7. Issues -- exceptions (self-contained, rescaled effects), vulns, findings.
 # ---------------------------------------------------------------------------
+# Exception effects are rescaled (SPEC v2.1 §D3): each with_exception band is a
+# plausible consequence of its control gap -- most a 1.2-2x move on the scenario,
+# a few 3-5x for the severe cases. No 15-20x PoR jumps.
+
+CAL = ["r.chen@company.com", "j.okafor@company.com", "p.nguyen@company.com",
+       "a.silva@company.com", "m.haddad@company.com"]
+
+
+def _exc(eid, title, owner, scn, control, moves, ci, est, *, filed_on, okr=None,
+         reason="timeline", diverted_to=None, assets=None, mechanism="remediate_gap",
+         target_date="2026-09-01", status="active", expires_on="2026-09-01",
+         renewals=0, justification_changed_last=None, non_plan=False):
+    """A self-contained v2 exception issue (type: exception)."""
+    lines = [
+        f"id: {eid}",
+        "type: exception",
+        f"title: {title}",
+        f"owner: {owner}",
+        f"filed_on: {filed_on}",
+        f"status: {status}",
+        f"mapped_scenarios: [{scn}]",
+        f"control: [{control}]",
+    ]
+    if okr:
+        lines.append(f"okr: {okr}")
+    lines += [
+        "exception_effect:",
+        f"  moves: {moves}",
+        f"  with_exception_90ci: [{ci[0]}, {ci[1]}]",
+        f"  estimated_by: {est}",
+        f"  estimated_on: {filed_on}",
+        f"reason: {reason}",
+    ]
+    if reason == "resource_reallocation" and diverted_to:
+        lines += ["reason_detail:", f"  diverted_to: {diverted_to}"]
+    lines += ["scope:", "  type: enumerated", f"  assets: [{', '.join(assets or [scn.lower()])}]"]
+    lines.append("remediation:")
+    if non_plan:
+        lines.append("  # NON-PLAN: no target_date and no mechanism -- sent back.")
+        lines.append(f"  reduces: {moves}")
+    else:
+        lines += [f"  target_date: {target_date}", f"  mechanism: {mechanism}", f"  reduces: {moves}"]
+    lines += [
+        f"expires_on: {expires_on}",
+        "renewals:",
+        f"  count: {renewals}",
+        f"  justification_changed_last: {justification_changed_last or 'null'}",
+        "",
+    ]
+    return eid, "\n".join(lines)
+
+
+def build_exceptions():
+    """Return a list of (id, yaml_text) exceptions telling the designed stories."""
+    out = []
+    # --- Story 2: ACCUMULATION on NR-PROD-COMPROMISE (SCN-0001). Nine small
+    # legacy-auth exceptions, each a modest 1.3-1.7x PoR move; together they take
+    # the named risk over appetite. Four are diverted_to launches (story 7).
+    # Spread across the two PROD-COMPROMISE scenarios so neither single scenario's
+    # residual/baseline multiplier runs above ~5x (SPEC v2.1 §F check 7); the named
+    # risk still sums OVER appetite.
+    accum = [
+        ("EXC-2026-0101", "Skip MFA on internal analytics console for cutover", "A.8.5", [0.012, 0.030], "SCN-2026-0001"),
+        ("EXC-2026-0102", "Relax session timeout on legacy admin portal", "A.8.5", [0.011, 0.028], "SCN-2026-0001"),
+        ("EXC-2026-0103", "Defer MFA rollout on internal wiki", "A.8.5", [0.010, 0.026], "SCN-2026-0001"),
+        ("EXC-2026-0104", "Allow shared break-glass account on legacy jobs runner", "A.8.2", [0.012, 0.030], "SCN-2026-0001"),
+        ("EXC-2026-0105", "Keep password-only auth on legacy build server", "A.8.5", [0.011, 0.027], "SCN-2026-0001"),
+        ("EXC-2026-0106", "Defer MFA on internal feature-flag console", "A.8.5", [0.010, 0.025], "SCN-2026-0001"),
+        ("EXC-2026-0107", "Allow legacy API keys on internal data browser", "A.5.17", [0.012, 0.029], "SCN-2026-0019"),
+        ("EXC-2026-0108", "Skip MFA on legacy reporting console", "A.8.5", [0.011, 0.028], "SCN-2026-0019"),
+        ("EXC-2026-0109", "Defer privileged-access review on migrated workloads", "A.8.2", [0.010, 0.026], "SCN-2026-0019"),
+    ]
+    dates = ["2026-01-14", "2026-02-06", "2026-02-22", "2026-03-08", "2026-03-20",
+             "2026-05-08", "2026-05-14", "2026-05-21", "2026-05-27"]
+    renew = {"EXC-2026-0102": 3, "EXC-2026-0105": 4}  # can-kicking (story 5)
+    for i, (eid, title, ctrl, ci, scn) in enumerate(accum):
+        out.append(_exc(
+            eid, title, "platform-lead@company.com", scn, ctrl,
+            "probability_of_realization", ci, CAL[i % len(CAL)], filed_on=dates[i],
+            okr="gcloud-migration", reason="timeline" if i % 3 else "technical_constraint",
+            mechanism="enforce_sso_via_idp", renewals=renew.get(eid, 0)))
+
+    # --- Story 1 + single-large: NR-PLATFORM-OUTAGE (SCN-0013). One severe (~3-4x)
+    # single-region acceptance dominates. ORPHAN: no funded remediation addresses it.
+    out.append(_exc(
+        "EXC-2026-0130", "Run core services single-region to cut infrastructure cost",
+        "platform-lead@company.com", "SCN-2026-0013", "A.8.14",
+        "probability_of_realization", [0.03, 0.09], "j.okafor@company.com",
+        filed_on="2026-04-20", okr="gcloud-migration", reason="cost",
+        mechanism="deploy_multi_region_active_active", target_date="2026-12-01",
+        expires_on="2026-12-01"))
+    out.append(_exc(
+        "EXC-2026-0131", "Skip quarterly platform DR test to free the team for migration",
+        "platform-lead@company.com", "SCN-2026-0013", "A.5.30",
+        "probability_of_realization", [0.02, 0.06], "p.nguyen@company.com",
+        filed_on="2026-05-20", okr="core-platform", reason="resource_reallocation",
+        diverted_to="gcloud-migration", mechanism="resume_quarterly_dr_tests",
+        target_date="2026-09-30", expires_on="2026-09-30", renewals=3))
+
+    # --- DLP cluster on NR-DATA-EXFIL (SCN-0002): moderate LM moves (~2-3x). ---
+    dlp = [
+        ("EXC-2026-0140", "DLP disabled on the analytics export path", [700000, 2400000], "cost"),
+        ("EXC-2026-0141", "DLP sampling reduced on warehouse export job", [500000, 1600000], "technical_constraint"),
+    ]
+    for i, (eid, title, ci, reason) in enumerate(dlp):
+        out.append(_exc(
+            eid, title, "data-platform-lead@company.com", "SCN-2026-0002", "A.8.12",
+            "loss_magnitude", ci, "a.silva@company.com", filed_on="2026-05-02",
+            okr="data-platform", reason=reason, mechanism="re_enable_dlp_with_tuned_rules"))
+
+    # --- Story 7: diverted_to starvation chain. Exceptions filed on STARVED OKRs
+    # (payments-launch, trust-and-safety, data-platform) whose resources went TO
+    # gcloud-migration. Modest PoR moves. ---
+    diverted = [
+        ("EXC-2026-0150", "Deferred fraud-rule tuning -- team pulled to migration",
+         "payments-lead@company.com", "SCN-2026-0003", "A.8.16", [0.02, 0.05],
+         "payments-launch", "tune_fraud_rules"),
+        ("EXC-2026-0151", "Deferred PCI segmentation work -- staff on migration",
+         "payments-lead@company.com", "SCN-2026-0004", "A.8.22", [0.035, 0.09],
+         "payments-launch", "complete_network_segmentation"),
+        ("EXC-2026-0152", "Delayed detection-model retrain -- ML team pulled to migration",
+         "tns-lead@company.com", "SCN-2026-0008", "A.8.16", [0.02, 0.06],
+         "trust-and-safety", "retrain_detection_model"),
+        ("EXC-2026-0153", "Deferred data-validation checks -- engineers on migration",
+         "data-platform-lead@company.com", "SCN-2026-0005", "A.8.33", [0.025, 0.07],
+         "data-platform", "restore_validation_suite"),
+        ("EXC-2026-0154", "Deferred HA failover testing -- on-call pulled to migration",
+         "data-platform-lead@company.com", "SCN-2026-0006", "A.8.14", [0.02, 0.06],
+         "data-platform", "schedule_failover_drills"),
+    ]
+    for i, (eid, title, owner, scn, ctrl, ci, okr, mech) in enumerate(diverted):
+        moves = "probability_of_realization"
+        out.append(_exc(
+            eid, title, owner, scn, ctrl, moves, ci, CAL[i % len(CAL)],
+            filed_on="2026-05-18", okr=okr, reason="resource_reallocation",
+            diverted_to="gcloud-migration", mechanism=mech))
+
+    # --- A spread of small within-appetite exceptions across the other risks,
+    # some renewed (can-kicking), one uncalibrated + one stale (trust flags),
+    # one non-plan (action flag). ---
+    misc = [
+        ("EXC-2026-0160", "Broad vendor VPN access retained on mobile build farm",
+         "mobile-lead@company.com", "SCN-2026-0011", "A.5.18", "probability_of_realization",
+         [0.015, 0.04], "l.romano@company.com", "mobile-app", "cost", 4, None, False),  # stale est
+        ("EXC-2026-0161", "Defer endpoint EDR upgrade on team laptops",
+         "it-lead@company.com", "SCN-2026-0012", "A.8.7", "probability_of_realization",
+         [0.012, 0.035], "t.brooks@company.com", "internal-tools", "cost", 0, None, False),  # uncalibrated
+        ("EXC-2026-0162", "Temporary vendor access for analytics SDK",
+         "mobile-lead@company.com", "SCN-2026-0011", "A.5.19", "probability_of_realization",
+         [0.010, 0.03], "p.nguyen@company.com", "mobile-app", "cost", 5, None, False),  # renewed 5x
+        ("EXC-2026-0163", "Defer secondary reviewer on low-severity abuse queue",
+         "tns-lead@company.com", "SCN-2026-0007", "A.8.16", "probability_of_realization",
+         [0.02, 0.055], "a.silva@company.com", "trust-and-safety", "timeline", 0, None, True),  # non-plan
+        ("EXC-2026-0164", "Accept legacy TLS on an internal supplier gateway",
+         "it-lead@company.com", "SCN-2026-0020", "A.8.24", "probability_of_realization",
+         [0.025, 0.07], "m.haddad@company.com", "internal-tools", "technical_constraint", 3, None, False),
+        ("EXC-2026-0165", "Deferred residency tagging on a new export connector",
+         "data-platform-lead@company.com", "SCN-2026-0014", "A.8.11", "probability_of_realization",
+         [0.04, 0.10], "r.chen@company.com", "data-platform", "timeline", 0, None, False),
+        ("EXC-2026-0166", "Deferred DPA refresh for a low-volume subprocessor",
+         "dpo@company.com", "SCN-2026-0018", "A.5.20", "probability_of_realization",
+         [0.03, 0.08], "j.okafor@company.com", "data-platform", "cost", 2, None, False),
+        ("EXC-2026-0167", "Skip dual-write verification during inventory cutover",
+         "platform-lead@company.com", "SCN-2026-0010", "A.8.28", "probability_of_realization",
+         [0.015, 0.045], "p.nguyen@company.com", "gcloud-migration", "technical_constraint", 0, None, False),
+        ("EXC-2026-0168", "Deferred schema-validation gate on a new pipeline writer",
+         "data-platform-lead@company.com", "SCN-2026-0016", "A.8.33", "opportunity_frequency",
+         [8, 22], "m.haddad@company.com", "data-platform", "timeline", 0, None, False),
+        ("EXC-2026-0169", "Reduced fraud-review staffing on off-peak checkout",
+         "payments-lead@company.com", "SCN-2026-0015", "A.8.16", "probability_of_realization",
+         [0.015, 0.045], "a.silva@company.com", "payments-launch", "cost", 0, None, False),
+    ]
+    misc_dates = ["2024-06-03", "2026-04-14", "2024-11-18", "2026-05-01", "2025-03-09",
+                  "2026-04-16", "2026-03-22", "2026-04-18", "2026-05-06", "2026-05-09"]
+    for i, (eid, title, owner, scn, ctrl, moves, ci, est, okr, reason, renews, jcl, non_plan) in enumerate(misc):
+        out.append(_exc(
+            eid, title, owner, scn, ctrl, moves, ci, est, filed_on=misc_dates[i],
+            okr=okr, reason=reason, mechanism="remediate_gap", renewals=renews,
+            justification_changed_last=jcl, non_plan=non_plan))
+    return out
+
 
 VULNS = [
-    # (id, title, owner, mapped_scenarios, controls, moves, with_acceptance_90ci,
-    #  estimated_by, estimated_on, asset, expires_on, filed_on)
     ("VULN-2026-0001", "Accepted out-of-SLA RCE on a migrated jobs runner",
-     "platform-lead@company.com", ["SCN-2026-0001"], ["A.8.8"], "probability_of_realization",
-     [0.02, 0.06], "r.chen@company.com", "2026-05-18", "legacy-jobs-runner", "2026-08-15", "2026-05-18"),
-    ("VULN-2026-0002", "Unpatched privilege-escalation CVE accepted on endpoint fleet",
-     "it-lead@company.com", ["SCN-2026-0012"], ["A.8.8", "A.8.7"], "probability_of_realization",
-     [0.03, 0.09], "j.okafor@company.com", "2026-05-22", "corp-endpoint-fleet", "2026-09-30", "2026-05-22"),
+     "platform-lead@company.com", "SCN-2026-0001", ["A.8.8"], "probability_of_realization",
+     [0.015, 0.04], "r.chen@company.com", "2026-05-18", "legacy-jobs-runner", "2026-08-15"),
+    ("VULN-2026-0002", "Unpatched privilege-escalation CVE on the endpoint fleet",
+     "it-lead@company.com", "SCN-2026-0012", ["A.8.8", "A.8.7"], "probability_of_realization",
+     [0.02, 0.05], "j.okafor@company.com", "2026-05-22", "corp-endpoint-fleet", "2026-09-30"),
     ("VULN-2026-0003", "Deferred dependency patch on the checkout service",
-     "payments-lead@company.com", ["SCN-2026-0015"], ["A.8.8"], "probability_of_realization",
-     [0.02, 0.055], "p.nguyen@company.com", "2026-06-01", "checkout-service", "2026-08-31", "2026-06-01"),
+     "payments-lead@company.com", "SCN-2026-0015", ["A.8.8"], "probability_of_realization",
+     [0.015, 0.045], "p.nguyen@company.com", "2026-06-01", "checkout-service", "2026-08-31"),
 ]
 
 FINDINGS = [
-    # (id, title, owner, source, severity, mapped_scenarios, controls, filed_on)
-    # A cluster of findings on A.8.5 (secure auth) -> poor control health (SPEC §5.4).
     ("FND-2026-0001", "Audit: legacy consoles permit password-only authentication",
      "security-eng-lead@company.com", "audit", "high", ["SCN-2026-0001"], ["A.8.5"], "2026-04-30"),
     ("FND-2026-0002", "Audit: MFA not enforced on several internal admin tools",
@@ -626,38 +821,25 @@ FINDINGS = [
     ("FND-2026-0003", "Self-identified: shared break-glass account lacks session logging",
      "iam-lead@company.com", "self-identified", "medium", ["SCN-2026-0001", "SCN-2026-0019"],
      ["A.8.5", "A.8.15"], "2026-05-11"),
-    # An incident-PMAI finding feeding the abuse-detection scenario.
     ("FND-2026-0004", "Incident PMAI: detection model retrain slipped two cycles",
      "tns-lead@company.com", "incident-PMAI", "medium", ["SCN-2026-0008"], ["A.8.16"], "2026-05-15"),
-    # A DR-readiness finding on the platform-outage scenario (won't-do from a crisis PMAI).
     ("FND-2026-0005", "Incident PMAI: quarterly DR test deferred, failover unproven",
      "platform-lead@company.com", "incident-PMAI", "high", ["SCN-2026-0013"], ["A.5.30"], "2026-05-20"),
 ]
 
 
 def render_vuln(spec) -> str:
-    (vid, title, owner, scns, controls, moves, ci, est_by, est_on, asset, expires, filed) = spec
-    scns_render = "[" + ", ".join(scns) + "]"
+    (vid, title, owner, scn, controls, moves, ci, est_by, est_on, asset, expires) = spec
     controls_render = "[" + ", ".join(controls) + "]"
     return "\n".join([
         "# An out-of-SLA unpatched vulnerability accepted at the asset level (SPEC",
         "# §2.5). Folds into the mapped scenario's PoR; it moves a factor, so it",
         "# enters the residual bands. Synthetic.",
-        f"id: {vid}",
-        "type: vuln",
-        f"title: {title}",
-        f"owner: {owner}",
-        f"filed_on: {filed}",
-        f"status: active",
-        f"mapped_scenarios: {scns_render}",
-        f"control: {controls_render}",
-        f"moves: {moves}",
-        f"with_acceptance_90ci: [{ci[0]}, {ci[1]}]",
-        f"estimated_by: {est_by}",
-        f"estimated_on: {est_on}",
-        f"asset: {asset}",
-        f"expires_on: {expires}",
-        "",
+        f"id: {vid}", "type: vuln", f"title: {title}", f"owner: {owner}",
+        f"filed_on: {est_on}", "status: active", f"mapped_scenarios: [{scn}]",
+        f"control: {controls_render}", f"moves: {moves}",
+        f"with_acceptance_90ci: [{ci[0]}, {ci[1]}]", f"estimated_by: {est_by}",
+        f"estimated_on: {est_on}", f"asset: {asset}", f"expires_on: {expires}", "",
     ])
 
 
@@ -669,27 +851,292 @@ def render_finding(spec) -> str:
         "# An audit / incident-PMAI / self-identified finding (SPEC §2.5). Carries a",
         "# bounded severity that informs control health and the residual NARRATIVE,",
         "# but is NOT simulated -- it never enters the residual bands. Synthetic.",
-        f"id: {fid}",
-        "type: finding",
-        f'title: "{title}"',
-        f"owner: {owner}",
-        f"filed_on: {filed}",
-        f"status: open",
-        f"source: {source}",
-        f"severity: {severity}",
-        f"mapped_scenarios: {scns_render}",
-        f"control: {controls_render}",
-        "",
+        f"id: {fid}", "type: finding", f'title: "{title}"', f"owner: {owner}",
+        f"filed_on: {filed}", "status: open", f"source: {source}", f"severity: {severity}",
+        f"mapped_scenarios: {scns_render}", f"control: {controls_render}", "",
     ])
 
 
 # ---------------------------------------------------------------------------
-# 8. Evidence (SPEC §2.8). Data only, no collector. Includes a fresh set, a
-#    stale one, and a missing one to exercise the derived status.
+# 8. OKRs -- expanded to a launch/rebuild portfolio (SPEC v2.1 §D6).
+# ---------------------------------------------------------------------------
+
+OKRS = """\
+# OKRs the named risks threaten and the exceptions attach to (SPEC §2.12).
+# Expanded to a launch/rebuild portfolio so the "risk riding on your launches"
+# view has a real set to draw from (SPEC v2.1 §D6). All synthetic.
+
+gcloud-migration:
+  title: gcloud-migration
+  objective: a quality rebuild from monolith to microservices
+  key_results:
+    - all services decomposed and hardened by cutover
+    - maintain 99.9% availability through and after cutover
+    - zero critical security findings at cutover
+  period_end: 2026-06-30
+payments-launch:
+  title: payments-launch
+  objective: launch the new payments platform to general availability
+  key_results:
+    - pass the external PCI assessment before launch
+    - fraud loss rate under target at GA
+  period_end: 2026-07-31
+data-platform:
+  title: data-platform
+  objective: a governed, reliable central data platform
+  key_results:
+    - DLP enforced on every export path
+    - 99.9% pipeline availability
+  period_end: 2026-09-30
+trust-and-safety:
+  title: trust-and-safety
+  objective: keep abuse and policy-violating content off the platform
+  key_results:
+    - abuse-escalation SLA met
+    - detection-model recall above target
+  period_end: 2026-09-30
+mobile-app:
+  title: mobile-app
+  objective: ship the redesigned mobile application
+  key_results:
+    - redesigned app in general availability
+    - crash-free sessions above target
+  period_end: 2026-08-31
+internal-tools:
+  title: internal-tools
+  objective: modernize internal developer and operations tooling
+  key_results:
+    - legacy toolchain decommissioned
+    - TLS 1.3 enforced across internal tools
+  period_end: 2026-10-31
+core-platform:
+  title: core-platform
+  objective: keep the core platform reliable and available
+  key_results:
+    - 99.9% availability across core services
+    - quarterly DR test passing
+  period_end: 2026-12-31
+ai-platform:
+  title: ai-platform
+  objective: stand up a governed internal AI/ML platform
+  key_results:
+    - model registry and eval gates in place
+    - agentic workflows behind guardrails before prod
+  period_end: 2026-12-31
+checkout-rebuild:
+  title: checkout-rebuild
+  objective: rebuild the checkout flow for conversion and resilience
+  key_results:
+    - new checkout at general availability
+    - step-up 3DS on every high-risk transaction
+  period_end: 2026-09-15
+identity-platform:
+  title: identity-platform
+  objective: consolidate identity onto a single phishing-resistant IdP
+  key_results:
+    - passkeys enforced on all internal consoles
+    - legacy auth paths decommissioned
+  period_end: 2026-11-30
+data-residency:
+  title: data-residency
+  objective: enforce regional data residency by default
+  key_results:
+    - residency tags on every regulated dataset
+    - automated cross-region egress controls live
+  period_end: 2026-10-31
+observability:
+  title: observability
+  objective: unify logging, metrics, and tracing across services
+  key_results:
+    - SIEM coverage on all production services
+    - p95 alert-to-ack under target
+  period_end: 2026-11-15
+vendor-consolidation:
+  title: vendor-consolidation
+  objective: reduce third-party concentration and standing access
+  key_results:
+    - standing vendor access reduced by half
+    - tested fallback for every critical supplier
+  period_end: 2026-12-15
+mobile-launch:
+  title: mobile-launch
+  objective: launch the redesigned app in two new markets
+  key_results:
+    - localized app live in both markets
+    - support SLA met at launch
+  period_end: 2026-10-15
+fraud-platform:
+  title: fraud-platform
+  objective: modernize the real-time fraud decisioning platform
+  key_results:
+    - device fingerprinting live at checkout
+    - fraud model refresh cadence under a week
+  period_end: 2026-11-01
+run-the-business:
+  title: run-the-business
+  objective: maintain core operations otherwise not associated with a strategic objective
+"""
+
+
+# ---------------------------------------------------------------------------
+# 9. Remediations -- native-queue work (SPEC v2.1 §D6). 40-60 records with a
+#    status spread and slipped target dates for the can-kicking view. Orphan
+#    scenarios (PLATFORM-OUTAGE, PCI-SCOPE) are deliberately left unaddressed.
+# ---------------------------------------------------------------------------
+
+AS_OF_STR = "2026-06-18"  # target dates before this are slipped
+
+
+def render_remediation(rid, *, title, rtype, status, owner, operational_owner,
+                       mechanism, target_date, addresses_scenarios=None,
+                       addresses_issues=None, restores_control=None, mapped_risk=None,
+                       moves=None, post_control_90ci=None, estimated_by=None,
+                       estimated_on=None) -> str:
+    lines = [
+        f"id: {rid}", f"title: {title}", f"type: {rtype}", f"status: {status}",
+        f"target_date: {target_date}", f"owner: {owner}",
+        f"operational_owner: {operational_owner}", f"mechanism: {mechanism}",
+    ]
+    if rtype == "restore" and restores_control:
+        lines.append(f"restores_control: {restores_control}")
+    if rtype == "strengthen":
+        lines += [f"mapped_risk: {mapped_risk}", f"moves: {moves}",
+                  f"post_control_90ci: [{post_control_90ci[0]}, {post_control_90ci[1]}]",
+                  f"estimated_by: {estimated_by}", f"estimated_on: {estimated_on}"]
+    if addresses_scenarios:
+        lines.append(f"addresses_scenarios: [{', '.join(addresses_scenarios)}]")
+    if addresses_issues:
+        lines.append(f"addresses_issues: [{', '.join(addresses_issues)}]")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def build_remediations():
+    """~45 remediations: status spread, slipped dates, orphan gaps. Returns
+    list of (id, yaml_text). PLATFORM-OUTAGE (SCN-0013) and PCI-SCOPE (SCN-0004)
+    are intentionally NOT addressed -> the orphan story (SPEC §E story 3)."""
+    R = []
+    n = [100]
+
+    def add(**kw):
+        rid = f"REM-2026-0{n[0]}"
+        n[0] += 1
+        R.append(render_remediation(rid, **kw))
+        return rid
+
+    OPS = "platform-oncall@company.com"
+    # Funded / in_progress work with sensible future dates.
+    add(title="Enforce passkeys (FIDO2) across internal consoles", rtype="restore",
+        status="funded", owner="iam-lead@company.com", operational_owner="iam-oncall@company.com",
+        mechanism="deploy_phishing_resistant_mfa", target_date="2026-09-01",
+        addresses_scenarios=["SCN-2026-0001", "SCN-2026-0019"], restores_control="A.8.5",
+        addresses_issues=["VULN-2026-0001"])
+    add(title="Re-enable DLP with tuned rules on export paths", rtype="restore",
+        status="funded", owner="data-platform-lead@company.com", operational_owner="data-oncall@company.com",
+        mechanism="re_enable_dlp_with_tuned_rules", target_date="2026-09-01",
+        addresses_scenarios=["SCN-2026-0002"], restores_control="A.8.12")
+    add(title="Rotate and scope migrated service accounts", rtype="restore",
+        status="in_progress", owner="iam-lead@company.com", operational_owner="iam-oncall@company.com",
+        mechanism="rotate_and_scope_service_accounts", target_date="2026-08-15",
+        addresses_scenarios=["SCN-2026-0019"], restores_control="A.8.2")
+    add(title="Tokenize PII fields in the analytics warehouse", rtype="strengthen",
+        status="funded", owner="data-platform-lead@company.com", operational_owner="data-oncall@company.com",
+        mechanism="tokenize_pii_in_warehouse", target_date="2026-11-15",
+        mapped_risk="NR-DATA-EXFIL", moves="loss_magnitude", post_control_90ci=[120000, 500000],
+        estimated_by="r.chen@company.com", estimated_on="2026-06-01",
+        addresses_scenarios=["SCN-2026-0002"])
+    add(title="Automated data-residency egress controls", rtype="strengthen",
+        status="funded", owner="dpo@company.com", operational_owner="data-oncall@company.com",
+        mechanism="implement_automated_data_residency_controls", target_date="2026-10-01",
+        mapped_risk="NR-DATA-RESIDENCY", moves="probability_of_realization",
+        post_control_90ci=[0.01, 0.03], estimated_by="r.chen@company.com",
+        estimated_on="2026-06-01", addresses_scenarios=["SCN-2026-0014"])
+    add(title="Device fingerprinting + step-up 3DS at checkout", rtype="strengthen",
+        status="funded", owner="payments-lead@company.com", operational_owner="payments-oncall@company.com",
+        mechanism="deploy_device_fingerprinting_and_3ds", target_date="2026-10-15",
+        mapped_risk="NR-CARD-TESTING", moves="probability_of_realization",
+        post_control_90ci=[0.004, 0.02], estimated_by="p.nguyen@company.com",
+        estimated_on="2026-06-01", addresses_scenarios=["SCN-2026-0015"],
+        addresses_issues=["VULN-2026-0003"])
+    add(title="Write-time schema validation and integrity gates", rtype="strengthen",
+        status="in_progress", owner="data-platform-lead@company.com", operational_owner="data-oncall@company.com",
+        mechanism="add_write_time_integrity_gates", target_date="2026-09-15",
+        mapped_risk="NR-PIPELINE-INTEGRITY", moves="opportunity_frequency",
+        post_control_90ci=[2, 8], estimated_by="m.haddad@company.com",
+        estimated_on="2026-06-01", addresses_scenarios=["SCN-2026-0016"])
+
+    # A batch of restores/strengthens against the accumulation cluster + others.
+    templates = [
+        ("Deploy EDR agent to the endpoint fleet", "restore", "funded", "A.8.7",
+         ["SCN-2026-0012"], ["VULN-2026-0002"], "2026-08-20", OPS),
+        ("Patch the out-of-SLA privilege-escalation CVE", "restore", "in_progress", "A.8.8",
+         ["SCN-2026-0012"], ["VULN-2026-0002"], "2026-07-30", OPS),
+        ("Restore the data-validation suite", "restore", "funded", "A.8.33",
+         ["SCN-2026-0005"], None, "2026-09-10", "data-oncall@company.com"),
+        ("Retrain the abuse-detection model", "restore", "proposed", "A.8.16",
+         ["SCN-2026-0008"], None, "2026-05-01", "tns-oncall@company.com"),   # slipped
+        ("Refresh the abuse-escalation playbook", "restore", "in_progress", "A.8.16",
+         ["SCN-2026-0007"], None, "2026-04-15", "tns-oncall@company.com"),   # slipped
+        ("Complete network segmentation for PCI", "restore", "proposed", "A.8.22",
+         ["SCN-2026-0004"], None, "2026-05-20", "payments-oncall@company.com"),  # slipped but PCI still orphan (proposed != funded)
+        ("Scope vendor access on the mobile build farm", "restore", "in_progress", "A.5.18",
+         ["SCN-2026-0011"], None, "2026-03-30", "it-oncall@company.com"),    # slipped
+        ("Schedule HA failover drills", "restore", "proposed", "A.8.14",
+         ["SCN-2026-0006"], None, "2026-06-30", "data-oncall@company.com"),
+        ("Enforce TLS 1.3 on the supplier gateway", "restore", "funded", "A.8.24",
+         ["SCN-2026-0020"], None, "2026-09-05", "it-oncall@company.com"),
+        ("Residency tagging on new export connectors", "restore", "in_progress", "A.8.11",
+         ["SCN-2026-0014"], None, "2026-02-28", "data-oncall@company.com"),  # slipped hard
+        ("Refresh subprocessor DPAs", "restore", "proposed", "A.5.20",
+         ["SCN-2026-0018"], None, "2026-05-10", "legal-oncall@company.com"),  # slipped
+        ("Enable dual-write verification on cutover", "restore", "funded", "A.8.28",
+         ["SCN-2026-0010"], None, "2026-08-25", OPS),
+        ("Restore fraud-review staffing off-peak", "restore", "proposed", "A.8.16",
+         ["SCN-2026-0015"], None, "2026-06-01", "payments-oncall@company.com"),
+        ("Re-enable change-approval evidence export", "restore", "in_progress", "A.8.32",
+         ["SCN-2026-0010"], None, "2026-04-01", OPS),                        # slipped
+        ("Backfill privileged-access reviews", "restore", "funded", "A.8.2",
+         ["SCN-2026-0001"], None, "2026-09-20", "iam-oncall@company.com"),
+    ]
+    for title, rtype, status, ctrl, scns, issues, td, ops in templates:
+        add(title=title, rtype=rtype, status=status, owner="platform-lead@company.com",
+            operational_owner=ops, mechanism=title.lower().replace(" ", "_")[:40],
+            target_date=td, addresses_scenarios=scns, addresses_issues=issues,
+            restores_control=ctrl)
+
+    # A tail of smaller strengthens/restores to reach ~45, several slipped/proposed.
+    tail = [
+        ("Passkey rollout wave 2 (contractor consoles)", "in_progress", ["SCN-2026-0001"], "2026-05-05"),
+        ("Legacy API-key decommission", "proposed", ["SCN-2026-0001"], "2026-04-20"),
+        ("Session-timeout hardening on legacy portals", "in_progress", ["SCN-2026-0001"], "2026-03-15"),
+        ("Break-glass session logging", "proposed", ["SCN-2026-0019"], "2026-05-25"),
+        ("DLP coverage for ad-hoc BI connectors", "in_progress", ["SCN-2026-0002"], "2026-06-10"),
+        ("Fraud-rule tuning backlog burn-down", "proposed", ["SCN-2026-0003"], "2026-04-30"),
+        ("Detection-model eval-gate rollout", "in_progress", ["SCN-2026-0008"], "2026-06-05"),
+        ("Endpoint EDR tuning wave 2", "proposed", ["SCN-2026-0012"], "2026-05-15"),
+        ("Residency egress monitoring", "in_progress", ["SCN-2026-0014"], "2026-06-12"),
+        ("Supplier fallback runbook", "proposed", ["SCN-2026-0020"], "2026-05-30"),
+        ("Migration cutover integrity checks", "in_progress", ["SCN-2026-0010"], "2026-04-10"),
+        ("Vendor access recertification", "proposed", ["SCN-2026-0011"], "2026-03-20"),
+        ("Pipeline dead-letter validation", "in_progress", ["SCN-2026-0016"], "2026-06-08"),
+        ("Abuse-queue reviewer staffing", "proposed", ["SCN-2026-0007"], "2026-05-18"),
+        ("Regulatory filing calendar automation", "in_progress", ["SCN-2026-0017"], "2026-06-14"),
+        ("Data-availability failover automation", "proposed", ["SCN-2026-0006"], "2026-05-22"),
+        ("Subprocessor inventory reconciliation", "in_progress", ["SCN-2026-0018"], "2026-04-25"),
+        ("Card-testing velocity limits", "proposed", ["SCN-2026-0015"], "2026-06-02"),
+    ]
+    for title, status, scns, td in tail:
+        add(title=title, rtype="restore", status=status, owner="platform-lead@company.com",
+            operational_owner=OPS, mechanism=title.lower().replace(" ", "_")[:40],
+            target_date=td, addresses_scenarios=scns, restores_control=None)
+    return R
+
+
+# ---------------------------------------------------------------------------
+# 10. Evidence, KRIs, Horizon (SPEC §2.8-2.10). Scenario/control refs preserved.
 # ---------------------------------------------------------------------------
 
 EVIDENCE = [
-    # (id, supports_controls, source, method, cadence, last_collected)
     ("EV-IAM-0001", ["A.8.5"], "idp-config-export", "api", "quarterly", "2026-04-15"),
     ("EV-IAM-0002", ["A.8.2", "A.5.18"], "privileged-access-review", "manual", "quarterly", "2026-05-02"),
     ("EV-DLP-0001", ["A.8.12"], "dlp-policy-export", "api", "monthly", "2026-06-01"),
@@ -698,21 +1145,19 @@ EVIDENCE = [
     ("EV-LOG-0001", ["A.8.15", "A.8.16"], "siem-coverage-report", "api", "monthly", "2026-05-28"),
     ("EV-CRYPTO-0001", ["A.8.24"], "tls-scan", "api", "monthly", "2026-05-30"),
     ("EV-NET-0001", ["A.8.20", "A.8.22"], "firewall-ruleset-export", "api", "quarterly", "2026-03-20"),
-    # Stale: a quarterly control last collected far outside its window (SPEC §5.5).
     ("EV-DR-0001", ["A.5.30"], "dr-test-report", "manual", "quarterly", "2025-11-01"),
-    # Stale: residency evidence overdue.
     ("EV-RESIDENCY-0001", ["A.8.11", "A.5.34"], "data-residency-audit", "manual", "semiannual", "2025-08-15"),
-    # Missing: no last_collected -> status missing.
     ("EV-CHANGE-0001", ["A.8.32"], "change-approval-export", "api", "monthly", None),
     ("EV-SUPPLIER-0001", ["A.5.19", "A.5.20"], "vendor-attestation-register", "manual", "annual", "2026-01-10"),
+    ("EV-BACKUP-0002", ["A.8.14"], "redundancy-drill-report", "manual", "quarterly", "2026-05-12"),
+    ("EV-CODE-0001", ["A.8.28", "A.8.33"], "sast-coverage-report", "api", "monthly", "2026-06-03"),
 ]
 
 EVIDENCE_HEAD = """\
-# Proof a control operates (SPEC §2.8, thin -- DATA ONLY, no collector is built).
-# status (fresh | stale | missing) is DERIVED from cadence + last_collected at
-# build time. The record shape is the seam a real collector fills later (SPEC §8).
-# A representative subset of controls carries evidence; a few are deliberately
-# stale or missing to exercise the provability signal (SPEC §5.5). All synthetic.
+# Proof a control operates (SPEC §2.8, thin -- DATA ONLY, no collector). status
+# (fresh | stale | missing) is DERIVED from cadence + last_collected. A few are
+# deliberately stale/missing to exercise the provability signal (SPEC §5.5).
+# All synthetic.
 
 """
 
@@ -720,25 +1165,14 @@ EVIDENCE_HEAD = """\
 def render_evidence() -> str:
     out = [EVIDENCE_HEAD]
     for eid, controls, source, method, cadence, last in EVIDENCE:
-        controls_render = "[" + ", ".join(controls) + "]"
-        block = [
-            f"{eid}:",
-            f"  supports_controls: {controls_render}",
-            f"  source: {source}",
-            f"  collection_method: {method}",
-            f"  cadence: {cadence}",
-        ]
+        block = [f"{eid}:", f"  supports_controls: [{', '.join(controls)}]",
+                 f"  source: {source}", f"  collection_method: {method}", f"  cadence: {cadence}"]
         block.append(f"  last_collected: {last}" if last else "  last_collected: null")
         out.append("\n".join(block) + "\n")
     return "\n".join(out)
 
 
-# ---------------------------------------------------------------------------
-# 9. KRIs (SPEC §2.9). Inform re-estimation; never additive. status derived.
-# ---------------------------------------------------------------------------
-
 KRIS = [
-    # (id, title, informs, current_value, threshold, trend, direction)
     ("KRI-MODEL-CONCENTRATION", "Share of critical paths dependent on a single model provider",
      ["SCN-2026-0031"], 0.62, 0.50, "rising", "over"),
     ("KRI-AGENTIC-WORKFLOWS", "Count of agentic workflows running in production without guardrails",
@@ -766,13 +1200,10 @@ KRIS = [
 ]
 
 KRI_HEAD = """\
-# Key risk indicators (SPEC §2.9, thin -- like evidence). A KRI INFORMS
-# re-estimation of an existing scenario/named-risk factor (never an additive
-# term, SPEC §4) and triggers emerging-risk changes. status (ok | amber |
-# breached) is DERIVED from current_value vs threshold; `direction: under` means
-# a breach is a value at/below threshold (e.g. patch-SLA coverage). On the
-# dashboard a KRI is a light signal on a risk, not its own view. The record shape
-# is the seam for later live-metric ingestion (SPEC §8). All synthetic.
+# Key risk indicators (SPEC §2.9, thin). A KRI INFORMS re-estimation of a factor
+# (never an additive term, SPEC §4) and triggers emerging-risk changes. status
+# (ok | amber | breached) is DERIVED from current_value vs threshold; direction
+# `under` means a breach is a value at/below threshold. All synthetic.
 
 """
 
@@ -780,22 +1211,12 @@ KRI_HEAD = """\
 def render_kris() -> str:
     out = [KRI_HEAD]
     for kid, title, informs, value, threshold, trend, direction in KRIS:
-        informs_render = "[" + ", ".join(informs) + "]"
         out.append(
-            f"{kid}:\n"
-            f"  title: {title}\n"
-            f"  informs: {informs_render}\n"
-            f"  current_value: {value}\n"
-            f"  threshold: {threshold}\n"
-            f"  trend: {trend}\n"
-            f"  direction: {direction}\n"
-        )
+            f"{kid}:\n  title: {title}\n  informs: [{', '.join(informs)}]\n"
+            f"  current_value: {value}\n  threshold: {threshold}\n"
+            f"  trend: {trend}\n  direction: {direction}\n")
     return "\n".join(out)
 
-
-# ---------------------------------------------------------------------------
-# 10. Horizon -- the emerging watch list at the edge (SPEC §2.10)
-# ---------------------------------------------------------------------------
 
 HORIZON = [
     ("HZN-AGENT-AUTONOMY", "Autonomous agents taking unsafe action in production",
@@ -813,11 +1234,9 @@ HORIZON = [
 ]
 
 HORIZON_HEAD = """\
-# The emerging watch list at the edge (SPEC §2.10) -- signals too green to write a
-# credible scenario yet. Mechanistic-test fence: an item earns a slot ONLY if it
-# names both a candidate_domain (where it would manifest) and a watched_kri (its
-# leading indicator). No domain and no indicator means it is a news alert, not a
-# tracked risk -- validation enforces this. All synthetic.
+# The emerging watch list at the edge (SPEC §2.10). Mechanistic-test fence: an
+# item earns a slot ONLY if it names both a candidate_domain and a watched_kri.
+# All synthetic.
 
 """
 
@@ -826,53 +1245,145 @@ def render_horizon() -> str:
     out = [HORIZON_HEAD]
     for hid, title, domain, kri, trajectory, note in HORIZON:
         out.append(
-            f"{hid}:\n"
-            f"  title: {title}\n"
-            f"  candidate_domain: {domain}\n"
-            f"  watched_kri: {kri}\n"
-            f"  trajectory: {trajectory}\n"
-            f'  note: "{note}"\n'
-        )
+            f"{hid}:\n  title: {title}\n  candidate_domain: {domain}\n"
+            f"  watched_kri: {kri}\n  trajectory: {trajectory}\n  note: \"{note}\"\n")
     return "\n".join(out)
 
 
 # ---------------------------------------------------------------------------
-# Build
+# Build + self-calibration of named-risk thresholds
 # ---------------------------------------------------------------------------
+
+GRAPH_REM = DATA / "graph_remediations"
+
+# Rounding step for calibrated thresholds (readability).
+_STEP = 50000
+
+
+def _round_to(x, step, mode="nearest"):
+    import math as _m
+    if mode == "down":
+        return int(_m.floor(x / step) * step)
+    if mode == "up":
+        return int(_m.ceil(x / step) * step)
+    return int(round(x / step) * step)
+
+
+def _threshold_for(target_rag, band, capacity):
+    """Derive a threshold from a residual band to land the target RAG state."""
+    if target_rag == "over":
+        t = _round_to(band.low * 0.9, _STEP, "down")
+    elif target_rag == "at":
+        t = _round_to(band.mean, _STEP, "nearest")
+    elif target_rag == "below":
+        t = _round_to(band.high / 0.62, _STEP, "up")
+    elif target_rag == "standout":
+        t = _round_to(band.mean / 0.15, _STEP, "up")
+    else:  # emerging: nominal, so would_breach is meaningful against the wide band
+        t = _round_to(band.mean, _STEP, "nearest") if band else 1500000
+    t = max(_STEP, min(t, int(capacity)))
+    return t
+
+
+def _calibrate_thresholds():
+    """Load the just-written graph, read each named risk's residual, and return
+    a {nid: threshold} map that lands the designed RAG spread (SPEC v2.1 §D5)."""
+    import sys
+    sys.path.insert(0, str(ROOT))
+    from risk_ledger.config import Config
+    from risk_ledger.graph_engine import GraphEngine
+    from risk_ledger.loader import load_graph
+    from risk_ledger.validation import validate_graph
+
+    cfg = Config(as_of=__import__("datetime").date(2026, 6, 18))
+    graph = load_graph(DATA)
+    validate_graph(graph, cfg)
+    eng = GraphEngine(graph, cfg)
+    capacity = graph.enterprise.capacity_materiality
+    target = {nid: rag for nid, _, _, _, rag, _ in NAMED_RISKS}
+
+    thresholds = {}
+    for nid in target:
+        rag = target[nid]
+        res = eng.named_risk_residual(nid)  # None for emerging (no managed scenario)
+        if res is not None:
+            thresholds[nid] = _threshold_for(rag, res.band, capacity)
+        else:
+            # Emerging: base the nominal threshold on the emerging scenario band.
+            em = [e for e in eng.emerging_items() if e.scenario.named_risk == nid]
+            band = em[0].band if em else None
+            thresholds[nid] = _threshold_for("emerging", band, capacity)
+    return thresholds
 
 
 def build_ecosystem() -> None:
-    """Write the v2 GRC-ecosystem corpus files under ``data/``."""
+    """Write the v2 GRC-ecosystem corpus and self-calibrate the thresholds."""
     DATA.mkdir(exist_ok=True)
-    SCN.mkdir(exist_ok=True)
-    ISSUES.mkdir(exist_ok=True)
-    for old in SCN.glob("*.yaml"):
-        old.unlink()
-    for old in ISSUES.glob("*.yaml"):
-        old.unlink()
+    for d in (SCN, ISSUES, GRAPH_REM):
+        d.mkdir(exist_ok=True)
+        for old in d.glob("*.yaml"):
+            old.unlink()
 
     (DATA / "enterprise.yaml").write_text(ENTERPRISE)
     (DATA / "domains.yaml").write_text(render_domains())
     (DATA / "policies.yaml").write_text(render_policies())
     (DATA / "controls.yaml").write_text(render_controls())
-    (DATA / "named_risks.yaml").write_text(render_named_risks())
     (DATA / "evidence.yaml").write_text(render_evidence())
     (DATA / "kris.yaml").write_text(render_kris())
     (DATA / "horizon.yaml").write_text(render_horizon())
+    (DATA / "okrs.yaml").write_text(OKRS)
 
     for spec in SCENARIOS:
         (SCN / f"{spec[0]}.yaml").write_text(render_scenario(spec))
+    for eid, text in build_exceptions():
+        (ISSUES / f"{eid}.yaml").write_text(text)
     for spec in VULNS:
         (ISSUES / f"{spec[0]}.yaml").write_text(render_vuln(spec))
     for spec in FINDINGS:
         (ISSUES / f"{spec[0]}.yaml").write_text(render_finding(spec))
+    for i, text in enumerate(build_remediations()):
+        rid = text.split("\n", 1)[0].split(": ", 1)[1]
+        (GRAPH_REM / f"{rid}.yaml").write_text(text)
+
+    # First pass with placeholder thresholds so the graph loads, then calibrate.
+    placeholder = {nid: 1000000 for nid, *_ in NAMED_RISKS}
+    (DATA / "named_risks.yaml").write_text(render_named_risks(placeholder))
+    thresholds = _calibrate_thresholds()
+    (DATA / "named_risks.yaml").write_text(render_named_risks(thresholds))
 
     n_scn = len(list(SCN.glob("*.yaml")))
     n_iss = len(list(ISSUES.glob("*.yaml")))
-    n_ctrl = sum(len(v) for v in ANNEX_A.values())
+    n_rem = len(list(GRAPH_REM.glob("*.yaml")))
     print(f"Wrote {len(DOMAINS)} domains, {len(NAMED_RISKS)} named risks, {n_scn} scenarios")
-    print(f"Wrote {n_ctrl} ISO Annex A controls, {len(POLICIES)} policies, {len(EVIDENCE)} evidence records")
-    print(f"Wrote {len(KRIS)} KRIs, {len(HORIZON)} horizon items, {n_iss} new issues (vulns + findings)")
+    print(f"Wrote 93 ISO Annex A controls, {len(POLICIES)} policies, {len(EVIDENCE)} evidence records")
+    print(f"Wrote {len(KRIS)} KRIs, {len(HORIZON)} horizon items, {n_iss} issues, {n_rem} remediations")
+    _verify()
+
+
+def _verify():
+    """Print the calibrated RAG spread and the SPEC v2.1 §F acceptance signals."""
+    import sys
+    sys.path.insert(0, str(ROOT))
+    from risk_ledger.config import Config
+    from risk_ledger.graph_engine import GraphEngine, RAG_OVER, RAG_AT, RAG_BELOW
+    from risk_ledger.loader import load_graph
+    from risk_ledger.validation import validate_graph
+
+    cfg = Config(as_of=__import__("datetime").date(2026, 6, 18))
+    graph = load_graph(DATA)
+    validate_graph(graph, cfg)
+    eng = GraphEngine(graph, cfg)
+    states = {r.named_risk.id: r.state for r in eng.all_named_risk_residuals()}
+    from collections import Counter
+    spread = Counter(states.values())
+    p = eng.portfolio()
+    amber_domains = [d.domain.id for d in eng.all_domain_rollups() if d.amber_end_to_end]
+    print(f"  RAG spread: {spread.get(RAG_OVER,0)} OVER / {spread.get(RAG_AT,0)} AT / "
+          f"{spread.get(RAG_BELOW,0)} BELOW")
+    print(f"  Portfolio residual mean ${p.band.mean/1e6:.1f}M  "
+          f"(band ${p.band.low/1e6:.1f}M-${p.band.high/1e6:.1f}M); "
+          f"over_appetite={p.over_appetite}, capacity_breached={p.capacity_breached}")
+    print(f"  Amber end-to-end domains: {amber_domains or 'none'}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,10 @@
+id: REM-2026-0114
+title: Schedule HA failover drills
+type: restore
+status: proposed
+target_date: 2026-06-30
+owner: platform-lead@company.com
+operational_owner: data-oncall@company.com
+mechanism: schedule_ha_failover_drills
+restores_control: A.8.14
+addresses_scenarios: [SCN-2026-0006]

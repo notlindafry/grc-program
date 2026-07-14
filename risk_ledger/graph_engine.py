@@ -125,6 +125,16 @@ class DomainRollup:
     domain: Domain
     band: Band  # monitored; no hard per-domain ceiling (SPEC §4)
     named_risk_ids: list[str] = field(default_factory=list)
+    # A rollup of the constituent named risks' RAG STATES -- not a per-domain
+    # dollar ceiling (SPEC v2.1 §D2). Lets "this domain is amber end to end"
+    # be a real, checkable statement without introducing arbitrary budgeting.
+    rag_counts: dict[str, int] = field(default_factory=dict)
+
+    @property
+    def amber_end_to_end(self) -> bool:
+        """Every constituent named risk reads BELOW (amber) -- the standout
+        "over-controlled domain" story (SPEC v2.1 §E story 9)."""
+        return bool(self.named_risk_ids) and self.rag_counts.get(RAG_BELOW, 0) == len(self.named_risk_ids)
 
 
 @dataclass
@@ -359,7 +369,12 @@ class GraphEngine:
             return None
         streams = [self._named_risk_samples(nid) for nid in nr_ids]
         band = Band.from_samples(self.mc.sum_streams(streams))
-        return DomainRollup(domain=domain, band=band, named_risk_ids=nr_ids)
+        rag_counts = {RAG_OVER: 0, RAG_AT: 0, RAG_BELOW: 0}
+        for nid in nr_ids:
+            r = self.named_risk_residual(nid)
+            if r is not None:
+                rag_counts[r.state] += 1
+        return DomainRollup(domain=domain, band=band, named_risk_ids=nr_ids, rag_counts=rag_counts)
 
     def all_domain_rollups(self) -> list[DomainRollup]:
         out = [self.domain_rollup(did) for did in self.graph.domains]
@@ -392,6 +407,22 @@ class GraphEngine:
             capacity_breached=capacity_breached,
             over_appetite=over_appetite,
         )
+
+    def scenarios_over_capacity(self) -> list[ScenarioResidual]:
+        """Managed scenarios whose residual band high crosses the enterprise
+        capacity/materiality line (SPEC v2.1 §D1). A single scenario capable of
+        crossing materiality is a board-level item regardless of its RAG state.
+        Computed here (not in validation) because it needs the residual band."""
+        ent = self.graph.enterprise
+        if ent is None or ent.capacity_materiality is None:
+            return []
+        cap = ent.capacity_materiality
+        out = [
+            res for sid, res in self._scn_residual.items()
+            if not self.graph.scenarios[sid].is_emerging and res.band.high > cap
+        ]
+        out.sort(key=lambda r: r.band.high, reverse=True)
+        return out
 
     # -- emerging surfacing (held out of the appetite math) -----------------
 

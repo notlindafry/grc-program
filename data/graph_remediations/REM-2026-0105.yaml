@@ -1,0 +1,15 @@
+id: REM-2026-0105
+title: Device fingerprinting + step-up 3DS at checkout
+type: strengthen
+status: funded
+target_date: 2026-10-15
+owner: payments-lead@company.com
+operational_owner: payments-oncall@company.com
+mechanism: deploy_device_fingerprinting_and_3ds
+mapped_risk: NR-CARD-TESTING
+moves: probability_of_realization
+post_control_90ci: [0.004, 0.02]
+estimated_by: p.nguyen@company.com
+estimated_on: 2026-06-01
+addresses_scenarios: [SCN-2026-0015]
+addresses_issues: [VULN-2026-0003]

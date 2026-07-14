@@ -210,18 +210,21 @@ def test_named_risk_drivers_are_factor_moving_only(corpus_engine):
     assert all(c.issue.moves_a_factor for c in r.drivers)  # never a finding
 
 
-def test_legacy_exception_contributes_to_bridged_scenario(corpus_engine):
+def test_issue_contributes_to_its_scenario(corpus_engine):
     _, eng = corpus_engine
     res = eng.scenario_residual("SCN-2026-0001")
-    assert "EXC-2026-0142" in {c.issue.id for c in res.contributors}
+    assert "EXC-2026-0101" in {c.issue.id for c in res.contributors}
 
 
-def test_portfolio_over_declared_appetite(corpus_engine):
+def test_portfolio_over_appetite_under_capacity(corpus_engine):
+    # The calibrated aggregate is OVER the $10M appetite (the signal fires) but
+    # UNDER the $15M capacity line -- a governance moment, not a catastrophe
+    # (SPEC v2.1 §F check 1).
     _, eng = corpus_engine
     p = eng.portfolio()
-    assert p.over_appetite is True         # the aggregate exceeds the $10M line
-    assert p.capacity_breached is True     # and the $15M hard line
-    assert p.band.low > p.appetite
+    assert p.over_appetite is True
+    assert p.capacity_breached is False
+    assert p.appetite < p.band.mean < p.capacity
 
 
 def test_control_health_stories(corpus_engine):
@@ -263,3 +266,81 @@ def test_kri_triggers_surface_as_signals(corpus_engine):
     # The MFA-coverage KRI is a signal on the compromise risk, not its own term.
     sigs = {s.kri_id: s.status for s in eng.kri_signals_for_named_risk("NR-PROD-COMPROMISE")}
     assert sigs.get("KRI-MFA-COVERAGE") == "breached"
+
+
+# --- Day-3 calibration + designed stories (SPEC v2.1 §D5, §E, §F) ----------
+
+
+def test_designed_rag_spread(corpus_engine):
+    # SPEC v2.1 §F5: roughly 2-3 OVER / 5-7 AT / 10-12 BELOW across named risks.
+    _, eng = corpus_engine
+    from collections import Counter
+    spread = Counter(r.state for r in eng.all_named_risk_residuals())
+    assert spread[RAG_OVER] == 3
+    assert spread[RAG_AT] == 6
+    assert spread[RAG_BELOW] == 10
+
+
+def test_exactly_one_amber_end_to_end_domain(corpus_engine):
+    # SPEC v2.1 §F6 / §E story 9: exactly one domain reads amber end to end, and
+    # it is a plausibly-healthy-looking one (Data integrity).
+    _, eng = corpus_engine
+    amber = [d.domain.id for d in eng.all_domain_rollups() if d.amber_end_to_end]
+    assert amber == ["TR-DATA-INTEGRITY"]
+
+
+def test_standout_amber_sits_deep_under_threshold(corpus_engine):
+    # The standout: residual mean at roughly 10-20% of its threshold.
+    _, eng = corpus_engine
+    r = eng.named_risk_residual("NR-PIPELINE-INTEGRITY")
+    assert r.state == RAG_BELOW
+    assert r.band.mean / r.threshold < 0.25
+
+
+def test_orphans_have_no_funded_remediation(corpus_engine):
+    # SPEC §E story 3: >=2 orphan risks (OVER, no funded remediation addressing them).
+    graph, eng = corpus_engine
+    funded = {"funded", "in_progress"}
+    orphans = []
+    for r in eng.all_named_risk_residuals():
+        if r.state != RAG_OVER:
+            continue
+        scn_ids = set(r.scenario_ids)
+        rem_ids = {rid for sid in scn_ids for rid in graph.remediations_of_scenario.get(sid, [])}
+        rems = [rm for rm in graph.remediations if rm.id in rem_ids]
+        if not any(rm.status in funded for rm in rems):
+            orphans.append(r.named_risk.id)
+    assert {"NR-PLATFORM-OUTAGE", "NR-PCI-SCOPE"} <= set(orphans)
+
+
+def test_no_scenario_multiplier_over_5x(corpus_engine):
+    # SPEC v2.1 §F7: no managed scenario's residual/baseline multiplier exceeds ~5x.
+    _, eng = corpus_engine
+    for sid, res in ((s, eng.scenario_residual(s)) for s in eng.graph.scenarios):
+        if res is None or eng.graph.scenarios[sid].is_emerging or res.baseline.high <= 0:
+            continue
+        assert res.band.high / res.baseline.high <= 5.0, sid
+
+
+def test_no_managed_scenario_over_capacity(corpus_engine):
+    # SPEC v2.1 §F4/B2: no managed scenario residual crosses the $15M capacity line.
+    _, eng = corpus_engine
+    assert eng.scenarios_over_capacity() == []
+
+
+def test_diverted_to_starvation_chain_exists(corpus_engine):
+    # SPEC §E story 7: exceptions reallocated to a named launch OKR.
+    graph, _ = corpus_engine
+    diverted = [i for i in graph.issues
+                if i.type == "exception" and i.reason == "resource_reallocation" and i.diverted_to]
+    assert len(diverted) >= 3
+    assert all(i.diverted_to in graph.okrs for i in diverted)
+
+
+def test_incident_mapping_stored_as_data(corpus_engine):
+    # SPEC §8 / §E story 8: the offline AI incident->scenario mapping, as data.
+    graph, _ = corpus_engine
+    scn = graph.scenarios["SCN-2026-0019"]
+    assert scn.incident is not None
+    assert scn.incident["suggested_named_risk"] == "NR-PROD-COMPROMISE"
+    assert scn.incident["mapped_by"] == "offline-ai-incident-mapper"

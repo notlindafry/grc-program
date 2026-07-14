@@ -1,0 +1,9 @@
+id: REM-2026-0139
+title: Card-testing velocity limits
+type: restore
+status: proposed
+target_date: 2026-06-02
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: card-testing_velocity_limits
+addresses_scenarios: [SCN-2026-0015]

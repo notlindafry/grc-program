@@ -10,7 +10,7 @@ status: active
 mapped_scenarios: [SCN-2026-0001]
 control: [A.8.8]
 moves: probability_of_realization
-with_acceptance_90ci: [0.02, 0.06]
+with_acceptance_90ci: [0.015, 0.04]
 estimated_by: r.chen@company.com
 estimated_on: 2026-05-18
 asset: legacy-jobs-runner
