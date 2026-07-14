@@ -79,6 +79,7 @@ pip install -e .          # the only runtime dependency is PyYAML
 ```bash
 risk-ledger validate                 # run the honesty gates; non-zero exit on errors
 risk-ledger graph                    # load the GRC-ecosystem model, validate the derived graph, confirm cardinalities
+risk-ledger portfolio                # the GRC-ecosystem engine: residual aggregation, appetite/capacity, control health, emerging
 risk-ledger report                   # the full narrative report (markdown, to stdout)
 risk-ledger report --html            # formatted HTML report, written to report.html and opened in your browser
 risk-ledger drift [OKR]              # per-OKR drift lens
@@ -144,8 +145,11 @@ watch list. YAML stays the system of record; the relational structure is derived
 at build time into an in-memory graph, and the existing FAIR-shaped Monte Carlo
 is reused unchanged. See **[`docs/schema.md`](docs/schema.md)** for the finalized
 entity shapes, one populated example each, and the cardinality confirmation; run
-`risk-ledger graph` to load and validate it. This is a staged build; the legacy
-exception-ledger commands above are unchanged.
+`risk-ledger graph` to load and validate it. The engine that aggregates residual
+up the tree (scenario → named risk → domain → portfolio), applies the two-sided
+appetite banding, and derives control health is documented in
+**[`docs/engine.md`](docs/engine.md)**; run `risk-ledger portfolio` to see it.
+This is a staged build; the legacy exception-ledger commands above are unchanged.
 
 ## The records
 

@@ -20,7 +20,10 @@ from pathlib import Path
 
 from .config import Config
 from .engine import Engine
+from .graph import Graph
+from .graph_engine import GraphEngine
 from .loader import Corpus, load_corpus, load_graph
+from .render import fmt_band, fmt_money
 from .report import render_report
 from .validation import validate_corpus, validate_graph
 from .views.appetite import render_appetite
@@ -185,6 +188,73 @@ def _cmd_graph(args: argparse.Namespace) -> int:
     return 0
 
 
+_RAG_LABEL = {"over": "OVER", "at": "AT", "below": "BELOW"}
+
+
+def _prepare_graph(args: argparse.Namespace) -> tuple[Graph, Config, GraphEngine]:
+    data_dir = Path(args.data)
+    cfg = _build_config(args, data_dir)
+    graph = load_graph(data_dir)
+    validate_graph(graph, cfg)  # attach trust flags before the engine reads them
+    return graph, cfg, GraphEngine(graph, cfg)
+
+
+def _cmd_portfolio(args: argparse.Namespace) -> int:
+    """The engine's aggregation as text: the precursor to the Day-4 dashboard.
+
+    Rolls scenario residuals up to named risks, domains, and the portfolio;
+    compares the aggregate to declared appetite and the capacity line; and
+    surfaces control health, the emerging column, and KRI triggers -- kept apart
+    from the appetite-tested set (SPEC §4)."""
+    graph, cfg, eng = _prepare_graph(args)
+    p = eng.portfolio()
+
+    print("# Portfolio summary\n")
+    if p is None:
+        print("No computable managed scenarios.")
+        return 0
+
+    print("## Total residual against appetite and capacity\n")
+    print(f"- Residual exposure (managed set): **{fmt_band(p.band)}**")
+    if p.appetite is not None:
+        verdict = "OVER — breach" if p.over_appetite else _RAG_LABEL[p.appetite_state]
+        print(f"- Declared appetite {fmt_money(p.appetite)} (revenue-percent line): **{verdict}**")
+    if p.capacity is not None:
+        cap = "BREACHED" if p.capacity_breached else "within"
+        print(f"- Capacity / materiality {fmt_money(p.capacity)} (hard line): **{cap}**")
+    if p.over_appetite:
+        print("\n> The bottom-up aggregate exceeds declared appetite. That is the "
+              "signal: it forces remediation or an explicit, board-signed appetite increase.")
+
+    print("\n## Your biggest exposures now (named risks, RAG-banded)\n")
+    ranked = sorted(eng.all_named_risk_residuals(), key=lambda r: r.band.mean, reverse=True)
+    for r in ranked[:10]:
+        drivers = ", ".join(c.issue.id for c in r.drivers[:2]) or "baseline"
+        print(f"- [{_RAG_LABEL[r.state]:5}] {r.named_risk.id:26} {fmt_band(r.band):>18} "
+              f"(appetite {fmt_money(r.threshold)}) — driven by {drivers}")
+
+    print("\n## Domains (monitored rollups, no per-domain ceiling)\n")
+    for d in sorted(eng.all_domain_rollups(), key=lambda d: d.band.mean, reverse=True):
+        print(f"- {d.domain.title:18} {fmt_band(d.band):>18}  ({len(d.named_risk_ids)} named risks)")
+
+    print("\n## Where your safeguards are weakest (control health)\n")
+    for h in eng.unhealthy_controls()[:10]:
+        note = " — clean on findings, unproven (stale/missing evidence)" if h.clean_but_unproven else ""
+        print(f"- [{h.health.upper():5}] {h.control.id:7} {h.control.title[:44]}{note}")
+
+    print("\n## On the horizon (emerging — held out of the appetite math)\n")
+    for e in eng.emerging_items():
+        breach = "would breach appetite" if e.would_breach else "within appetite if promoted"
+        vec = "/".join(e.scenario.vectors) or "—"
+        print(f"- {e.scenario.id} [{vec}] {fmt_band(e.band):>18} trajectory {e.trajectory} — {breach}")
+    breached = eng.breached_kris()
+    if breached:
+        print(f"\n- KRI triggers: {len(breached)} breached "
+              f"({', '.join(k.kri_id for k in breached[:4])}{'…' if len(breached) > 4 else ''})")
+
+    return 0
+
+
 def _cmd_drift(args: argparse.Namespace) -> int:
     corpus, cfg, _, engine = _prepare(args)
     print(render_drift(engine, corpus, cfg, only_okr=args.okr))
@@ -264,6 +334,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("graph", help="load the v2 ecosystem, validate the derived graph, confirm cardinalities")
 
+    sub.add_parser("portfolio", help="the v2 engine: residual aggregation, appetite/capacity, control health, emerging")
+
     p_drift = sub.add_parser("drift", help="per-OKR drift view")
     p_drift.add_argument("okr", nargs="?", default=None, help="limit to one OKR")
 
@@ -296,6 +368,7 @@ def main(argv: list[str] | None = None) -> int:
     dispatch = {
         "validate": _cmd_validate,
         "graph": _cmd_graph,
+        "portfolio": _cmd_portfolio,
         "drift": _cmd_drift,
         "appetite": _cmd_appetite,
         "ranked": _cmd_ranked,
