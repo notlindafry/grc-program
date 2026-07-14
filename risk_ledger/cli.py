@@ -20,9 +20,9 @@ from pathlib import Path
 
 from .config import Config
 from .engine import Engine
-from .loader import Corpus, load_corpus
+from .loader import Corpus, load_corpus, load_graph
 from .report import render_report
-from .validation import validate_corpus
+from .validation import validate_corpus, validate_graph
 from .views.appetite import render_appetite
 from .views.drift import render_drift
 from .views.ranked import render_ranked
@@ -131,6 +131,60 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_graph(args: argparse.Namespace) -> int:
+    """Load the v2 GRC-ecosystem corpus, validate the derived graph, and print
+    the SPEC §3 cardinality confirmation. Non-zero exit on any hard error."""
+    data_dir = Path(args.data)
+    cfg = _build_config(args, data_dir)
+    graph = load_graph(data_dir)
+    problems = validate_graph(graph, cfg)
+
+    print("# GRC ecosystem graph\n")
+    hard = 0
+
+    if graph.load_errors:
+        print("## Load errors\n")
+        for msg in graph.load_errors:
+            hard += 1
+            print(f"- [ERROR] {msg}")
+        print()
+
+    errors = [p for p in problems if p.severity == "error"]
+    flags = [p for p in problems if p.severity == "flag"]
+    if errors:
+        print("## Rejected (hard errors)\n")
+        for p in errors:
+            hard += 1
+            print(f"- [ERROR] {p.message}")
+        print()
+    if flags:
+        print("## Flagged (kept, handled specially)\n")
+        for p in flags:
+            print(f"- [{p.category.upper()} FLAG] {p.message}")
+        print()
+
+    summary = graph.cardinality_summary()
+    print("## Entities\n")
+    for name, count in summary["entities"].items():
+        if isinstance(count, dict):
+            inner = ", ".join(f"{k}={v}" for k, v in count.items())
+            print(f"- {name}: {inner}")
+        else:
+            print(f"- {name}: {count}")
+    print("\n## Cardinalities (SPEC §3)\n")
+    for edge, status in summary["edges"].items():
+        print(f"- {edge}: {status}")
+    print("\n## Derivation flags\n")
+    for name, count in summary["flags"].items():
+        print(f"- {name}: {count}")
+
+    if hard:
+        print(f"\n{hard} hard error(s). Exit 1.")
+        return 1
+    print("\nNo hard errors.")
+    return 0
+
+
 def _cmd_drift(args: argparse.Namespace) -> int:
     corpus, cfg, _, engine = _prepare(args)
     print(render_drift(engine, corpus, cfg, only_okr=args.okr))
@@ -208,6 +262,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("validate", help="run the validation gates")
 
+    sub.add_parser("graph", help="load the v2 ecosystem, validate the derived graph, confirm cardinalities")
+
     p_drift = sub.add_parser("drift", help="per-OKR drift view")
     p_drift.add_argument("okr", nargs="?", default=None, help="limit to one OKR")
 
@@ -239,6 +295,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     dispatch = {
         "validate": _cmd_validate,
+        "graph": _cmd_graph,
         "drift": _cmd_drift,
         "appetite": _cmd_appetite,
         "ranked": _cmd_ranked,

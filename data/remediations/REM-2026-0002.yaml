@@ -4,5 +4,7 @@ type: restore
 status: funded
 target_date: 2026-09-01
 owner: data-platform-lead@company.com
+operational_owner: data-oncall@company.com
 mechanism: re_enable_dlp_with_tuned_rules
 restores_control: DLP-EXPORT-001
+addresses_scenarios: [SCN-2026-0002]

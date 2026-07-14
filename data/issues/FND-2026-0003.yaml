@@ -1,0 +1,13 @@
+# An audit / incident-PMAI / self-identified finding (SPEC §2.5). Carries a
+# bounded severity that informs control health and the residual NARRATIVE,
+# but is NOT simulated -- it never enters the residual bands. Synthetic.
+id: FND-2026-0003
+type: finding
+title: "Self-identified: shared break-glass account lacks session logging"
+owner: iam-lead@company.com
+filed_on: 2026-05-11
+status: open
+source: self-identified
+severity: medium
+mapped_scenarios: [SCN-2026-0001, SCN-2026-0019]
+control: [A.8.5, A.8.15]

@@ -1,0 +1,17 @@
+# An out-of-SLA unpatched vulnerability accepted at the asset level (SPEC
+# §2.5). Folds into the mapped scenario's PoR; it moves a factor, so it
+# enters the residual bands. Synthetic.
+id: VULN-2026-0001
+type: vuln
+title: Accepted out-of-SLA RCE on a migrated jobs runner
+owner: platform-lead@company.com
+filed_on: 2026-05-18
+status: active
+mapped_scenarios: [SCN-2026-0001]
+control: [A.8.8]
+moves: probability_of_realization
+with_acceptance_90ci: [0.02, 0.06]
+estimated_by: r.chen@company.com
+estimated_on: 2026-05-18
+asset: legacy-jobs-runner
+expires_on: 2026-08-15

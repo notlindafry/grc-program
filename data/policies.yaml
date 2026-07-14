@@ -1,0 +1,106 @@
+# The governance layer above controls (SPEC §2.7, thin). The coverage read is
+# "every control traces up to a governing policy." Links are placeholders.
+# All data synthetic.
+
+
+POL-INFOSEC:
+  title: Information Security Policy
+  owner: ciso-office@company.com
+  last_reviewed: 2026-02-01
+  link: https://policies.example.com/infosec
+
+POL-ACCESS-CONTROL:
+  title: Access Control Policy
+  owner: ciso-office@company.com
+  last_reviewed: 2026-02-01
+  link: https://policies.example.com/access-control
+
+POL-CRYPTO:
+  title: Cryptography & Key Management Policy
+  owner: ciso-office@company.com
+  last_reviewed: 2026-01-15
+  link: https://policies.example.com/crypto
+
+POL-ASSET-MGMT:
+  title: Asset Management Policy
+  owner: it-office@company.com
+  last_reviewed: 2025-11-10
+  link: https://policies.example.com/asset-mgmt
+
+POL-DATA-CLASSIFICATION:
+  title: Data Classification & Handling Policy
+  owner: dpo@company.com
+  last_reviewed: 2026-03-01
+  link: https://policies.example.com/data-classification
+
+POL-PRIVACY:
+  title: Privacy & Personal Data Policy
+  owner: dpo@company.com
+  last_reviewed: 2026-03-01
+  link: https://policies.example.com/privacy
+
+POL-SUPPLIER:
+  title: Supplier & Third-Party Security Policy
+  owner: procurement-office@company.com
+  last_reviewed: 2025-12-05
+  link: https://policies.example.com/supplier
+
+POL-INCIDENT:
+  title: Information Security Incident Management Policy
+  owner: ciso-office@company.com
+  last_reviewed: 2026-02-20
+  link: https://policies.example.com/incident
+
+POL-BCP:
+  title: Business Continuity & ICT Readiness Policy
+  owner: resilience-office@company.com
+  last_reviewed: 2026-01-30
+  link: https://policies.example.com/bcp
+
+POL-HR-SECURITY:
+  title: Human Resources Security Policy
+  owner: people-office@company.com
+  last_reviewed: 2025-10-12
+  link: https://policies.example.com/hr-security
+
+POL-PHYSICAL:
+  title: Physical & Environmental Security Policy
+  owner: facilities-office@company.com
+  last_reviewed: 2025-09-20
+  link: https://policies.example.com/physical
+
+POL-SECURE-DEV:
+  title: Secure Development Policy
+  owner: eng-office@company.com
+  last_reviewed: 2026-04-01
+  link: https://policies.example.com/secure-dev
+
+POL-VULN-MGMT:
+  title: Technical Vulnerability Management Policy
+  owner: ciso-office@company.com
+  last_reviewed: 2026-04-10
+  link: https://policies.example.com/vuln-mgmt
+
+POL-CHANGE-MGMT:
+  title: Change Management Policy
+  owner: eng-office@company.com
+  last_reviewed: 2026-03-15
+  link: https://policies.example.com/change-mgmt
+
+POL-LOGGING-MONITORING:
+  title: Logging & Monitoring Policy
+  owner: soc-office@company.com
+  last_reviewed: 2026-02-05
+  link: https://policies.example.com/logging-monitoring
+
+POL-NETWORK:
+  title: Network Security Policy
+  owner: network-office@company.com
+  last_reviewed: 2026-01-08
+  link: https://policies.example.com/network
+
+POL-COMPLIANCE:
+  title: Legal & Regulatory Compliance Policy
+  owner: gc-office@company.com
+  last_reviewed: 2026-02-28
+  link: https://policies.example.com/compliance

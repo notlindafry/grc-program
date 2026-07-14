@@ -1,0 +1,18 @@
+# Tier 3 -- the quantified loss event the Monte Carlo runs on (SPEC §2.4). The
+# baseline OF/PoR/LM lives here (it moved down from the legacy risks.yaml). Each
+# scenario names its Tier-2 named_risk (many-to-one), carries cross-cutting
+# impact + vector tags, and a lifecycle_state (managed | emerging) with a
+# trajectory. `legacy_risk`, when present, bridges the migrated exceptions (which
+# still name a mapped_risk) to this scenario during graph assembly. All synthetic.
+
+id: SCN-2026-0033
+title: Silent training-data drift degrades the abuse-detection model
+named_risk: NR-ABUSE-DETECTION
+baseline:
+  opportunity_frequency_90ci: [10, 90]
+  probability_of_realization_90ci: [0.02, 0.28]
+  loss_magnitude_90ci: [300000, 5000000]
+impact: [individual_harm, public_market_harm]
+vectors: [ai]
+lifecycle_state: emerging
+trajectory: rising

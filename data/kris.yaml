@@ -1,0 +1,104 @@
+# Key risk indicators (SPEC §2.9, thin -- like evidence). A KRI INFORMS
+# re-estimation of an existing scenario/named-risk factor (never an additive
+# term, SPEC §4) and triggers emerging-risk changes. status (ok | amber |
+# breached) is DERIVED from current_value vs threshold; `direction: under` means
+# a breach is a value at/below threshold (e.g. patch-SLA coverage). On the
+# dashboard a KRI is a light signal on a risk, not its own view. The record shape
+# is the seam for later live-metric ingestion (SPEC §8). All synthetic.
+
+
+KRI-MODEL-CONCENTRATION:
+  title: Share of critical paths dependent on a single model provider
+  informs: [SCN-2026-0031]
+  current_value: 0.62
+  threshold: 0.5
+  trend: rising
+  direction: over
+
+KRI-AGENTIC-WORKFLOWS:
+  title: Count of agentic workflows running in production without guardrails
+  informs: [SCN-2026-0032]
+  current_value: 7
+  threshold: 3
+  trend: rising
+  direction: over
+
+KRI-DETECTION-DRIFT:
+  title: Abuse-detection model recall drift since last retrain (pct pts)
+  informs: [SCN-2026-0033, SCN-2026-0008]
+  current_value: 0.09
+  threshold: 0.05
+  trend: rising
+  direction: over
+
+KRI-MFA-COVERAGE:
+  title: Share of internal consoles NOT enforcing phishing-resistant MFA
+  informs: [SCN-2026-0001]
+  current_value: 0.34
+  threshold: 0.15
+  trend: rising
+  direction: over
+
+KRI-PATCH-SLA:
+  title: Share of critical vulns patched within SLA
+  informs: [SCN-2026-0012]
+  current_value: 0.82
+  threshold: 0.9
+  trend: receding
+  direction: under
+
+KRI-DR-CONFIDENCE:
+  title: Days since a successful full DR failover test
+  informs: [SCN-2026-0013]
+  current_value: 220
+  threshold: 120
+  trend: rising
+  direction: over
+
+KRI-RESIDENCY-FLOWS:
+  title: Cross-region regulated-data flows per quarter
+  informs: [SCN-2026-0014]
+  current_value: 14
+  threshold: 10
+  trend: rising
+  direction: over
+
+KRI-FRAUD-RATE:
+  title: Card-testing attempts landing a charge per 10k attempts
+  informs: [SCN-2026-0015]
+  current_value: 3.1
+  threshold: 5.0
+  trend: stable
+  direction: over
+
+KRI-VENDOR-ACCESS:
+  title: Count of vendor identities with standing internal access
+  informs: [SCN-2026-0011]
+  current_value: 41
+  threshold: 30
+  trend: rising
+  direction: over
+
+KRI-CHANGE-FAILURE:
+  title: Change-failure rate on migrated services (pct)
+  informs: [SCN-2026-0009]
+  current_value: 0.11
+  threshold: 0.1
+  trend: rising
+  direction: over
+
+KRI-PIPELINE-REJECTS:
+  title: Schema-invalid writes reaching the pipeline per week
+  informs: [SCN-2026-0016]
+  current_value: 6
+  threshold: 12
+  trend: receding
+  direction: over
+
+KRI-DPA-COVERAGE:
+  title: Share of subprocessors without a signed current DPA
+  informs: [SCN-2026-0018]
+  current_value: 0.18
+  threshold: 0.1
+  trend: rising
+  direction: over
