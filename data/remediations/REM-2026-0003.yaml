@@ -4,5 +4,7 @@ type: restore
 status: funded
 target_date: 2026-12-01
 owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
 mechanism: deploy_multi_region_active_active
 restores_control: REL-MULTIREGION-014
+addresses_scenarios: [SCN-2026-0013]

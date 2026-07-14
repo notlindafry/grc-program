@@ -1,0 +1,54 @@
+# Tier 1 -- where the risk manifests (board / portfolio altitude, SPEC §1, §2.2).
+# The appetite_statement is board-facing narrative ONLY, never tested against a
+# number (SPEC §4). Governance metadata (sign-off, last reviewed) sits here.
+# All data synthetic.
+
+
+TR-RESILIENCE:
+  title: Resilience
+  description: "down or cannot recover"
+  appetite_statement: "measured availability risk accepted to sustain launch velocity"
+  appetite_signed_off_by: cro@company.com
+  appetite_last_reviewed: 2026-05-01
+
+TR-DATA-INTEGRITY:
+  title: Data integrity
+  description: "data wrong, corrupted, or lost; includes analytics/ML input quality"
+  appetite_statement: "data-quality risk held low; correctness is a product promise"
+  appetite_signed_off_by: cro@company.com
+  appetite_last_reviewed: 2026-05-01
+
+TR-SECURITY:
+  title: Security
+  description: "adversarial compromise; unauthorized access or disclosure"
+  appetite_statement: "compromise tolerance kept tight; breaches are existential to trust"
+  appetite_signed_off_by: ciso@company.com
+  appetite_last_reviewed: 2026-05-01
+
+TR-PRIVACY:
+  title: Privacy
+  description: "misused regulated/personal data: residency, retention, consent, subprocessor governance"
+  appetite_statement: "regulated-data misuse held near zero; this is a licence-to-operate risk"
+  appetite_signed_off_by: dpo@company.com
+  appetite_last_reviewed: 2026-05-01
+
+TR-CHANGE:
+  title: Change & delivery
+  description: "shipping or rebuilding breaks things: change failure, migration/cutover, launch readiness, velocity-driven debt"
+  appetite_statement: "elevated change risk knowingly accepted during the rebuild window"
+  appetite_signed_off_by: cto@company.com
+  appetite_last_reviewed: 2026-05-01
+
+TR-THIRDPARTY:
+  title: Third-party
+  description: "an external dependency's failure becomes yours; concentration risk"
+  appetite_statement: "concentration risk monitored; single-provider dependence flagged"
+  appetite_signed_off_by: ciso@company.com
+  appetite_last_reviewed: 2026-05-01
+
+TR-COMPLIANCE:
+  title: Compliance
+  description: "pure obligation failure with no technical trigger: missed filings, lapsed certifications, failed audits/attestations"
+  appetite_statement: "obligation failures not tolerated; these are binary pass/fail"
+  appetite_signed_off_by: gc@company.com
+  appetite_last_reviewed: 2026-05-01

@@ -1,0 +1,13 @@
+# The top-level appetite anchor (SPEC §2.1, §4). Two dollar figures:
+#   capacity_materiality  -- the hard audit-materiality line the company cannot
+#                            cross by choice (the binding, smaller number).
+#   appetite (derived)    -- appetite_pct_of_revenue x revenue_annual, a
+#                            revenue-percent figure set deliberately BENEATH
+#                            capacity, that scales with the company and reads
+#                            cleanly to a board.
+# All figures synthetic.
+
+revenue_annual: 2000000000          # $2B; the base for the appetite percentage
+capacity_materiality: 15000000      # $15M hard line (audit materiality)
+appetite_pct_of_revenue: 0.005      # 0.5% -> $10M declared appetite, set beneath capacity
+green_band_floor: 0.75              # residual in the top quarter of tolerance reads green (SPEC §4)

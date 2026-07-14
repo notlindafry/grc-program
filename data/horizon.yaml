@@ -1,0 +1,34 @@
+# The emerging watch list at the edge (SPEC §2.10) -- signals too green to write a
+# credible scenario yet. Mechanistic-test fence: an item earns a slot ONLY if it
+# names both a candidate_domain (where it would manifest) and a watched_kri (its
+# leading indicator). No domain and no indicator means it is a news alert, not a
+# tracked risk -- validation enforces this. All synthetic.
+
+
+HZN-AGENT-AUTONOMY:
+  title: Autonomous agents taking unsafe action in production
+  candidate_domain: TR-CHANGE
+  watched_kri: KRI-AGENTIC-WORKFLOWS
+  trajectory: rising
+  note: "agentic workflows moving into prod ahead of guardrails"
+
+HZN-MODEL-CONCENTRATION:
+  title: Systemic dependence on a single external model provider
+  candidate_domain: TR-THIRDPARTY
+  watched_kri: KRI-MODEL-CONCENTRATION
+  trajectory: rising
+  note: "critical paths converging on one provider; no tested fallback"
+
+HZN-DETECTION-DRIFT:
+  title: Silent drift degrading automated abuse detection
+  candidate_domain: TR-SECURITY
+  watched_kri: KRI-DETECTION-DRIFT
+  trajectory: rising
+  note: "recall decaying between retrains; drift not yet alarmed"
+
+HZN-PROMPT-INJECTION:
+  title: Prompt injection against customer-facing LLM features
+  candidate_domain: TR-SECURITY
+  watched_kri: KRI-AGENTIC-WORKFLOWS
+  trajectory: stable
+  note: "injection surface growing as LLM features ship to users"

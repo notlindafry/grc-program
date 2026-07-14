@@ -1,0 +1,145 @@
+# Tier 2 -- the owned, appetite-bearing risk (executive / VP altitude, SPEC §2.3).
+# Each names its Tier-1 domain (many-to-one), the accountable owner in the mgmt
+# hierarchy, the bottom-up per-risk dollar appetite, and the OKRs it threatens
+# (M2M, SPEC §2.12). All data synthetic.
+
+
+NR-PROD-COMPROMISE:
+  title: Compromise of production systems via credential or access failure
+  domain: TR-SECURITY
+  owner: security-eng-lead@company.com
+  appetite_threshold: 5000000
+  threatens_okrs: [gcloud-migration]
+
+NR-DATA-EXFIL:
+  title: Exfiltration of regulated data from an analytics or export path
+  domain: TR-SECURITY
+  owner: security-eng-lead@company.com
+  appetite_threshold: 6000000
+  threatens_okrs: [data-platform]
+
+NR-PAYMENT-FRAUD:
+  title: Fraudulent transactions against the payments platform
+  domain: TR-SECURITY
+  owner: payments-lead@company.com
+  appetite_threshold: 30000000
+  threatens_okrs: [payments-launch]
+
+NR-PCI-SCOPE:
+  title: PCI scope expansion / cardholder data handling gap
+  domain: TR-COMPLIANCE
+  owner: payments-lead@company.com
+  appetite_threshold: 25000000
+  threatens_okrs: [payments-launch]
+
+NR-DATA-QUALITY:
+  title: Corrupted or unvalidated data feeding downstream decisions
+  domain: TR-DATA-INTEGRITY
+  owner: data-platform-lead@company.com
+  appetite_threshold: 15000000
+  threatens_okrs: [data-platform]
+
+NR-DATA-AVAILABILITY:
+  title: Loss of availability of a core data platform service
+  domain: TR-RESILIENCE
+  owner: data-platform-lead@company.com
+  appetite_threshold: 15000000
+  threatens_okrs: [data-platform]
+
+NR-ABUSE-ESCALATION:
+  title: Unmitigated abuse escalating on the platform
+  domain: TR-SECURITY
+  owner: tns-lead@company.com
+  appetite_threshold: 15000000
+  threatens_okrs: [trust-and-safety]
+
+NR-ABUSE-DETECTION:
+  title: Gaps in automated detection of policy-violating content
+  domain: TR-SECURITY
+  owner: tns-lead@company.com
+  appetite_threshold: 15000000
+  threatens_okrs: [trust-and-safety]
+
+NR-MIGRATION-AVAILABILITY:
+  title: Availability regressions introduced by the migration
+  domain: TR-CHANGE
+  owner: platform-lead@company.com
+  appetite_threshold: 10000000
+  threatens_okrs: [gcloud-migration]
+
+NR-MIGRATION-DATAINTEGRITY:
+  title: Data integrity loss during monolith-to-microservices cutover
+  domain: TR-CHANGE
+  owner: platform-lead@company.com
+  appetite_threshold: 10000000
+  threatens_okrs: [gcloud-migration]
+
+NR-VENDOR-ACCESS:
+  title: Excessive third-party vendor access to internal systems
+  domain: TR-THIRDPARTY
+  owner: ciso-office@company.com
+  appetite_threshold: 8000000
+  threatens_okrs: [mobile-app, internal-tools]
+
+NR-ENDPOINT-MALWARE:
+  title: Malware on a corporate endpoint leading to lateral movement
+  domain: TR-SECURITY
+  owner: it-lead@company.com
+  appetite_threshold: 10000000
+  threatens_okrs: [internal-tools]
+
+NR-PLATFORM-OUTAGE:
+  title: Customer-facing outage of a core platform service
+  domain: TR-RESILIENCE
+  owner: platform-lead@company.com
+  appetite_threshold: 15000000
+  threatens_okrs: [core-platform]
+
+NR-DATA-RESIDENCY:
+  title: Regulated data leaving its required residency region
+  domain: TR-PRIVACY
+  owner: dpo@company.com
+  appetite_threshold: 14000000
+  threatens_okrs: [data-platform]
+
+NR-CARD-TESTING:
+  title: Automated card-testing against the public checkout flow
+  domain: TR-SECURITY
+  owner: payments-lead@company.com
+  appetite_threshold: 12000000
+  threatens_okrs: [payments-launch]
+
+NR-PIPELINE-INTEGRITY:
+  title: Schema-invalid or corrupted writes entering the data pipeline
+  domain: TR-DATA-INTEGRITY
+  owner: data-platform-lead@company.com
+  appetite_threshold: 8000000
+  threatens_okrs: [data-platform]
+
+NR-REG-FILINGS:
+  title: Missed regulatory filing or lapsed certification
+  domain: TR-COMPLIANCE
+  owner: compliance-lead@company.com
+  appetite_threshold: 8000000
+  threatens_okrs: [run-the-business]
+
+NR-SUBPROCESSOR-GOV:
+  title: Ungoverned subprocessor handling of regulated data
+  domain: TR-PRIVACY
+  owner: dpo@company.com
+  appetite_threshold: 9000000
+  threatens_okrs: [data-platform]
+
+NR-AI-AGENT-AUTONOMY:
+  title: Autonomous agents taking unsafe action in production
+  domain: TR-CHANGE
+  owner: ai-platform-lead@company.com
+  appetite_threshold: 6000000
+  threatens_okrs: [core-platform]
+
+NR-MODEL-SUPPLY:
+  title: Concentration on a single external model provider
+  domain: TR-THIRDPARTY
+  owner: ai-platform-lead@company.com
+  appetite_threshold: 7000000
+  threatens_okrs: [data-platform]

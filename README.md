@@ -78,6 +78,8 @@ pip install -e .          # the only runtime dependency is PyYAML
 
 ```bash
 risk-ledger validate                 # run the honesty gates; non-zero exit on errors
+risk-ledger graph                    # load the GRC-ecosystem model, validate the derived graph, confirm cardinalities
+risk-ledger portfolio                # the GRC-ecosystem engine: residual aggregation, appetite/capacity, control health, emerging
 risk-ledger report                   # the full narrative report (markdown, to stdout)
 risk-ledger report --html            # formatted HTML report, written to report.html and opened in your browser
 risk-ledger drift [OKR]              # per-OKR drift lens
@@ -132,6 +134,22 @@ or build settings.
 risk-ledger --data data report --out report.md
 risk-ledger --as-of 2026-06-18 --seed 20260617 appetite RISK-ACCT-TAKEOVER
 ```
+
+## GRC ecosystem model (v2, in progress)
+
+The ledger is being extended into a full GRC operating model represented as
+data: Tier-1 domains → Tier-2 named risks → Tier-3 scenarios (the quantified
+unit) over an issues floor (exceptions, vulns, findings), with the ISO
+27001:2022 Annex A control backbone, policies, evidence, KRIs, and an emerging
+watch list. YAML stays the system of record; the relational structure is derived
+at build time into an in-memory graph, and the existing FAIR-shaped Monte Carlo
+is reused unchanged. See **[`docs/schema.md`](docs/schema.md)** for the finalized
+entity shapes, one populated example each, and the cardinality confirmation; run
+`risk-ledger graph` to load and validate it. The engine that aggregates residual
+up the tree (scenario → named risk → domain → portfolio), applies the two-sided
+appetite banding, and derives control health is documented in
+**[`docs/engine.md`](docs/engine.md)**; run `risk-ledger portfolio` to see it.
+This is a staged build; the legacy exception-ledger commands above are unchanged.
 
 ## The records
 

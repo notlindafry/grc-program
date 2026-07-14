@@ -1,0 +1,13 @@
+# An audit / incident-PMAI / self-identified finding (SPEC §2.5). Carries a
+# bounded severity that informs control health and the residual NARRATIVE,
+# but is NOT simulated -- it never enters the residual bands. Synthetic.
+id: FND-2026-0004
+type: finding
+title: "Incident PMAI: detection model retrain slipped two cycles"
+owner: tns-lead@company.com
+filed_on: 2026-05-15
+status: open
+source: incident-PMAI
+severity: medium
+mapped_scenarios: [SCN-2026-0008]
+control: [A.8.16]

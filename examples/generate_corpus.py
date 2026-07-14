@@ -398,6 +398,9 @@ def write_remediation(
     post_control_90ci=None,
     estimated_by=None,
     estimated_on=None,
+    operational_owner=None,
+    addresses_scenarios=None,
+    addresses_issues=None,
 ):
     lines = [
         f"id: {rid}",
@@ -406,8 +409,12 @@ def write_remediation(
         f"status: {status}",
         f"target_date: {target_date}",
         f"owner: {owner}",
-        f"mechanism: {mechanism}",
     ]
+    # SPEC §2.11: the remediation sponsor (owner) is distinct from the ticket
+    # assignee (operational_owner); model as native-queue work, no Jira connector.
+    if operational_owner:
+        lines.append(f"operational_owner: {operational_owner}")
+    lines.append(f"mechanism: {mechanism}")
     if rtype == "restore":
         lines.append(f"restores_control: {restores_control}")
     else:  # strengthen
@@ -418,6 +425,12 @@ def write_remediation(
             f"estimated_by: {estimated_by}",
             f"estimated_on: {estimated_on}",
         ]
+    # SPEC §2.11 / §3: generalised many-to-many linkage to scenarios and issues,
+    # alongside the legacy control/risk lever the engine already consumes.
+    if addresses_scenarios:
+        lines.append(f"addresses_scenarios: [{', '.join(addresses_scenarios)}]")
+    if addresses_issues:
+        lines.append(f"addresses_issues: [{', '.join(addresses_issues)}]")
     lines.append("")
     (REM / f"{rid}.yaml").write_text("\n".join(lines))
 
@@ -727,20 +740,27 @@ def build() -> None:
     write_remediation(
         "REM-2026-0001", title="Enforce SSO via the IdP across legacy consoles",
         rtype="restore", status="funded", owner=PLATFORM,
+        operational_owner="iam-oncall@company.com",
         mechanism="enforce_sso_via_idp", target_date="2026-09-01",
         restores_control="IAM-LEGACY-AUTH-001",
+        addresses_scenarios=["SCN-2026-0001", "SCN-2026-0019"],
+        addresses_issues=["VULN-2026-0001"],
     )
     write_remediation(
         "REM-2026-0002", title="Re-enable DLP with tuned rules on export paths",
         rtype="restore", status="funded", owner=DATAPLAT,
+        operational_owner="data-oncall@company.com",
         mechanism="re_enable_dlp_with_tuned_rules", target_date="2026-09-01",
         restores_control="DLP-EXPORT-001",
+        addresses_scenarios=["SCN-2026-0002"],
     )
     write_remediation(
         "REM-2026-0003", title="Deploy multi-region active-active for core services",
         rtype="restore", status="funded", owner=PLATFORM,
+        operational_owner="platform-oncall@company.com",
         mechanism="deploy_multi_region_active_active", target_date="2026-12-01",
         restores_control="REL-MULTIREGION-014",
+        addresses_scenarios=["SCN-2026-0013"],
     )
     write_remediation(
         "REM-2026-0004", title="Resume quarterly platform DR tests",
@@ -801,6 +821,13 @@ def build() -> None:
     r = len(list(REM.glob("*.yaml")))
     print(f"Wrote {n} exception files to {EXC}")
     print(f"Wrote {r} remediation files to {REM}")
+
+    # v2 GRC-ecosystem entities (SPEC §2): domains, named risks, scenarios, the
+    # ISO Annex A control backbone, policies, evidence, KRIs, horizon, and the
+    # new vuln/finding issues. Written alongside the legacy corpus above.
+    from generate_ecosystem import build_ecosystem
+
+    build_ecosystem()
 
     write_example_report()
 

@@ -1,0 +1,13 @@
+# An audit / incident-PMAI / self-identified finding (SPEC §2.5). Carries a
+# bounded severity that informs control health and the residual NARRATIVE,
+# but is NOT simulated -- it never enters the residual bands. Synthetic.
+id: FND-2026-0002
+type: finding
+title: "Audit: MFA not enforced on several internal admin tools"
+owner: security-eng-lead@company.com
+filed_on: 2026-05-04
+status: open
+source: audit
+severity: high
+mapped_scenarios: [SCN-2026-0001]
+control: [A.8.5]

@@ -1,0 +1,19 @@
+# Tier 3 -- the quantified loss event the Monte Carlo runs on (SPEC §2.4). The
+# baseline OF/PoR/LM lives here (it moved down from the legacy risks.yaml). Each
+# scenario names its Tier-2 named_risk (many-to-one), carries cross-cutting
+# impact + vector tags, and a lifecycle_state (managed | emerging) with a
+# trajectory. `legacy_risk`, when present, bridges the migrated exceptions (which
+# still name a mapped_risk) to this scenario during graph assembly. All synthetic.
+
+id: SCN-2026-0003
+title: Fraudulent transactions against the payments platform
+named_risk: NR-PAYMENT-FRAUD
+baseline:
+  opportunity_frequency_90ci: [15, 50]
+  probability_of_realization_90ci: [0.02, 0.06]
+  loss_magnitude_90ci: [1200000, 3000000]
+impact: [financial, public_market_harm]
+vectors: [adversarial]
+lifecycle_state: managed
+trajectory: stable
+legacy_risk: RISK-PAYMENT-FRAUD

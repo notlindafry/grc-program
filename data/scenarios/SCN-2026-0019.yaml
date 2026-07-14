@@ -1,0 +1,28 @@
+# Tier 3 -- the quantified loss event the Monte Carlo runs on (SPEC §2.4). The
+# baseline OF/PoR/LM lives here (it moved down from the legacy risks.yaml). Each
+# scenario names its Tier-2 named_risk (many-to-one), carries cross-cutting
+# impact + vector tags, and a lifecycle_state (managed | emerging) with a
+# trajectory. `legacy_risk`, when present, bridges the migrated exceptions (which
+# still name a mapped_risk) to this scenario during graph assembly. All synthetic.
+
+id: SCN-2026-0019
+title: Second admin-console takeover path via unrotated service accounts
+named_risk: NR-PROD-COMPROMISE
+baseline:
+  opportunity_frequency_90ci: [8, 30]
+  probability_of_realization_90ci: [0.006, 0.02]
+  loss_magnitude_90ci: [1500000, 4000000]
+impact: [financial, individual_harm]
+vectors: [adversarial]
+lifecycle_state: managed
+trajectory: stable
+incident:
+  ticket_id: INC-2026-0442
+  description: "Migrated batch workloads authenticated with long-lived service accounts that were never rotated; one leaked in a repo and granted console-adjacent access before revocation."
+  suggested_domain: TR-SECURITY
+  suggested_named_risk: NR-PROD-COMPROMISE
+  suggested_factor: probability_of_realization
+  suggested_band: at appetite
+  mapped_by: offline-ai-incident-mapper
+  mapped_on: 2026-06-10
+  note: "Synthetic; produced once offline by the corpus generator seam (SPEC §8)."
