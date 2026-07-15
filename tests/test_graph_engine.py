@@ -173,11 +173,11 @@ def test_portfolio_appetite_and_capacity():
     eng = _engine([_scn("SCN-1", lm=(2000000, 5000000))], [exc],
                   appetite=1_000_000, capacity=2_000_000)
     p = eng.portfolio()
-    # The aggregate-over-appetite signal (SPEC §4) is mean-based; the RAG state
-    # may read "at" when the wide band straddles a small line.
+    # The aggregate-over-appetite signal (SPEC §4) is mean-based; capacity is read
+    # as a tail probability, not a mean test (SPEC v2.2 §E2).
     assert p.over_appetite is True
-    assert p.capacity_breached is True
     assert p.band.mean > p.capacity
+    assert 0.0 <= p.p_over_capacity <= 1.0 and p.p_over_capacity > 0.5
 
 
 # ---------------------------------------------------------------------------
@@ -217,14 +217,16 @@ def test_issue_contributes_to_its_scenario(corpus_engine):
 
 
 def test_portfolio_over_appetite_under_capacity(corpus_engine):
-    # The calibrated aggregate is OVER the $10M appetite (the signal fires) but
-    # UNDER the $15M capacity line -- a governance moment, not a catastrophe
-    # (SPEC v2.1 §F check 1).
+    # The aggregate is OVER the $10M appetite (the signal fires) with its mean
+    # UNDER the $15M capacity line -- a governance moment, not a catastrophe. The
+    # capacity read is a tail probability, reported honestly (SPEC v2.2 §E).
     _, eng = corpus_engine
     p = eng.portfolio()
     assert p.over_appetite is True
-    assert p.capacity_breached is False
     assert p.appetite < p.band.mean < p.capacity
+    assert 0.0 < p.p_over_capacity < 0.5       # a real tail, not a coin-flip
+    assert p.p_over_appetite > 0.9             # decisively over the appetite line
+    assert p.band.mean < 0.01 * 2_000_000_000  # well under 1% of revenue (SPEC §I.10)
 
 
 def test_control_health_stories(corpus_engine):
@@ -268,33 +270,65 @@ def test_kri_triggers_surface_as_signals(corpus_engine):
     assert sigs.get("KRI-MFA-COVERAGE") == "breached"
 
 
-# --- Day-3 calibration + designed stories (SPEC v2.1 §D5, §E, §F) ----------
+# --- Day-3 designed stories (SPEC v2.2 §B, §E, §F) -------------------------
 
 
-def test_designed_rag_spread(corpus_engine):
-    # SPEC v2.1 §F5: roughly 2-3 OVER / 5-7 AT / 10-12 BELOW across named risks.
+def test_rag_spread_is_a_reasonable_outcome(corpus_engine):
+    # The spread is a JUDGED outcome of authored appetite meeting tuned exposure,
+    # NOT a fitted target (SPEC v2.2 §B): a few over, green demonstrably
+    # achievable, a majority below, and no colour the default.
     _, eng = corpus_engine
     from collections import Counter
     spread = Counter(r.state for r in eng.all_named_risk_residuals())
-    assert spread[RAG_OVER] == 3
-    assert spread[RAG_AT] == 6
-    assert spread[RAG_BELOW] == 10
+    total = sum(spread.values())
+    assert spread[RAG_OVER] >= 2                      # a few breaches
+    assert spread[RAG_AT] >= 2                        # green is demonstrably achievable
+    assert spread[RAG_BELOW] > total / 2              # over-controlling is the majority (on-thesis)
+    assert spread[RAG_BELOW] < total                  # ...but not the only colour
 
 
 def test_exactly_one_amber_end_to_end_domain(corpus_engine):
-    # SPEC v2.1 §F6 / §E story 9: exactly one domain reads amber end to end, and
-    # it is a plausibly-healthy-looking one (Data integrity).
+    # SPEC v2.2 §F: exactly one domain reads amber end to end, and it is Privacy
+    # -- regulated, engineering-adjacent, and the one a VP files as "legal's".
     _, eng = corpus_engine
     amber = [d.domain.id for d in eng.all_domain_rollups() if d.amber_end_to_end]
-    assert amber == ["TR-DATA-INTEGRITY"]
+    assert amber == ["TR-PRIVACY"]
+    privacy = eng.domain_rollup("TR-PRIVACY")
+    assert len(privacy.named_risk_ids) >= 4           # "end to end" across a real domain
 
 
-def test_standout_amber_sits_deep_under_threshold(corpus_engine):
-    # The standout: residual mean at roughly 10-20% of its threshold.
+def test_exceedance_probabilities(corpus_engine):
+    # SPEC v2.2 §E: the capacity read is the tail probability, not a mean test.
     _, eng = corpus_engine
-    r = eng.named_risk_residual("NR-PIPELINE-INTEGRITY")
-    assert r.state == RAG_BELOW
-    assert r.band.mean / r.threshold < 0.25
+    p = eng.portfolio()
+    assert 0.0 < p.p_over_appetite <= 1.0
+    assert 0.0 < p.p_over_capacity < 0.5
+    # An over-appetite named risk exceeds its own threshold on most trials.
+    over = next(r for r in eng.all_named_risk_residuals() if r.state == RAG_OVER)
+    assert over.p_over_threshold > 0.5
+
+
+def test_appetite_is_authored_not_derived(corpus_engine):
+    # SPEC v2.2 §D: every named risk carries a round-number authored threshold and
+    # a rationale; no threshold is a fitted function of its residual.
+    graph, _ = corpus_engine
+    for nr in graph.named_risks.values():
+        assert nr.appetite_threshold and nr.appetite_threshold % 50_000 == 0  # round number
+        assert nr.appetite_rationale                                          # authored reason
+        assert nr.appetite_threshold <= graph.enterprise.capacity_materiality  # §D1
+
+
+def test_privacy_has_a_dramatic_standout(corpus_engine):
+    # At least one Privacy risk sits dramatically under its authored threshold
+    # (residual mean ~10-20% of appetite) -- unused tolerance, over-controlled.
+    _, eng = corpus_engine
+    ratios = [
+        r.band.mean / r.threshold
+        for r in eng.all_named_risk_residuals()
+        if eng.graph.named_risks[r.named_risk.id].domain == "TR-PRIVACY"
+    ]
+    assert all(x < 0.75 for x in ratios)              # every Privacy risk is BELOW
+    assert min(ratios) < 0.2                          # one dramatically so
 
 
 def test_orphans_have_no_funded_remediation(corpus_engine):

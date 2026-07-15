@@ -132,15 +132,17 @@ def test_derived_kri_status(graph):
 
 
 def test_only_expected_flags(problems):
-    # 3 deliberate orphan controls, 2 trust flags (1 stale + 1 uncalibrated
-    # estimator), and 1 large-threshold justification flag; nothing else.
+    # All intended: 3 deliberate orphan controls, 2 trust flags (1 stale + 1
+    # uncalibrated estimator), and the threshold-sum flag (bottom-up authored
+    # appetite summing above 3x the top-down line -- the model telling on itself,
+    # on-thesis per SPEC v2.1 §D1). Nothing else.
     from collections import Counter
     codes = Counter(p.code for p in problems if p.severity == "flag")
     assert codes == Counter({
         "control_maps_no_risk": 3,
         "estimator_stale": 1,
         "estimator_uncalibrated": 1,
-        "named_risk_threshold_large": 1,
+        "threshold_sum_far_over_appetite": 1,
     })
 
 

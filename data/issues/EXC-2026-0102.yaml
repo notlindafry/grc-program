@@ -9,7 +9,7 @@ control: [A.8.5]
 okr: gcloud-migration
 exception_effect:
   moves: probability_of_realization
-  with_exception_90ci: [0.011, 0.028]
+  with_exception_90ci: [0.014, 0.031]
   estimated_by: j.okafor@company.com
   estimated_on: 2026-02-06
 reason: timeline

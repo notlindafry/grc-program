@@ -9,7 +9,7 @@ control: [A.5.30]
 okr: core-platform
 exception_effect:
   moves: probability_of_realization
-  with_exception_90ci: [0.02, 0.06]
+  with_exception_90ci: [0.018, 0.038]
   estimated_by: p.nguyen@company.com
   estimated_on: 2026-05-20
 reason: resource_reallocation

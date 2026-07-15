@@ -8,10 +8,10 @@ id: SCN-2026-0014
 title: Regulated data leaves its required residency region
 named_risk: NR-DATA-RESIDENCY
 baseline:
-  opportunity_frequency_90ci: [8, 16]
-  probability_of_realization_90ci: [0.03, 0.08]
-  loss_magnitude_90ci: [400000, 1600000]
+  opportunity_frequency_90ci: [6, 14]
+  probability_of_realization_90ci: [0.02, 0.05]
+  loss_magnitude_90ci: [150000, 600000]
 impact: [regulatory, individual_harm]
 vectors: []
 lifecycle_state: managed
-trajectory: stable
+trajectory: receding

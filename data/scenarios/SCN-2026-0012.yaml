@@ -10,7 +10,7 @@ named_risk: NR-ENDPOINT-MALWARE
 baseline:
   opportunity_frequency_90ci: [30, 90]
   probability_of_realization_90ci: [0.008, 0.03]
-  loss_magnitude_90ci: [120000, 600000]
+  loss_magnitude_90ci: [90000, 420000]
 impact: [financial]
 vectors: [adversarial]
 lifecycle_state: managed

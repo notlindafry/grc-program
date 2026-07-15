@@ -10,7 +10,7 @@ named_risk: NR-DATA-EXFIL
 baseline:
   opportunity_frequency_90ci: [20, 70]
   probability_of_realization_90ci: [0.008, 0.03]
-  loss_magnitude_90ci: [250000, 1100000]
+  loss_magnitude_90ci: [220000, 2100000]
 impact: [financial, individual_harm, regulatory]
 vectors: [adversarial]
 lifecycle_state: managed

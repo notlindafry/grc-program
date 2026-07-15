@@ -108,12 +108,22 @@ class ScenarioResidual:
     untrusted: list[Contribution] = field(default_factory=list)     # held out of the band
 
 
+def _p_exceed(samples: list[float], line: float) -> float:
+    """Share of simulated trials in which the exposure crosses ``line`` -- the
+    exceedance probability (SPEC v2.2 §E). Just another read of the same
+    distribution; no new path into residual."""
+    if not samples:
+        return 0.0
+    return sum(1 for s in samples if s > line) / len(samples)
+
+
 @dataclass
 class NamedRiskResidual:
     named_risk: NamedRisk
     band: Band
     state: str  # RAG: over | at | below
     threshold: float
+    p_over_threshold: float = 0.0  # exceedance probability against its own appetite
     scenario_ids: list[str] = field(default_factory=list)
     # Top drivers for "what is driving each" (SPEC §6 view 1): the biggest
     # factor-moving issues by expected contribution, across the risk's scenarios.
@@ -141,10 +151,13 @@ class DomainRollup:
 class PortfolioResult:
     band: Band                    # managed, appetite-tested aggregate
     appetite: Optional[float]     # declared appetite (revenue-percent line)
-    appetite_state: str           # RAG vs declared appetite
+    appetite_state: str           # RAG vs declared appetite (the single position)
     capacity: Optional[float]     # hard audit-materiality line
-    capacity_breached: bool       # is the aggregate over the capacity line?
     over_appetite: bool           # bottom-up aggregate exceeds declared appetite (the signal)
+    # Exceedance probabilities: the honest read of a band against a line (SPEC
+    # v2.2 §E). For a hard line the tail is the question, not the mean.
+    p_over_appetite: float = 0.0
+    p_over_capacity: float = 0.0
 
 
 @dataclass
@@ -180,12 +193,11 @@ class KRISignal:
 
 
 class GraphEngine:
-    """Computes the v2 residual aggregation, appetite, RAG bands, and control
-    health over an assembled, validated :class:`Graph`.
+    """Computes the residual aggregation, appetite, RAG bands, and control health
+    over an assembled, validated :class:`Graph`.
 
     ``validate_graph`` must have run first, so trust flags are attached and
-    ``IssueRecord.counts_in_bands`` is meaningful (mirrors the legacy flow where
-    ``validate_corpus`` precedes ``Engine``).
+    ``IssueRecord.counts_in_bands`` is meaningful.
     """
 
     def __init__(self, graph: Graph, config: Config):
@@ -269,6 +281,17 @@ class GraphEngine:
     def contribution_band(self, issue_id: str) -> Optional[Band]:
         return self._contrib_band.get(issue_id)
 
+    def combined_contribution_band(self, issue_ids: list[str]) -> Optional[Band]:
+        """Combined residual contribution of a set of factor-moving issues, as a
+        band (used by the drift view's two-ledger footprints, SPEC v2.2 §C2)."""
+        streams = [self._contrib_samples[i] for i in issue_ids if i in self._contrib_samples]
+        if not streams:
+            return None
+        return Band.from_samples(self.mc.sum_streams(streams))
+
+    def has_contribution(self, issue_id: str) -> bool:
+        return issue_id in self._contrib_samples
+
     # -- scenario residuals -------------------------------------------------
 
     def _compute_scenario_residuals(self) -> None:
@@ -329,8 +352,8 @@ class GraphEngine:
         scn_ids = self._managed_scenarios_of(nid)
         if not scn_ids:
             return None  # only emerging scenarios (surfaced separately) or none
-        streams = [self._scn_residual_samples[sid] for sid in scn_ids]
-        band = Band.from_samples(self.mc.sum_streams(streams))
+        samples = self.mc.sum_streams([self._scn_residual_samples[sid] for sid in scn_ids])
+        band = Band.from_samples(samples)
         drivers: list[Contribution] = []
         for sid in scn_ids:
             drivers.extend(self._scn_residual[sid].contributors)
@@ -340,6 +363,7 @@ class GraphEngine:
             band=band,
             state=rag_band(band, nr.appetite_threshold, self.green_floor),
             threshold=nr.appetite_threshold,
+            p_over_threshold=_p_exceed(samples, nr.appetite_threshold),
             scenario_ids=scn_ids,
             drivers=drivers[:5],
         )
@@ -390,22 +414,24 @@ class GraphEngine:
         ]
         if not streams:
             return None
-        band = Band.from_samples(self.mc.sum_streams(streams))
+        samples = self.mc.sum_streams(streams)
+        band = Band.from_samples(samples)
         ent = self.graph.enterprise
         appetite = ent.declared_appetite if ent else None
         capacity = ent.capacity_materiality if ent else None
         state = rag_band(band, appetite, self.green_floor) if appetite else RAG_AT
-        # "When the bottom-up aggregate exceeds declared appetite, that is the
-        # signal" -- use the band mean as the aggregate's representative level.
+        # The position is the band-vs-appetite RAG read; the capacity read is a
+        # tail probability, not a mean test (SPEC v2.2 §E2). "When the bottom-up
+        # aggregate exceeds declared appetite, that is the signal."
         over_appetite = bool(appetite and band.mean > appetite)
-        capacity_breached = bool(capacity and band.mean > capacity)
         return PortfolioResult(
             band=band,
             appetite=appetite,
             appetite_state=state,
             capacity=capacity,
-            capacity_breached=capacity_breached,
             over_appetite=over_appetite,
+            p_over_appetite=_p_exceed(samples, appetite) if appetite else 0.0,
+            p_over_capacity=_p_exceed(samples, capacity) if capacity else 0.0,
         )
 
     def scenarios_over_capacity(self) -> list[ScenarioResidual]:

@@ -4,14 +4,14 @@
 # scenario names its Tier-2 named_risk, carries impact + vector tags, and a
 # lifecycle_state (managed | emerging) with a trajectory. All synthetic.
 
-id: SCN-2026-0013
-title: Customer-facing outage of a core platform service
-named_risk: NR-PLATFORM-OUTAGE
+id: SCN-2026-0023
+title: A form collects more personal data than the feature needs
+named_risk: NR-PII-MINIMIZATION
 baseline:
-  opportunity_frequency_90ci: [34, 46]
-  probability_of_realization_90ci: [0.017, 0.025]
-  loss_magnitude_90ci: [1150000, 1600000]
-impact: [financial, public_market_harm]
+  opportunity_frequency_90ci: [3, 9]
+  probability_of_realization_90ci: [0.02, 0.05]
+  loss_magnitude_90ci: [100000, 450000]
+impact: [regulatory]
 vectors: []
 lifecycle_state: managed
-trajectory: rising
+trajectory: stable

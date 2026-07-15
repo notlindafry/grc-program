@@ -4,17 +4,7 @@ monte_carlo:
   seed: 20260617
 calibration:
   refresh_window_days: 365
-drift:
-  final_stretch_weeks: 8
-breach:
-  # Lead-contributor share of contributed exposure at/above which a breach is
-  # classified single-acceptance rather than accumulation. (A contributor that
-  # breaches appetite alone is single-acceptance regardless of this number.)
-  single_acceptance_share: 0.5
 renewals:
   # An active exception renewed at least this many times with its justification
-  # never revisited is flagged "temporary forever" in the Persistence view.
+  # never revisited is flagged "temporary forever" in the can-kicking view.
   alert_count: 3
-# Fiscal-year boundary for the 2026 exposure arc: exceptions filed before this
-# date are the book entering the year.
-year_start: 2026-01-01

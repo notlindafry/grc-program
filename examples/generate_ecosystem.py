@@ -386,86 +386,128 @@ def render_controls() -> str:
 
 
 # ---------------------------------------------------------------------------
-# 5. Named risks -- Tier 2 (SPEC §2.3). Thresholds are CALIBRATED at build time
-#    from each risk's Monte-Carlo residual to hit the designed RAG spread
-#    (SPEC v2.1 §D5); the table carries a target_rag, not a hardcoded number.
+# 5. Named risks -- Tier 2 (SPEC §2.3). Appetite is AUTHORED, never derived
+#    (SPEC v2.2 §D): each threshold is a round number a second line would set
+#    from what Company Corp tolerates for that risk -- regulatory constraint,
+#    strategic upside, reversibility, concentration -- with no reference to the
+#    residual. The RAG colour is then an OUTCOME of that authored line meeting
+#    tuned exposure (SPEC v2.2 §B), not a target fitted to.
 # ---------------------------------------------------------------------------
-# (id, title, domain, owner, target_rag, threatens_okrs)
-#   target_rag: over | at | below | standout (a dramatic below) | emerging
+# (id, title, domain, owner, appetite_threshold, appetite_rationale, threatens_okrs)
 
 NAMED_RISKS = [
     # TR-SECURITY (7)
     ("NR-PROD-COMPROMISE", "Compromise of production systems via credential or access failure",
-     "TR-SECURITY", "security-eng-lead@company.com", "over", ["gcloud-migration", "core-platform"]),
+     "TR-SECURITY", "security-eng-lead@company.com", 1500000,
+     "Core-launch risk; some tolerance during the rebuild, but production compromise erodes customer trust fast.",
+     ["gcloud-migration", "core-platform"]),
     ("NR-DATA-EXFIL", "Exfiltration of regulated data from an analytics or export path",
-     "TR-SECURITY", "security-eng-lead@company.com", "at", ["data-platform"]),
+     "TR-SECURITY", "security-eng-lead@company.com", 2000000,
+     "Regulated data, but exfil is adversarial and partly insurable; moderate tolerance.",
+     ["data-platform"]),
     ("NR-PAYMENT-FRAUD", "Fraudulent transactions against the payments platform",
-     "TR-SECURITY", "payments-lead@company.com", "at", ["payments-launch"]),
+     "TR-SECURITY", "payments-lead@company.com", 2500000,
+     "Fraud is a managed cost of running payments; higher tolerance, tracked against margin.",
+     ["payments-launch"]),
     ("NR-ENDPOINT-MALWARE", "Malware on a corporate endpoint leading to lateral movement",
-     "TR-SECURITY", "it-lead@company.com", "below", ["internal-tools"]),
+     "TR-SECURITY", "it-lead@company.com", 2000000,
+     "Recoverable with EDR and reimaging; moderate tolerance.", ["internal-tools"]),
     ("NR-CARD-TESTING", "Automated card-testing against the public checkout flow",
-     "TR-SECURITY", "payments-lead@company.com", "below", ["payments-launch"]),
+     "TR-SECURITY", "payments-lead@company.com", 1500000,
+     "Financial and recoverable; velocity limits cap the downside.", ["payments-launch"]),
     ("NR-ABUSE-ESCALATION", "Unmitigated abuse escalating on the platform",
-     "TR-SECURITY", "tns-lead@company.com", "at", ["trust-and-safety"]),
+     "TR-SECURITY", "tns-lead@company.com", 1500000,
+     "Reputational; moderate tolerance backed by an SLA-driven response.", ["trust-and-safety"]),
     ("NR-ABUSE-DETECTION", "Gaps in automated detection of policy-violating content",
-     "TR-SECURITY", "tns-lead@company.com", "below", ["trust-and-safety"]),
+     "TR-SECURITY", "tns-lead@company.com", 1500000,
+     "Detection gaps are recoverable via retrain; moderate tolerance.", ["trust-and-safety"]),
     # TR-RESILIENCE (2)
     ("NR-PLATFORM-OUTAGE", "Customer-facing outage of a core platform service",
-     "TR-RESILIENCE", "platform-lead@company.com", "over", ["core-platform"]),
+     "TR-RESILIENCE", "platform-lead@company.com", 2500000,
+     "Availability risk knowingly carried to sustain launch velocity; bounded by SLA credits.",
+     ["core-platform"]),
     ("NR-DATA-AVAILABILITY", "Loss of availability of a core data platform service",
-     "TR-RESILIENCE", "data-platform-lead@company.com", "below", ["data-platform"]),
-    # TR-DATA-INTEGRITY (2) -- the amber-end-to-end domain (SPEC v2.1 §E story 9)
+     "TR-RESILIENCE", "data-platform-lead@company.com", 2000000,
+     "Recoverable; failover reduces the blast radius.", ["data-platform"]),
+    # TR-DATA-INTEGRITY (2) -- stays BELOW, but no longer the standout (SPEC v2.2 §F)
     ("NR-DATA-QUALITY", "Corrupted or unvalidated data feeding downstream decisions",
-     "TR-DATA-INTEGRITY", "data-platform-lead@company.com", "below", ["data-platform"]),
+     "TR-DATA-INTEGRITY", "data-platform-lead@company.com", 2000000,
+     "Correctness matters, but bad data is usually caught and reprocessed.", ["data-platform"]),
     ("NR-PIPELINE-INTEGRITY", "Schema-invalid or corrupted writes entering the data pipeline",
-     "TR-DATA-INTEGRITY", "data-platform-lead@company.com", "standout", ["data-platform"]),
-    # TR-PRIVACY (2)
-    ("NR-DATA-RESIDENCY", "Regulated data leaving its required residency region",
-     "TR-PRIVACY", "dpo@company.com", "at", ["data-platform"]),
+     "TR-DATA-INTEGRITY", "data-platform-lead@company.com", 2000000,
+     "Recoverable via replay; write-time gates cap the downside.", ["data-platform"]),
+    # TR-PRIVACY (5) -- regulated, low tolerance across the board; the standout
+    # amber-end-to-end domain (SPEC v2.2 §F). Over-control is the canonical
+    # regulated failure: gold-plating the domain no one thinks about.
+    ("NR-DATA-RESIDENCY", "Regulated customer data processed or stored outside its required region",
+     "TR-PRIVACY", "privacy-eng-lead@company.com", 650000,
+     "Regulated data; low tolerance regardless of delivery upside.", ["data-platform", "data-residency"]),
     ("NR-SUBPROCESSOR-GOV", "Ungoverned subprocessor handling of regulated data",
-     "TR-PRIVACY", "dpo@company.com", "below", ["data-platform"]),
+     "TR-PRIVACY", "privacy-eng-lead@company.com", 500000,
+     "Regulated third-party processing; low tolerance -- a licence-to-operate risk.", ["data-platform"]),
+    ("NR-DATA-RETENTION", "Personal data retained beyond its lawful retention window",
+     "TR-PRIVACY", "privacy-eng-lead@company.com", 600000,
+     "Over-retention of PII is a pure obligation failure; low tolerance.", ["data-platform"]),
+    ("NR-CONSENT-MGMT", "Tracking or processing without valid, current consent",
+     "TR-PRIVACY", "privacy-eng-lead@company.com", 750000,
+     "Consent and tracking are regulator-facing; low tolerance regardless of product upside.",
+     ["mobile-app"]),
+    ("NR-PII-MINIMIZATION", "Collecting or exposing more personal data than needed",
+     "TR-PRIVACY", "privacy-eng-lead@company.com", 500000,
+     "Excess PII only adds liability; low tolerance.", ["data-platform"]),
     # TR-CHANGE (3; one emerging)
     ("NR-MIGRATION-AVAILABILITY", "Availability regressions introduced by the migration",
-     "TR-CHANGE", "platform-lead@company.com", "at", ["gcloud-migration"]),
+     "TR-CHANGE", "platform-lead@company.com", 2000000,
+     "Elevated change risk deliberately accepted during the rebuild window.", ["gcloud-migration"]),
     ("NR-MIGRATION-DATAINTEGRITY", "Data integrity loss during monolith-to-microservices cutover",
-     "TR-CHANGE", "platform-lead@company.com", "below", ["gcloud-migration"]),
+     "TR-CHANGE", "platform-lead@company.com", 1500000,
+     "Cutover integrity issues are recoverable with dual-write checks.", ["gcloud-migration"]),
     ("NR-AI-AGENT-AUTONOMY", "Autonomous agents taking unsafe action in production",
-     "TR-CHANGE", "ai-platform-lead@company.com", "emerging", ["ai-platform"]),
+     "TR-CHANGE", "ai-platform-lead@company.com", 1500000,
+     "Emerging; a nominal tolerance pending the calibration to trust the number.", ["ai-platform"]),
     # TR-THIRDPARTY (3; one emerging)
     ("NR-VENDOR-ACCESS", "Excessive third-party vendor access to internal systems",
-     "TR-THIRDPARTY", "ciso-office@company.com", "below", ["mobile-app", "internal-tools"]),
+     "TR-THIRDPARTY", "ciso-office@company.com", 2000000,
+     "Vendor access is scoped and revocable; moderate tolerance.", ["mobile-app", "internal-tools"]),
     ("NR-SUPPLIER-OUTAGE", "A critical supplier's outage cascades into our service",
-     "TR-THIRDPARTY", "ciso-office@company.com", "at", ["core-platform"]),
+     "TR-THIRDPARTY", "ciso-office@company.com", 2000000,
+     "External dependency; tolerance bounded by tested fallbacks.", ["core-platform"]),
     ("NR-MODEL-SUPPLY", "Concentration on a single external model provider",
-     "TR-THIRDPARTY", "ai-platform-lead@company.com", "emerging", ["ai-platform"]),
-    # TR-COMPLIANCE (2)
+     "TR-THIRDPARTY", "ai-platform-lead@company.com", 1500000,
+     "Emerging; a nominal tolerance pending a tested fallback.", ["ai-platform"]),
+    # TR-COMPLIANCE (2) -- regulated, low tolerance
     ("NR-PCI-SCOPE", "PCI scope expansion / cardholder data handling gap",
-     "TR-COMPLIANCE", "payments-lead@company.com", "over", ["payments-launch"]),
+     "TR-COMPLIANCE", "payments-lead@company.com", 1000000,
+     "PCI is pass/fail with the card schemes; low tolerance.", ["payments-launch"]),
     ("NR-REG-FILINGS", "Missed regulatory filing or lapsed certification",
-     "TR-COMPLIANCE", "compliance-lead@company.com", "below", ["run-the-business"]),
+     "TR-COMPLIANCE", "compliance-lead@company.com", 1000000,
+     "Filing obligations are binary; low tolerance.", ["run-the-business"]),
 ]
 
 NAMED_RISK_YAML_HEAD = """\
 # Tier 2 -- the owned, appetite-bearing risk (executive / VP altitude, SPEC §2.3).
 # Each names its Tier-1 domain (many-to-one), the accountable owner, the OKRs it
-# threatens (M2M, SPEC §2.12), and a per-risk dollar appetite. Thresholds are
-# CALIBRATED from each risk's Monte-Carlo residual at build time to land the
-# designed RAG spread (SPEC v2.1 §D5): 3 OVER, 6 AT, 10 BELOW. Every threshold
-# sits under the $15M enterprise capacity (SPEC v2.1 §D1). All data synthetic.
+# threatens (M2M, SPEC §2.12), and a per-risk dollar appetite. Appetite is
+# AUTHORED, not derived (SPEC v2.2 §D): a round number a governance forum would
+# set from what the company tolerates for that risk, with an appetite_rationale
+# recording why. The RAG colour is an outcome of that line meeting tuned
+# exposure, never a target the threshold was fitted to. Every threshold sits
+# under the $15M enterprise capacity (SPEC v2.1 §D1). All data synthetic.
 
 """
 
 
-def render_named_risks(thresholds: dict) -> str:
+def render_named_risks() -> str:
     out = [NAMED_RISK_YAML_HEAD]
-    for nid, title, domain, owner, target_rag, okrs in NAMED_RISKS:
+    for nid, title, domain, owner, threshold, rationale, okrs in NAMED_RISKS:
         okr_render = "[" + ", ".join(okrs) + "]"
         out.append(
             f"{nid}:\n"
             f"  title: {title}\n"
             f"  domain: {domain}\n"
             f"  owner: {owner}\n"
-            f"  appetite_threshold: {thresholds[nid]}\n"
+            f"  appetite_threshold: {threshold}\n"
+            f'  appetite_rationale: "{rationale}"\n'
             f"  threatens_okrs: {okr_render}\n"
         )
     return "\n".join(out)
@@ -487,47 +529,59 @@ SCENARIOS = [
      [8, 24], [0.007, 0.022], [400000, 1500000], ["financial", "individual_harm"],
      ["adversarial"], "managed", "stable"),
     ("SCN-2026-0002", "Exfiltration of regulated data via an analytics export path", "NR-DATA-EXFIL",
-     [20, 70], [0.008, 0.03], [250000, 1100000], ["financial", "individual_harm", "regulatory"],
+     [20, 70], [0.008, 0.03], [220000, 2100000], ["financial", "individual_harm", "regulatory"],
      ["adversarial"], "managed", "stable"),
     ("SCN-2026-0003", "Fraudulent transactions against the payments platform", "NR-PAYMENT-FRAUD",
-     [15, 45], [0.01, 0.035], [200000, 900000], ["financial", "public_market_harm"],
+     [15, 45], [0.01, 0.035], [150000, 800000], ["financial", "public_market_harm"],
      ["adversarial"], "managed", "stable"),
     ("SCN-2026-0012", "Malware on a corporate endpoint leads to lateral movement", "NR-ENDPOINT-MALWARE",
-     [30, 90], [0.008, 0.03], [120000, 600000], ["financial"],
+     [30, 90], [0.008, 0.03], [90000, 420000], ["financial"],
      ["adversarial"], "managed", "stable"),
     ("SCN-2026-0015", "Automated card-testing lands fraudulent charges at checkout", "NR-CARD-TESTING",
-     [20, 60], [0.01, 0.035], [150000, 700000], ["financial", "individual_harm"],
+     [20, 60], [0.01, 0.035], [110000, 480000], ["financial", "individual_harm"],
      ["adversarial"], "managed", "stable"),
     ("SCN-2026-0007", "Unmitigated abuse escalating on the platform", "NR-ABUSE-ESCALATION",
-     [20, 70], [0.015, 0.05], [120000, 550000], ["individual_harm", "reputational"],
+     [20, 70], [0.015, 0.05], [90000, 400000], ["individual_harm", "reputational"],
      ["adversarial"], "managed", "stable"),
     ("SCN-2026-0008", "Detection model misses policy-violating content at scale", "NR-ABUSE-DETECTION",
-     [20, 60], [0.01, 0.04], [120000, 500000], ["individual_harm", "public_market_harm"],
+     [20, 60], [0.01, 0.04], [90000, 380000], ["individual_harm", "public_market_harm"],
      ["adversarial"], "managed", "stable"),
     # --- TR-RESILIENCE ---
     ("SCN-2026-0013", "Customer-facing outage of a core platform service", "NR-PLATFORM-OUTAGE",
-     [20, 60], [0.008, 0.03], [600000, 3500000], ["financial", "public_market_harm"],
+     [34, 46], [0.017, 0.025], [1150000, 1600000], ["financial", "public_market_harm"],
      [], "managed", "rising"),
     ("SCN-2026-0006", "Loss of availability of a core data platform service", "NR-DATA-AVAILABILITY",
      [10, 35], [0.01, 0.04], [200000, 900000], ["financial"],
      [], "managed", "stable"),
-    # --- TR-DATA-INTEGRITY (amber end-to-end) ---
+    # --- TR-DATA-INTEGRITY -- data-quality band is WIDE so it straddles its $2M
+    # threshold (reads AT); the domain is therefore NOT amber end to end (§F). ---
     ("SCN-2026-0005", "Corrupted or unvalidated data feeds a downstream decision", "NR-DATA-QUALITY",
-     [10, 40], [0.015, 0.05], [120000, 550000], ["financial", "individual_harm"],
+     [12, 45], [0.02, 0.06], [200000, 2800000], ["financial", "individual_harm"],
      [], "managed", "stable"),
     ("SCN-2026-0016", "Schema-invalid writes corrupt a downstream pipeline decision", "NR-PIPELINE-INTEGRITY",
      [6, 18], [0.01, 0.035], [100000, 400000], ["financial"],
      [], "managed", "receding"),
-    # --- TR-PRIVACY ---
+    # --- TR-PRIVACY (5) -- deliberately LOW exposure: the over-controlled,
+    # amber-end-to-end domain (SPEC v2.2 §F). Consent is the dramatic standout.
     ("SCN-2026-0014", "Regulated data leaves its required residency region", "NR-DATA-RESIDENCY",
-     [8, 16], [0.03, 0.08], [400000, 1600000], ["regulatory", "individual_harm"],
-     [], "managed", "stable"),
+     [6, 14], [0.02, 0.05], [150000, 600000], ["regulatory", "individual_harm"],
+     [], "managed", "receding"),
     ("SCN-2026-0018", "Subprocessor mishandles regulated data without a governed DPA", "NR-SUBPROCESSOR-GOV",
-     [4, 12], [0.02, 0.06], [200000, 900000], ["regulatory", "individual_harm"],
-     ["third_party"], "managed", "stable"),
-    # --- TR-CHANGE ---
+     [4, 12], [0.02, 0.05], [120000, 500000], ["regulatory", "individual_harm"],
+     ["third_party"], "managed", "receding"),
+    ("SCN-2026-0021", "Personal data retained past its lawful retention window", "NR-DATA-RETENTION",
+     [3, 10], [0.02, 0.05], [120000, 550000], ["regulatory"],
+     [], "managed", "receding"),
+    ("SCN-2026-0022", "Tracking pixel fires before consent is captured", "NR-CONSENT-MGMT",
+     [4, 12], [0.02, 0.05], [120000, 480000], ["regulatory", "individual_harm"],
+     [], "managed", "receding"),
+    ("SCN-2026-0023", "A form collects more personal data than the feature needs", "NR-PII-MINIMIZATION",
+     [3, 9], [0.02, 0.05], [100000, 450000], ["regulatory"],
+     [], "managed", "stable"),
+    # --- TR-CHANGE -- migration-availability band is WIDE (straddles $2M -> AT),
+    # so Change is not amber end to end (§F). ---
     ("SCN-2026-0009", "Availability regression introduced by the migration", "NR-MIGRATION-AVAILABILITY",
-     [10, 35], [0.015, 0.05], [150000, 700000], ["financial"],
+     [12, 42], [0.02, 0.06], [200000, 2600000], ["financial"],
      [], "managed", "rising"),
     ("SCN-2026-0010", "Data integrity loss during monolith-to-microservices cutover", "NR-MIGRATION-DATAINTEGRITY",
      [5, 16], [0.01, 0.035], [150000, 650000], ["financial", "individual_harm"],
@@ -536,12 +590,15 @@ SCENARIOS = [
     ("SCN-2026-0011", "Excessive third-party vendor access to internal systems", "NR-VENDOR-ACCESS",
      [5, 18], [0.008, 0.03], [150000, 700000], ["financial", "individual_harm"],
      ["third_party"], "managed", "stable"),
+    # SUPPLIER band is WIDE (straddles $2M -> AT), so Third-party is not amber
+    # end to end (§F).
     ("SCN-2026-0020", "A critical supplier outage cascades into our service", "NR-SUPPLIER-OUTAGE",
-     [6, 20], [0.02, 0.06], [200000, 900000], ["financial"],
+     [8, 26], [0.025, 0.075], [250000, 3400000], ["financial"],
      ["third_party"], "managed", "stable"),
-    # --- TR-COMPLIANCE ---
+    # --- TR-COMPLIANCE -- PCI raised so it reads OVER its $1M low tolerance (an
+    # orphan: no funded remediation addresses it, §E story 3). ---
     ("SCN-2026-0004", "Cardholder data handling gap expands PCI scope", "NR-PCI-SCOPE",
-     [4, 14], [0.02, 0.06], [500000, 2200000], ["financial", "regulatory"],
+     [8, 15], [0.045, 0.08], [1200000, 2500000], ["financial", "regulatory"],
      [], "managed", "rising"),
     ("SCN-2026-0017", "Missed quarterly regulatory filing triggers a penalty", "NR-REG-FILINGS",
      [2, 6], [0.03, 0.1], [150000, 700000], ["regulatory", "financial"],
@@ -681,15 +738,15 @@ def build_exceptions():
     # residual/baseline multiplier runs above ~5x (SPEC v2.1 §F check 7); the named
     # risk still sums OVER appetite.
     accum = [
-        ("EXC-2026-0101", "Skip MFA on internal analytics console for cutover", "A.8.5", [0.012, 0.030], "SCN-2026-0001"),
-        ("EXC-2026-0102", "Relax session timeout on legacy admin portal", "A.8.5", [0.011, 0.028], "SCN-2026-0001"),
-        ("EXC-2026-0103", "Defer MFA rollout on internal wiki", "A.8.5", [0.010, 0.026], "SCN-2026-0001"),
-        ("EXC-2026-0104", "Allow shared break-glass account on legacy jobs runner", "A.8.2", [0.012, 0.030], "SCN-2026-0001"),
-        ("EXC-2026-0105", "Keep password-only auth on legacy build server", "A.8.5", [0.011, 0.027], "SCN-2026-0001"),
-        ("EXC-2026-0106", "Defer MFA on internal feature-flag console", "A.8.5", [0.010, 0.025], "SCN-2026-0001"),
-        ("EXC-2026-0107", "Allow legacy API keys on internal data browser", "A.5.17", [0.012, 0.029], "SCN-2026-0019"),
-        ("EXC-2026-0108", "Skip MFA on legacy reporting console", "A.8.5", [0.011, 0.028], "SCN-2026-0019"),
-        ("EXC-2026-0109", "Defer privileged-access review on migrated workloads", "A.8.2", [0.010, 0.026], "SCN-2026-0019"),
+        ("EXC-2026-0101", "Skip MFA on internal analytics console for cutover", "A.8.5", [0.015, 0.033], "SCN-2026-0001"),
+        ("EXC-2026-0102", "Relax session timeout on legacy admin portal", "A.8.5", [0.014, 0.031], "SCN-2026-0001"),
+        ("EXC-2026-0103", "Defer MFA rollout on internal wiki", "A.8.5", [0.013, 0.029], "SCN-2026-0001"),
+        ("EXC-2026-0104", "Allow shared break-glass account on legacy jobs runner", "A.8.2", [0.015, 0.033], "SCN-2026-0001"),
+        ("EXC-2026-0105", "Keep password-only auth on legacy build server", "A.8.5", [0.014, 0.031], "SCN-2026-0001"),
+        ("EXC-2026-0106", "Defer MFA on internal feature-flag console", "A.8.5", [0.013, 0.028], "SCN-2026-0001"),
+        ("EXC-2026-0107", "Allow legacy API keys on internal data browser", "A.5.17", [0.014, 0.032], "SCN-2026-0019"),
+        ("EXC-2026-0108", "Skip MFA on legacy reporting console", "A.8.5", [0.014, 0.031], "SCN-2026-0019"),
+        ("EXC-2026-0109", "Defer privileged-access review on migrated workloads", "A.8.2", [0.013, 0.029], "SCN-2026-0019"),
     ]
     dates = ["2026-01-14", "2026-02-06", "2026-02-22", "2026-03-08", "2026-03-20",
              "2026-05-08", "2026-05-14", "2026-05-21", "2026-05-27"]
@@ -706,22 +763,22 @@ def build_exceptions():
     out.append(_exc(
         "EXC-2026-0130", "Run core services single-region to cut infrastructure cost",
         "platform-lead@company.com", "SCN-2026-0013", "A.8.14",
-        "probability_of_realization", [0.03, 0.09], "j.okafor@company.com",
+        "probability_of_realization", [0.05, 0.07], "j.okafor@company.com",
         filed_on="2026-04-20", okr="gcloud-migration", reason="cost",
         mechanism="deploy_multi_region_active_active", target_date="2026-12-01",
         expires_on="2026-12-01"))
     out.append(_exc(
         "EXC-2026-0131", "Skip quarterly platform DR test to free the team for migration",
         "platform-lead@company.com", "SCN-2026-0013", "A.5.30",
-        "probability_of_realization", [0.02, 0.06], "p.nguyen@company.com",
+        "probability_of_realization", [0.018, 0.038], "p.nguyen@company.com",
         filed_on="2026-05-20", okr="core-platform", reason="resource_reallocation",
         diverted_to="gcloud-migration", mechanism="resume_quarterly_dr_tests",
         target_date="2026-09-30", expires_on="2026-09-30", renewals=3))
 
     # --- DLP cluster on NR-DATA-EXFIL (SCN-0002): moderate LM moves (~2-3x). ---
     dlp = [
-        ("EXC-2026-0140", "DLP disabled on the analytics export path", [700000, 2400000], "cost"),
-        ("EXC-2026-0141", "DLP sampling reduced on warehouse export job", [500000, 1600000], "technical_constraint"),
+        ("EXC-2026-0140", "DLP disabled on the analytics export path", [450000, 1600000], "cost"),
+        ("EXC-2026-0141", "DLP sampling reduced on warehouse export job", [300000, 1000000], "technical_constraint"),
     ]
     for i, (eid, title, ci, reason) in enumerate(dlp):
         out.append(_exc(
@@ -737,7 +794,7 @@ def build_exceptions():
          "payments-lead@company.com", "SCN-2026-0003", "A.8.16", [0.02, 0.05],
          "payments-launch", "tune_fraud_rules"),
         ("EXC-2026-0151", "Deferred PCI segmentation work -- staff on migration",
-         "payments-lead@company.com", "SCN-2026-0004", "A.8.22", [0.035, 0.09],
+         "payments-lead@company.com", "SCN-2026-0004", "A.8.22", [0.06, 0.13],
          "payments-launch", "complete_network_segmentation"),
         ("EXC-2026-0152", "Delayed detection-model retrain -- ML team pulled to migration",
          "tns-lead@company.com", "SCN-2026-0008", "A.8.16", [0.02, 0.06],
@@ -1251,75 +1308,67 @@ def render_horizon() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Build + self-calibration of named-risk thresholds
+# 11. Estimators + config (the calibration gate and the MC run config). Moved
+#     here when the legacy generator was retired (SPEC v2.2 §C4).
 # ---------------------------------------------------------------------------
 
-GRAPH_REM = DATA / "graph_remediations"
+ESTIMATORS = """\
+# The calibration gate (SPEC §2.9 estimators). An estimate from someone
+# uncalibrated, or whose calibration is older than the refresh window, is flagged
+# and its factor move is held out of the trusted residual bands. All synthetic.
 
-# Rounding step for calibrated thresholds (readability).
-_STEP = 50000
+r.chen@company.com:
+  calibrated: true
+  calibrated_on: 2026-03-15
+j.okafor@company.com:
+  calibrated: true
+  calibrated_on: 2025-11-20
+p.nguyen@company.com:
+  calibrated: true
+  calibrated_on: 2026-01-10
+a.silva@company.com:
+  calibrated: true
+  calibrated_on: 2025-09-05
+m.haddad@company.com:
+  calibrated: true
+  calibrated_on: 2026-02-01
+
+# Uncalibrated: any estimate from here is flagged low-confidence.
+t.brooks@company.com:
+  calibrated: false
+
+# Stale: calibrated once, but longer ago than the refresh window (365d).
+l.romano@company.com:
+  calibrated: true
+  calibrated_on: 2024-02-01
+"""
+
+CONFIG = """\
+# Optional run configuration. CLI flags override these.
+monte_carlo:
+  iterations: 10000
+  seed: 20260617
+calibration:
+  refresh_window_days: 365
+renewals:
+  # An active exception renewed at least this many times with its justification
+  # never revisited is flagged "temporary forever" in the can-kicking view.
+  alert_count: 3
+"""
 
 
-def _round_to(x, step, mode="nearest"):
-    import math as _m
-    if mode == "down":
-        return int(_m.floor(x / step) * step)
-    if mode == "up":
-        return int(_m.ceil(x / step) * step)
-    return int(round(x / step) * step)
+# ---------------------------------------------------------------------------
+# Build. Appetite is authored in the NAMED_RISKS table above (no calibration);
+# the RAG colour is whatever the authored line and the tuned exposure produce.
+# ---------------------------------------------------------------------------
 
-
-def _threshold_for(target_rag, band, capacity):
-    """Derive a threshold from a residual band to land the target RAG state."""
-    if target_rag == "over":
-        t = _round_to(band.low * 0.9, _STEP, "down")
-    elif target_rag == "at":
-        t = _round_to(band.mean, _STEP, "nearest")
-    elif target_rag == "below":
-        t = _round_to(band.high / 0.62, _STEP, "up")
-    elif target_rag == "standout":
-        t = _round_to(band.mean / 0.15, _STEP, "up")
-    else:  # emerging: nominal, so would_breach is meaningful against the wide band
-        t = _round_to(band.mean, _STEP, "nearest") if band else 1500000
-    t = max(_STEP, min(t, int(capacity)))
-    return t
-
-
-def _calibrate_thresholds():
-    """Load the just-written graph, read each named risk's residual, and return
-    a {nid: threshold} map that lands the designed RAG spread (SPEC v2.1 §D5)."""
-    import sys
-    sys.path.insert(0, str(ROOT))
-    from risk_ledger.config import Config
-    from risk_ledger.graph_engine import GraphEngine
-    from risk_ledger.loader import load_graph
-    from risk_ledger.validation import validate_graph
-
-    cfg = Config(as_of=__import__("datetime").date(2026, 6, 18))
-    graph = load_graph(DATA)
-    validate_graph(graph, cfg)
-    eng = GraphEngine(graph, cfg)
-    capacity = graph.enterprise.capacity_materiality
-    target = {nid: rag for nid, _, _, _, rag, _ in NAMED_RISKS}
-
-    thresholds = {}
-    for nid in target:
-        rag = target[nid]
-        res = eng.named_risk_residual(nid)  # None for emerging (no managed scenario)
-        if res is not None:
-            thresholds[nid] = _threshold_for(rag, res.band, capacity)
-        else:
-            # Emerging: base the nominal threshold on the emerging scenario band.
-            em = [e for e in eng.emerging_items() if e.scenario.named_risk == nid]
-            band = em[0].band if em else None
-            thresholds[nid] = _threshold_for("emerging", band, capacity)
-    return thresholds
+REM_DIR = DATA / "remediations"
 
 
 def build_ecosystem() -> None:
-    """Write the v2 GRC-ecosystem corpus and self-calibrate the thresholds."""
+    """Write the full GRC-ecosystem corpus (the only corpus, post-retirement)."""
     DATA.mkdir(exist_ok=True)
-    for d in (SCN, ISSUES, GRAPH_REM):
+    for d in (SCN, ISSUES, REM_DIR):
         d.mkdir(exist_ok=True)
         for old in d.glob("*.yaml"):
             old.unlink()
@@ -1328,10 +1377,13 @@ def build_ecosystem() -> None:
     (DATA / "domains.yaml").write_text(render_domains())
     (DATA / "policies.yaml").write_text(render_policies())
     (DATA / "controls.yaml").write_text(render_controls())
+    (DATA / "named_risks.yaml").write_text(render_named_risks())
     (DATA / "evidence.yaml").write_text(render_evidence())
     (DATA / "kris.yaml").write_text(render_kris())
     (DATA / "horizon.yaml").write_text(render_horizon())
     (DATA / "okrs.yaml").write_text(OKRS)
+    (DATA / "estimators.yaml").write_text(ESTIMATORS)
+    (DATA / "config.yaml").write_text(CONFIG)
 
     for spec in SCENARIOS:
         (SCN / f"{spec[0]}.yaml").write_text(render_scenario(spec))
@@ -1341,19 +1393,13 @@ def build_ecosystem() -> None:
         (ISSUES / f"{spec[0]}.yaml").write_text(render_vuln(spec))
     for spec in FINDINGS:
         (ISSUES / f"{spec[0]}.yaml").write_text(render_finding(spec))
-    for i, text in enumerate(build_remediations()):
+    for text in build_remediations():
         rid = text.split("\n", 1)[0].split(": ", 1)[1]
-        (GRAPH_REM / f"{rid}.yaml").write_text(text)
-
-    # First pass with placeholder thresholds so the graph loads, then calibrate.
-    placeholder = {nid: 1000000 for nid, *_ in NAMED_RISKS}
-    (DATA / "named_risks.yaml").write_text(render_named_risks(placeholder))
-    thresholds = _calibrate_thresholds()
-    (DATA / "named_risks.yaml").write_text(render_named_risks(thresholds))
+        (REM_DIR / f"{rid}.yaml").write_text(text)
 
     n_scn = len(list(SCN.glob("*.yaml")))
     n_iss = len(list(ISSUES.glob("*.yaml")))
-    n_rem = len(list(GRAPH_REM.glob("*.yaml")))
+    n_rem = len(list(REM_DIR.glob("*.yaml")))
     print(f"Wrote {len(DOMAINS)} domains, {len(NAMED_RISKS)} named risks, {n_scn} scenarios")
     print(f"Wrote 93 ISO Annex A controls, {len(POLICIES)} policies, {len(EVIDENCE)} evidence records")
     print(f"Wrote {len(KRIS)} KRIs, {len(HORIZON)} horizon items, {n_iss} issues, {n_rem} remediations")
@@ -1361,7 +1407,9 @@ def build_ecosystem() -> None:
 
 
 def _verify():
-    """Print the calibrated RAG spread and the SPEC v2.1 §F acceptance signals."""
+    """Print the RAG spread and portfolio read. The spread is a GUIDELINE to
+    judge, not a target to fit (SPEC v2.2 §B): appetite is authored, so the
+    colours are an outcome. Tune exposure -- never thresholds -- to move them."""
     import sys
     sys.path.insert(0, str(ROOT))
     from risk_ledger.config import Config
@@ -1371,19 +1419,20 @@ def _verify():
 
     cfg = Config(as_of=__import__("datetime").date(2026, 6, 18))
     graph = load_graph(DATA)
-    validate_graph(graph, cfg)
+    problems = validate_graph(graph, cfg)
+    errs = [p for p in problems if p.severity == "error"]
     eng = GraphEngine(graph, cfg)
-    states = {r.named_risk.id: r.state for r in eng.all_named_risk_residuals()}
     from collections import Counter
-    spread = Counter(states.values())
+    spread = Counter(r.state for r in eng.all_named_risk_residuals())
     p = eng.portfolio()
-    amber_domains = [d.domain.id for d in eng.all_domain_rollups() if d.amber_end_to_end]
-    print(f"  RAG spread: {spread.get(RAG_OVER,0)} OVER / {spread.get(RAG_AT,0)} AT / "
+    amber = [d.domain.id for d in eng.all_domain_rollups() if d.amber_end_to_end]
+    print(f"  hard validation errors: {len(errs)}")
+    print(f"  RAG spread (outcome): {spread.get(RAG_OVER,0)} OVER / {spread.get(RAG_AT,0)} AT / "
           f"{spread.get(RAG_BELOW,0)} BELOW")
-    print(f"  Portfolio residual mean ${p.band.mean/1e6:.1f}M  "
-          f"(band ${p.band.low/1e6:.1f}M-${p.band.high/1e6:.1f}M); "
-          f"over_appetite={p.over_appetite}, capacity_breached={p.capacity_breached}")
-    print(f"  Amber end-to-end domains: {amber_domains or 'none'}")
+    print(f"  Portfolio {p.band.low/1e6:.1f}-{p.band.high/1e6:.1f}M ({p.appetite_state.upper()} "
+          f"vs ${p.appetite/1e6:.0f}M appetite); "
+          f"P(over capacity)={p.p_over_capacity*100:.0f}%; over_appetite={p.over_appetite}")
+    print(f"  Amber end-to-end domains: {amber or 'none'}")
 
 
 if __name__ == "__main__":
