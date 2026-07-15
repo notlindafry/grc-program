@@ -9,7 +9,7 @@ control: [A.8.24]
 okr: internal-tools
 exception_effect:
   moves: probability_of_realization
-  with_exception_90ci: [0.025, 0.07]
+  with_exception_90ci: [0.03, 0.09]
   estimated_by: m.haddad@company.com
   estimated_on: 2025-03-09
 reason: technical_constraint

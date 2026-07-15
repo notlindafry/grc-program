@@ -8,9 +8,9 @@ id: SCN-2026-0004
 title: Cardholder data handling gap expands PCI scope
 named_risk: NR-PCI-SCOPE
 baseline:
-  opportunity_frequency_90ci: [8, 15]
-  probability_of_realization_90ci: [0.045, 0.08]
-  loss_magnitude_90ci: [1200000, 2500000]
+  opportunity_frequency_90ci: [9, 13]
+  probability_of_realization_90ci: [0.05, 0.075]
+  loss_magnitude_90ci: [1250000, 1950000]
 impact: [financial, regulatory]
 vectors: []
 lifecycle_state: managed

@@ -276,6 +276,36 @@ def test_named_risk_large_threshold_flags():
     assert "named_risk_threshold_over_capacity" not in _codes(problems, "error")
 
 
+def test_dominance_gate_rejects_a_non_dominant_effect():
+    # SPEC v2.3 §B1: an exception weakens a control, so its band cannot improve the
+    # factor it degrades. Baseline PoR is [0.005, 0.02]; a with-band whose low dips
+    # below baseline is rejected.
+    issue = IssueRecord.parse(
+        {"id": "EXC-BAD", "type": "exception", "mapped_scenarios": ["SCN-1"],
+         "exception_effect": {"moves": "probability_of_realization",
+                              "with_exception_90ci": [0.004, 0.02],
+                              "estimated_by": "r.chen@company.com"}},
+        "EXC-BAD.yaml")
+    g = _minimal_graph(issues=[issue])
+    problems = validate_graph(g, Config(as_of=AS_OF))
+    assert "issue_not_dominant" in _codes(problems, "error")
+
+
+def test_noop_flag_on_a_negligible_effect():
+    # SPEC v2.3 §B2: a dominating but negligible effect is a no-op -- noise on the
+    # register. Baseline [0.005, 0.02]; a with-band a hair above it flags.
+    issue = IssueRecord.parse(
+        {"id": "EXC-NOOP", "type": "exception", "mapped_scenarios": ["SCN-1"],
+         "exception_effect": {"moves": "probability_of_realization",
+                              "with_exception_90ci": [0.00501, 0.02001],
+                              "estimated_by": "r.chen@company.com"}},
+        "EXC-NOOP.yaml")
+    g = _minimal_graph(issues=[issue])
+    problems = validate_graph(g, Config(as_of=AS_OF))
+    assert "issue_noop_effect" in _codes(problems, "flag")
+    assert "issue_not_dominant" not in _codes(problems, "error")  # it dominates, just barely
+
+
 def test_appetite_above_capacity_flags():
     ent = Enterprise.parse(
         {"revenue_annual": 2e9, "capacity_materiality": 5e6, "appetite_pct_of_revenue": 0.005})

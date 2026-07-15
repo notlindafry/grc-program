@@ -9,8 +9,8 @@ title: Detection model misses policy-violating content at scale
 named_risk: NR-ABUSE-DETECTION
 baseline:
   opportunity_frequency_90ci: [20, 60]
-  probability_of_realization_90ci: [0.01, 0.04]
-  loss_magnitude_90ci: [90000, 380000]
+  probability_of_realization_90ci: [0.01, 0.038]
+  loss_magnitude_90ci: [60000, 240000]
 impact: [individual_harm, public_market_harm]
 vectors: [adversarial]
 lifecycle_state: managed

@@ -9,8 +9,8 @@ title: Loss of availability of a core data platform service
 named_risk: NR-DATA-AVAILABILITY
 baseline:
   opportunity_frequency_90ci: [10, 35]
-  probability_of_realization_90ci: [0.01, 0.04]
-  loss_magnitude_90ci: [200000, 900000]
+  probability_of_realization_90ci: [0.01, 0.038]
+  loss_magnitude_90ci: [110000, 480000]
 impact: [financial]
 vectors: []
 lifecycle_state: managed

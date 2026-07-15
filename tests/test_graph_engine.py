@@ -298,14 +298,42 @@ def test_exactly_one_amber_end_to_end_domain(corpus_engine):
 
 
 def test_exceedance_probabilities(corpus_engine):
-    # SPEC v2.2 §E: the capacity read is the tail probability, not a mean test.
+    # SPEC v2.2 §E / v2.3 §E: the capacity read is the tail probability, and it is
+    # tuned into a governance band -- P(>capacity) in 5-8%, P(>appetite) above 90%.
     _, eng = corpus_engine
     p = eng.portfolio()
-    assert 0.0 < p.p_over_appetite <= 1.0
-    assert 0.0 < p.p_over_capacity < 0.5
+    assert 0.05 <= p.p_over_capacity <= 0.085   # a governance moment, not a crisis
+    assert p.p_over_appetite > 0.90             # the breach signal stays unambiguous
     # An over-appetite named risk exceeds its own threshold on most trials.
     over = next(r for r in eng.all_named_risk_residuals() if r.state == RAG_OVER)
     assert over.p_over_threshold > 0.5
+
+
+def test_no_negative_residuals(corpus_engine):
+    # SPEC v2.3 §B1.2: loss exposure cannot be negative. With the dominance gate
+    # holding, the backstop finds nothing.
+    _, eng = corpus_engine
+    assert eng.negative_residuals() == []
+
+
+def test_no_noop_records_on_the_corpus(corpus_engine):
+    # SPEC v2.3 §F3: the no-op flag fires on nothing in the shipped corpus.
+    graph, _ = corpus_engine
+    from risk_ledger.validation import validate_graph
+    from risk_ledger.config import Config
+    problems = validate_graph(graph, Config(as_of=AS_OF))
+    assert not any(p.code == "issue_noop_effect" for p in problems)
+
+
+def test_security_reads_mixed(corpus_engine):
+    # SPEC v2.3 §C/§F4: Security must read mixed, not a near-uniform wall of amber,
+    # so the Privacy standout is the reveal. It carries its OVER accumulation risk
+    # plus a spread of AT and BELOW.
+    _, eng = corpus_engine
+    sec = [r.state for r in eng.all_named_risk_residuals()
+           if eng.graph.named_risks[r.named_risk.id].domain == "TR-SECURITY"]
+    assert RAG_OVER in sec and RAG_AT in sec and RAG_BELOW in sec  # all three colours
+    assert not eng.domain_rollup("TR-SECURITY").amber_end_to_end
 
 
 def test_appetite_is_authored_not_derived(corpus_engine):

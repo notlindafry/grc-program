@@ -9,8 +9,8 @@ title: Malware on a corporate endpoint leads to lateral movement
 named_risk: NR-ENDPOINT-MALWARE
 baseline:
   opportunity_frequency_90ci: [30, 90]
-  probability_of_realization_90ci: [0.008, 0.03]
-  loss_magnitude_90ci: [90000, 420000]
+  probability_of_realization_90ci: [0.008, 0.026]
+  loss_magnitude_90ci: [50000, 190000]
 impact: [financial]
 vectors: [adversarial]
 lifecycle_state: managed

@@ -309,6 +309,8 @@ def _validate_issue(issue, graph, config: Config) -> None:
         elif not _valid_ci_for(issue.moves, issue.with_ci_90ci):
             issue.add(Issue("issue_band_out_of_range", ERROR, STRUCTURAL,
                             f"{issue.id}: accepted band {issue.with_ci_90ci!r} is not valid for {issue.moves}"))
+        else:
+            _validate_dominance(issue, graph)
         _validate_estimator(issue, graph, config)
 
     # A finding is not simulated; it carries a bounded severity + a source.
@@ -321,3 +323,45 @@ def _validate_issue(issue, graph, config: Config) -> None:
             issue.add(Issue("finding_source_invalid", FLAG, ACTION,
                             f"{issue.id}: finding source {issue.source!r} is not one of "
                             f"{', '.join(FINDING_SOURCES)}"))
+
+
+# Below this share of the baseline geomean on the moved factor, a factor-moving
+# issue's effect is materially indistinguishable from the baseline -- a no-op
+# (SPEC v2.3 §B2). An exception with no effect is noise on the register.
+_NOOP_EFFECT_SHARE = 0.03
+
+
+def _geomean(ci: list[float]) -> float:
+    return (ci[0] * ci[1]) ** 0.5
+
+
+def _validate_dominance(issue, graph) -> None:
+    """An exception/vuln is the removal or weakening of a control, so it can only
+    make the moved factor WORSE (SPEC v2.3 §B1). Assert that its ``with_*`` band
+    dominates its primary scenario's baseline on the moved factor -- the engine
+    cannot infer this semantics; the model has to state it. Also flags a no-op."""
+    resolved = graph.resolved_scenarios(issue)
+    if not resolved or resolved[0] not in graph.scenarios:
+        return  # already errored elsewhere
+    scn = graph.scenarios[resolved[0]]
+    base = scn.baseline_by_variable.get(issue.moves)
+    if base is None:
+        return  # malformed baseline already errored on the scenario
+    with_ci = issue.with_ci_90ci
+    dominates = with_ci[0] >= base[0] and with_ci[1] >= base[1] and (
+        with_ci[0] > base[0] or with_ci[1] > base[1]
+    )
+    if not dominates:
+        issue.add(Issue(
+            "issue_not_dominant", ERROR, STRUCTURAL,
+            f"{issue.id}: with-band {with_ci!r} does not dominate scenario "
+            f"{scn.id} baseline {base!r} on {issue.moves} -- an exception weakens a "
+            f"control, so it cannot IMPROVE the factor it degrades (SPEC v2.3 §B1)"))
+        return
+    # Dominant but negligible: a no-op that only adds noise to the register.
+    if _geomean(with_ci) / _geomean(base) - 1.0 < _NOOP_EFFECT_SHARE:
+        issue.add(Issue(
+            "issue_noop_effect", FLAG, ACTION,
+            f"{issue.id}: with-band {with_ci!r} is materially indistinguishable from "
+            f"scenario {scn.id} baseline {base!r} on {issue.moves} -- an exception with "
+            f"no effect is noise on the register (SPEC v2.3 §B2)"))

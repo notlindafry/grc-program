@@ -9,8 +9,8 @@ title: Availability regression introduced by the migration
 named_risk: NR-MIGRATION-AVAILABILITY
 baseline:
   opportunity_frequency_90ci: [12, 42]
-  probability_of_realization_90ci: [0.02, 0.06]
-  loss_magnitude_90ci: [200000, 2600000]
+  probability_of_realization_90ci: [0.018, 0.058]
+  loss_magnitude_90ci: [160000, 2250000]
 impact: [financial]
 vectors: []
 lifecycle_state: managed

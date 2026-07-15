@@ -9,8 +9,8 @@ title: Corrupted or unvalidated data feeds a downstream decision
 named_risk: NR-DATA-QUALITY
 baseline:
   opportunity_frequency_90ci: [12, 45]
-  probability_of_realization_90ci: [0.02, 0.06]
-  loss_magnitude_90ci: [200000, 2800000]
+  probability_of_realization_90ci: [0.017, 0.058]
+  loss_magnitude_90ci: [140000, 1950000]
 impact: [financial, individual_harm]
 vectors: []
 lifecycle_state: managed

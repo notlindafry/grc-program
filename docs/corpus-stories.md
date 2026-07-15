@@ -28,26 +28,37 @@ engineer the conclusion the whole artifact argues against.
 
 The spread below is a *judged outcome*, not a pass/fail gate (v2.2 §B).
 
-## Acceptance (v2.2 §I)
+## Acceptance (v2.3 §F, supersedes v2.2 §I where they overlap)
 
 | Check | Result |
 |---|---|
-| Legacy corpus gone (`risks.yaml`, `exceptions/`, legacy `remediations/`) | deleted; `load_corpus`/`Corpus`/legacy `Engine` removed ✓ |
-| `renewals` and `drift` run on the graph | ported; drift = the two-ledger view ✓ |
-| No code derives a threshold from a residual | `_threshold_for`/`_calibrate_thresholds` removed ✓ |
-| Every named risk: round-number `appetite_threshold` + `appetite_rationale` | 24/24 ✓ |
-| v2.1 §D1 invariants pass against authored values | 0 hard errors; threshold-sum flag fires (on-thesis) ✓ |
-| RAG spread (judged, not fitted) | **3 OVER / 3 AT / 16 BELOW** — a few breaches, green achievable, majority amber ✓ |
-| Privacy amber end to end, one dramatically below | 5/5 BELOW; `NR-CONSENT-MGMT` at ~8% of appetite ✓ |
-| Exceedance reported; one position + one probability | over appetite; **~20% chance** of crossing capacity ✓ |
-| Portfolio well under 1% of revenue, over appetite | mean **$13.6M** = 0.68%, over the $10M line ✓ |
+| No negative residual anywhere | none; the dominance gate holds ✓ |
+| Dominance holds for all factor-moving issues | 0 hard errors ✓ |
+| The no-op flag fires on nothing | ✓ |
+| Exactly one domain amber end to end, and it is Privacy; Security mixed | Privacy 5/5 BELOW; Security 1 OVER / 2 AT / 4 BELOW ✓ |
+| Green achievable: ~5–7 AT in more than one domain | **5 AT** across Security, Data integrity, Change, Third-party ✓ |
+| P(>capacity) 5–8%, P(>appetite) > 90% | **7.7%** and **97.2%** ✓ |
+| No threshold, rationale, or enterprise figure changed this pass | `git diff data/named_risks.yaml data/enterprise.yaml` empty ✓ |
+| v2.1 §D1 invariants pass; ten stories still ID-traceable | ✓ |
+| Portfolio well under 1% of revenue, over appetite | mean **$12.5M** = 0.62%, over the $10M line ✓ |
 
-Portfolio residual **$10.8M–$17.5M** (mean $13.6M). One position: **over the $10M
-appetite**. One probability: **a ~20% chance of crossing the $15M materiality
-line this year** (the mean sits under it — a governance moment, not a
-catastrophe). Sum of authored thresholds ≈ $37M (3.7× the declared appetite —
+Portfolio residual **$10.3M–$15.6M** (mean $12.5M). One position: **over the $10M
+appetite** (P > appetite 97%). One probability: **a ~8% chance of crossing the
+$15M materiality line this year** — a governance moment, not a crisis. The RAG
+spread is **3 OVER / 5 AT / 14 BELOW**, judged not fitted (v2.2 §B): a few
+breaches, green demonstrably achievable across four domains, a majority
+over-controlled. Sum of authored thresholds ≈ $37M (3.7× the declared appetite —
 the "bottom-up appetite has drifted above the top-down line" flag fires, which is
 on-thesis).
+
+**Appetite was never the lever.** Every fix in this pass is a story-shaping change
+made on the *exposure* side only — scenario baselines and exception effects.
+Thresholds, the enterprise appetite, and the capacity line are authored positions
+and were not touched (v2.3 §B, checked by the empty diff above). The
+semantic **dominance invariant** — an exception weakens a control, so it can only
+make the moved factor worse — is now a hard gate in `validation.py`, with a
+non-negative-residual backstop in the engine and a no-op flag for effects that
+add nothing.
 
 ## The ten stories
 
@@ -80,8 +91,8 @@ by `NR-PCI-SCOPE` (OVER, orphan). Read from each named risk's `threatens_okrs`.
 `EXC-2026-0150`…`EXC-2026-0154` (+`EXC-2026-0131`) filed on the *starved* OKRs
 (`payments-launch`, `trust-and-safety`, `data-platform`, `core-platform`), each
 `diverted_to: gcloud-migration`. `risk-ledger drift gcloud-migration` shows the
-reported footprint ($2.8M–$4.2M) versus the true footprint ($4.0M–$6.0M) — ~$1.5M
-of undeclared risk debt the migration's own ledger hides.
+reported footprint (~$2.6M) versus the true footprint (~$4.1M) — ~$1.5M of
+undeclared risk debt the migration's own ledger hides.
 
 **8. One incident → scenario mapping from the offline AI step.**
 `SCN-2026-0019` carries an `incident` block (ticket `INC-2026-0442`),
@@ -103,11 +114,14 @@ Three emerging scenarios with wide, rising, `ai`-vector intervals
 (`SCN-2026-0031/0032/0033`), held out of the appetite math. Four horizon items
 (`HZN-*`); ten KRIs breached, feeding the horizon view.
 
-**Enough green to contrast.** Three named risks read AT (green) —
-`NR-DATA-QUALITY`, `NR-MIGRATION-AVAILABILITY`, `NR-SUPPLIER-OUTAGE` — so the
-standout amber and the red breaches are not the only colours on the board. (Those
-three also keep Data integrity, Change, and Third-party from reading amber end to
-end, leaving Privacy the sole standout.)
+**Enough green to contrast (v2.3 §C, §D).** Five named risks read AT (green) —
+`NR-DATA-QUALITY`, `NR-MIGRATION-AVAILABILITY`, `NR-SUPPLIER-OUTAGE`,
+`NR-DATA-EXFIL`, and `NR-ABUSE-ESCALATION` — spread across four domains, so green
+is demonstrably achievable rather than a rigged impossibility. **Security reads
+mixed** (1 OVER / 2 AT / 4 BELOW), not a wall of amber, so Privacy is the
+conspicuous reveal and not merely the second-most-amber domain. Those AT risks
+also keep Data integrity, Change, and Third-party from reading amber end to end,
+leaving Privacy the sole standout.
 
 ## Can-kicking inputs (view 5)
 

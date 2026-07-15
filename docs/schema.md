@@ -381,14 +381,22 @@ gcloud-migration:
 Errors reject; flags keep the record but surface a diagnostic.
 
 - **Error** — enterprise anchor present with positive figures; named risk names
-  a known domain and a positive appetite; scenario names a known named risk and
-  a well-formed baseline CI per factor; issue `type` is valid; issue maps to ≥1
-  known scenario; a factor-moving issue's moved factor + accepted band are valid;
-  a finding's severity is one of low/medium/high/critical; a horizon item names
-  **both** a candidate domain and a watched KRI.
+  a known domain and a positive appetite **under enterprise capacity** (v2.1 §D1);
+  scenario names a known named risk and a well-formed baseline CI per factor;
+  issue `type` is valid; issue maps to ≥1 known scenario; a factor-moving issue's
+  moved factor + accepted band are valid; a finding's severity is one of
+  low/medium/high/critical; a horizon item names **both** a candidate domain and
+  a watched KRI. **Dominance (v2.3 §B1)** — a factor-moving issue's `with_*` band
+  must dominate its primary scenario's baseline on the moved factor (an exception
+  weakens a control, so it cannot improve the factor it degrades); a
+  non-negative-residual backstop (`GraphEngine.negative_residuals`) confirms no
+  residual band goes below zero.
 - **Flag** — a control mapping to no named risk ("why do we do this?"); a control
   with no/unknown governing policy; evidence/KRI/horizon pointing at an unknown
-  target; declared appetite above capacity; a finding with an unknown source.
+  target; declared appetite above capacity; a named-risk threshold over a quarter
+  of capacity, or the threshold sum over 3× appetite; a finding with an unknown
+  source; a **no-op** factor-moving effect materially indistinguishable from its
+  baseline (v2.3 §B2).
 
 Trust handling (uncalibrated or stale estimator, vague scope) is inherited from
 the exceptions gates and applies to factor-moving issues the same way.

@@ -80,6 +80,18 @@ def _cmd_graph(args: argparse.Namespace) -> int:
             print(f"- [{p.category.upper()} FLAG] {p.message}")
         print()
 
+    # Residual backstop (SPEC v2.3 §B1.2): loss exposure cannot be negative. If
+    # the dominance gate holds this is empty, which is why it is worth having.
+    if not errors and not graph.load_errors:
+        negative = GraphEngine(graph, cfg).negative_residuals()
+        if negative:
+            print("## Negative residual (backstop)\n")
+            for rid, band in negative:
+                hard += 1
+                print(f"- [ERROR] {rid}: residual band low is {fmt_money(band.low)} — "
+                      f"loss exposure cannot be negative")
+            print()
+
     summary = graph.cardinality_summary()
     print("## Entities\n")
     for name, count in summary["entities"].items():

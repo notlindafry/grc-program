@@ -8,9 +8,9 @@ id: SCN-2026-0002
 title: Exfiltration of regulated data via an analytics export path
 named_risk: NR-DATA-EXFIL
 baseline:
-  opportunity_frequency_90ci: [20, 70]
-  probability_of_realization_90ci: [0.008, 0.03]
-  loss_magnitude_90ci: [220000, 2100000]
+  opportunity_frequency_90ci: [24, 70]
+  probability_of_realization_90ci: [0.009, 0.032]
+  loss_magnitude_90ci: [160000, 1900000]
 impact: [financial, individual_harm, regulatory]
 vectors: [adversarial]
 lifecycle_state: managed

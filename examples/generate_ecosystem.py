@@ -529,34 +529,37 @@ SCENARIOS = [
      [8, 24], [0.007, 0.022], [400000, 1500000], ["financial", "individual_harm"],
      ["adversarial"], "managed", "stable"),
     ("SCN-2026-0002", "Exfiltration of regulated data via an analytics export path", "NR-DATA-EXFIL",
-     [20, 70], [0.008, 0.03], [220000, 2100000], ["financial", "individual_harm", "regulatory"],
+     [24, 70], [0.009, 0.032], [160000, 1900000], ["financial", "individual_harm", "regulatory"],
      ["adversarial"], "managed", "stable"),
     ("SCN-2026-0003", "Fraudulent transactions against the payments platform", "NR-PAYMENT-FRAUD",
-     [15, 45], [0.01, 0.035], [150000, 800000], ["financial", "public_market_harm"],
+     [15, 45], [0.01, 0.03], [80000, 420000], ["financial", "public_market_harm"],
      ["adversarial"], "managed", "stable"),
     ("SCN-2026-0012", "Malware on a corporate endpoint leads to lateral movement", "NR-ENDPOINT-MALWARE",
-     [30, 90], [0.008, 0.03], [90000, 420000], ["financial"],
+     [30, 90], [0.008, 0.026], [50000, 190000], ["financial"],
      ["adversarial"], "managed", "stable"),
+    # CARD-TESTING and ABUSE-ESCALATION raised at the CENTRE (LM low bound + PoR),
+    # not the upper tail, so Security reads mixed rather than a wall of amber
+    # (SPEC v2.3 §C) without inflating p95 (§E).
     ("SCN-2026-0015", "Automated card-testing lands fraudulent charges at checkout", "NR-CARD-TESTING",
-     [20, 60], [0.01, 0.035], [110000, 480000], ["financial", "individual_harm"],
+     [20, 55], [0.012, 0.033], [110000, 460000], ["financial", "individual_harm"],
      ["adversarial"], "managed", "stable"),
     ("SCN-2026-0007", "Unmitigated abuse escalating on the platform", "NR-ABUSE-ESCALATION",
-     [20, 70], [0.015, 0.05], [90000, 400000], ["individual_harm", "reputational"],
+     [24, 62], [0.018, 0.05], [170000, 1050000], ["individual_harm", "reputational"],
      ["adversarial"], "managed", "stable"),
     ("SCN-2026-0008", "Detection model misses policy-violating content at scale", "NR-ABUSE-DETECTION",
-     [20, 60], [0.01, 0.04], [90000, 380000], ["individual_harm", "public_market_harm"],
+     [20, 60], [0.01, 0.038], [60000, 240000], ["individual_harm", "public_market_harm"],
      ["adversarial"], "managed", "stable"),
     # --- TR-RESILIENCE ---
     ("SCN-2026-0013", "Customer-facing outage of a core platform service", "NR-PLATFORM-OUTAGE",
-     [34, 46], [0.017, 0.025], [1150000, 1600000], ["financial", "public_market_harm"],
+     [40, 46], [0.019, 0.024], [1300000, 1480000], ["financial", "public_market_harm"],
      [], "managed", "rising"),
     ("SCN-2026-0006", "Loss of availability of a core data platform service", "NR-DATA-AVAILABILITY",
-     [10, 35], [0.01, 0.04], [200000, 900000], ["financial"],
+     [10, 35], [0.01, 0.038], [110000, 480000], ["financial"],
      [], "managed", "stable"),
     # --- TR-DATA-INTEGRITY -- data-quality band is WIDE so it straddles its $2M
     # threshold (reads AT); the domain is therefore NOT amber end to end (§F). ---
     ("SCN-2026-0005", "Corrupted or unvalidated data feeds a downstream decision", "NR-DATA-QUALITY",
-     [12, 45], [0.02, 0.06], [200000, 2800000], ["financial", "individual_harm"],
+     [12, 45], [0.017, 0.058], [140000, 1950000], ["financial", "individual_harm"],
      [], "managed", "stable"),
     ("SCN-2026-0016", "Schema-invalid writes corrupt a downstream pipeline decision", "NR-PIPELINE-INTEGRITY",
      [6, 18], [0.01, 0.035], [100000, 400000], ["financial"],
@@ -581,7 +584,7 @@ SCENARIOS = [
     # --- TR-CHANGE -- migration-availability band is WIDE (straddles $2M -> AT),
     # so Change is not amber end to end (§F). ---
     ("SCN-2026-0009", "Availability regression introduced by the migration", "NR-MIGRATION-AVAILABILITY",
-     [12, 42], [0.02, 0.06], [200000, 2600000], ["financial"],
+     [12, 42], [0.018, 0.058], [160000, 2250000], ["financial"],
      [], "managed", "rising"),
     ("SCN-2026-0010", "Data integrity loss during monolith-to-microservices cutover", "NR-MIGRATION-DATAINTEGRITY",
      [5, 16], [0.01, 0.035], [150000, 650000], ["financial", "individual_harm"],
@@ -593,12 +596,12 @@ SCENARIOS = [
     # SUPPLIER band is WIDE (straddles $2M -> AT), so Third-party is not amber
     # end to end (§F).
     ("SCN-2026-0020", "A critical supplier outage cascades into our service", "NR-SUPPLIER-OUTAGE",
-     [8, 26], [0.025, 0.075], [250000, 3400000], ["financial"],
+     [8, 26], [0.022, 0.07], [160000, 2500000], ["financial"],
      ["third_party"], "managed", "stable"),
     # --- TR-COMPLIANCE -- PCI raised so it reads OVER its $1M low tolerance (an
     # orphan: no funded remediation addresses it, §E story 3). ---
     ("SCN-2026-0004", "Cardholder data handling gap expands PCI scope", "NR-PCI-SCOPE",
-     [8, 15], [0.045, 0.08], [1200000, 2500000], ["financial", "regulatory"],
+     [9, 13], [0.05, 0.075], [1250000, 1950000], ["financial", "regulatory"],
      [], "managed", "rising"),
     ("SCN-2026-0017", "Missed quarterly regulatory filing triggers a penalty", "NR-REG-FILINGS",
      [2, 6], [0.03, 0.1], [150000, 700000], ["regulatory", "financial"],
@@ -738,15 +741,15 @@ def build_exceptions():
     # residual/baseline multiplier runs above ~5x (SPEC v2.1 §F check 7); the named
     # risk still sums OVER appetite.
     accum = [
-        ("EXC-2026-0101", "Skip MFA on internal analytics console for cutover", "A.8.5", [0.015, 0.033], "SCN-2026-0001"),
-        ("EXC-2026-0102", "Relax session timeout on legacy admin portal", "A.8.5", [0.014, 0.031], "SCN-2026-0001"),
-        ("EXC-2026-0103", "Defer MFA rollout on internal wiki", "A.8.5", [0.013, 0.029], "SCN-2026-0001"),
-        ("EXC-2026-0104", "Allow shared break-glass account on legacy jobs runner", "A.8.2", [0.015, 0.033], "SCN-2026-0001"),
-        ("EXC-2026-0105", "Keep password-only auth on legacy build server", "A.8.5", [0.014, 0.031], "SCN-2026-0001"),
-        ("EXC-2026-0106", "Defer MFA on internal feature-flag console", "A.8.5", [0.013, 0.028], "SCN-2026-0001"),
-        ("EXC-2026-0107", "Allow legacy API keys on internal data browser", "A.5.17", [0.014, 0.032], "SCN-2026-0019"),
-        ("EXC-2026-0108", "Skip MFA on legacy reporting console", "A.8.5", [0.014, 0.031], "SCN-2026-0019"),
-        ("EXC-2026-0109", "Defer privileged-access review on migrated workloads", "A.8.2", [0.013, 0.029], "SCN-2026-0019"),
+        ("EXC-2026-0101", "Skip MFA on internal analytics console for cutover", "A.8.5", [0.016, 0.034], "SCN-2026-0001"),
+        ("EXC-2026-0102", "Relax session timeout on legacy admin portal", "A.8.5", [0.015, 0.032], "SCN-2026-0001"),
+        ("EXC-2026-0103", "Defer MFA rollout on internal wiki", "A.8.5", [0.014, 0.030], "SCN-2026-0001"),
+        ("EXC-2026-0104", "Allow shared break-glass account on legacy jobs runner", "A.8.2", [0.016, 0.034], "SCN-2026-0001"),
+        ("EXC-2026-0105", "Keep password-only auth on legacy build server", "A.8.5", [0.015, 0.032], "SCN-2026-0001"),
+        ("EXC-2026-0106", "Defer MFA on internal feature-flag console", "A.8.5", [0.014, 0.030], "SCN-2026-0001"),
+        ("EXC-2026-0107", "Allow legacy API keys on internal data browser", "A.5.17", [0.015, 0.033], "SCN-2026-0019"),
+        ("EXC-2026-0108", "Skip MFA on legacy reporting console", "A.8.5", [0.015, 0.032], "SCN-2026-0019"),
+        ("EXC-2026-0109", "Defer privileged-access review on migrated workloads", "A.8.2", [0.014, 0.030], "SCN-2026-0019"),
     ]
     dates = ["2026-01-14", "2026-02-06", "2026-02-22", "2026-03-08", "2026-03-20",
              "2026-05-08", "2026-05-14", "2026-05-21", "2026-05-27"]
@@ -763,22 +766,26 @@ def build_exceptions():
     out.append(_exc(
         "EXC-2026-0130", "Run core services single-region to cut infrastructure cost",
         "platform-lead@company.com", "SCN-2026-0013", "A.8.14",
-        "probability_of_realization", [0.05, 0.07], "j.okafor@company.com",
+        "probability_of_realization", [0.0345, 0.0425], "j.okafor@company.com",
         filed_on="2026-04-20", okr="gcloud-migration", reason="cost",
         mechanism="deploy_multi_region_active_active", target_date="2026-12-01",
         expires_on="2026-12-01"))
     out.append(_exc(
         "EXC-2026-0131", "Skip quarterly platform DR test to free the team for migration",
         "platform-lead@company.com", "SCN-2026-0013", "A.5.30",
-        "probability_of_realization", [0.018, 0.038], "p.nguyen@company.com",
+        "probability_of_realization", [0.025, 0.037], "p.nguyen@company.com",
         filed_on="2026-05-20", okr="core-platform", reason="resource_reallocation",
         diverted_to="gcloud-migration", mechanism="resume_quarterly_dr_tests",
         target_date="2026-09-30", expires_on="2026-09-30", renewals=3))
 
     # --- DLP cluster on NR-DATA-EXFIL (SCN-0002): moderate LM moves (~2-3x). ---
+    # Both DLP effects must DOMINATE the SCN-0002 baseline LM [220k, 2100k] on
+    # loss_magnitude (SPEC v2.3 §B3): disabling/sampling-down DLP can only raise
+    # the magnitude of an exfiltration. 0140 (fully disabled) is the more severe.
+    # Authored as plausible, dominating, modest effects -- not simply widened.
     dlp = [
-        ("EXC-2026-0140", "DLP disabled on the analytics export path", [450000, 1600000], "cost"),
-        ("EXC-2026-0141", "DLP sampling reduced on warehouse export job", [300000, 1000000], "technical_constraint"),
+        ("EXC-2026-0140", "DLP disabled on the analytics export path", [400000, 2200000], "cost"),
+        ("EXC-2026-0141", "DLP sampling reduced on warehouse export job", [300000, 2000000], "technical_constraint"),
     ]
     for i, (eid, title, ci, reason) in enumerate(dlp):
         out.append(_exc(
@@ -831,7 +838,7 @@ def build_exceptions():
          [0.02, 0.055], "a.silva@company.com", "trust-and-safety", "timeline", 0, None, True),  # non-plan
         ("EXC-2026-0164", "Accept legacy TLS on an internal supplier gateway",
          "it-lead@company.com", "SCN-2026-0020", "A.8.24", "probability_of_realization",
-         [0.025, 0.07], "m.haddad@company.com", "internal-tools", "technical_constraint", 3, None, False),
+         [0.03, 0.09], "m.haddad@company.com", "internal-tools", "technical_constraint", 3, None, False),
         ("EXC-2026-0165", "Deferred residency tagging on a new export connector",
          "data-platform-lead@company.com", "SCN-2026-0014", "A.8.11", "probability_of_realization",
          [0.04, 0.10], "r.chen@company.com", "data-platform", "timeline", 0, None, False),

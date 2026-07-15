@@ -434,6 +434,21 @@ class GraphEngine:
             p_over_capacity=_p_exceed(samples, capacity) if capacity else 0.0,
         )
 
+    def negative_residuals(self) -> list[tuple[str, Band]]:
+        """Scenarios or named risks whose residual band low bound is negative --
+        loss exposure cannot be negative (SPEC v2.3 §B1.2). A backstop: if the
+        dominance gate holds, this returns nothing, which is exactly why it is
+        worth having. Computed here because it needs the residual bands."""
+        out: list[tuple[str, Band]] = []
+        for sid, res in self._scn_residual.items():
+            if res.band.low < 0:
+                out.append((sid, res.band))
+        for nid in self.graph.named_risks:
+            r = self.named_risk_residual(nid)
+            if r is not None and r.band.low < 0:
+                out.append((nid, r.band))
+        return out
+
     def scenarios_over_capacity(self) -> list[ScenarioResidual]:
         """Managed scenarios whose residual band high crosses the enterprise
         capacity/materiality line (SPEC v2.1 §D1). A single scenario capable of
