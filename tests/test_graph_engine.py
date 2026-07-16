@@ -81,6 +81,28 @@ def test_rag_green_requires_controlled_uncertainty():
     assert rag_band(mean=8.5, threshold=10, p_exceed=0.35, floor=0.75, p_red=0.33) == RAG_OVER
 
 
+def test_mean_past_appetite_is_over_regardless_of_breach_probability():
+    # SPEC v2.6 §1, gate 0 (the ceiling the v2.5 rule was missing): a fat-tailed
+    # risk (median << mean) can carry expected loss past appetite with only a
+    # modest breach probability. Position is the breach -- expected loss at or
+    # past the line is over, full stop.
+    assert rag_band(1.50e6, 1.0e6, 0.20) == RAG_OVER
+    assert rag_band(1.02e6, 1.0e6, 0.15) == RAG_OVER
+
+
+def test_probable_breach_is_over_even_when_mean_is_under():
+    # SPEC v2.6 §1: gate 1 is independent of gate 0 -- a wide-banded risk under
+    # the line in expectation but with a probable breach is still red.
+    assert rag_band(0.80e6, 1.0e6, 0.40) == RAG_OVER
+
+
+def test_green_requires_both_position_and_controlled_uncertainty():
+    # SPEC v2.6 §1: green survives all three gates -- under the line, breach
+    # improbable, and using the declared tolerance.
+    assert rag_band(0.80e6, 1.0e6, 0.15) == RAG_AT
+    assert rag_band(0.40e6, 1.0e6, 0.05) == RAG_BELOW   # unused tolerance
+
+
 # ---------------------------------------------------------------------------
 # Minimal hand-built graphs
 # ---------------------------------------------------------------------------

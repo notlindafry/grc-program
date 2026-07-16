@@ -269,16 +269,18 @@ summary states a single position and a single probability — *"over the $10M
 appetite; roughly a 14% chance of crossing the $15M materiality line this
 year"* — rather than a mean-based "within" that argues with a band that crosses.
 
-## The appetite RAG rule (two gates)
+## The appetite RAG rule (three gates)
 
-The dashboard colours each risk against its authored appetite with **two gates,
-evaluated in order** (`rag_band`). The governing principle is that **colour is
-position and probability is tail, and one never decides the other** — the same
-separation the portfolio already uses (one stance plus one probability), applied
-at the risk level.
+The dashboard colours each risk against its authored appetite with **three gates,
+evaluated in order** (`rag_band`, SPEC v2.6). The governing principle is that
+**colour is position and probability is tail, and one never decides the other** —
+the same separation the portfolio already uses (one stance plus one probability),
+applied at the risk level.
 
 ```python
 def rag_band(mean, threshold, p_exceed, *, floor=0.75, p_red=0.33):
+    if mean >= threshold:            # gate 0 (position, ceiling)
+        return RAG_OVER
     if p_exceed >= p_red:            # gate 1 (danger)
         return RAG_OVER
     if mean >= floor * threshold:    # gate 2 (efficiency)
@@ -286,12 +288,24 @@ def rag_band(mean, threshold, p_exceed, *, floor=0.75, p_red=0.33):
     return RAG_BELOW
 ```
 
-- **Gate 1 — danger.** `P(loss > appetite) ≥ p_red` reads **red**, and it fires
-  first, regardless of where the mean sits. A risk with a one-in-three chance of
-  breaching is the actionable fact even when its average looks comfortable.
-- **Gate 2 — efficiency.** Among risks unlikely to breach, `mean ≥ floor ×
-  appetite` reads **green** (using the tolerance you declared), else **amber**
-  (unused tolerance: over-controlled, or an appetite set too high).
+- **Gate 0 — position (the ceiling).** `mean ≥ appetite` reads **red**, full
+  stop. This is not a probability question: appetite is a statement about
+  *expected annual loss*, so an expected loss at or past the line **is** the
+  breach. Without it green would be unbounded above — a heavily right-skewed risk
+  (median far below mean) could carry expected loss past appetite while its breach
+  probability stays modest, and fall straight through to green.
+- **Gate 1 — danger.** `P(loss > appetite) ≥ p_red` reads **red**, regardless of
+  where the mean sits. A risk with a one-in-three chance of breaching is the
+  actionable fact even when its average looks comfortable.
+- **Gate 2 — efficiency.** Among risks under the line and unlikely to breach,
+  `mean ≥ floor × appetite` reads **green** (using the tolerance you declared),
+  else **amber** (unused tolerance: over-controlled, or an appetite set too high).
+
+**Gates 0 and 1 are independent; neither subsumes the other.** A fat-tailed risk
+can exceed appetite *in expectation* with only a modest breach probability (gate 0
+catches it); a wide-banded risk can sit under appetite in expectation but breach
+*probably* (gate 1 catches it). Different failures, both red — which is why both
+gates exist rather than one.
 
 **`floor = 0.75`.** Reachable — a floor at 0.90 would demand steering exposure to
 within a tenth of target, which no real programme does, and green would look

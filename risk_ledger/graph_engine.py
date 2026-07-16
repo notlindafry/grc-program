@@ -79,22 +79,35 @@ def rag_band(
     floor: float = DEFAULT_GREEN_FLOOR,
     p_red: float = DEFAULT_P_RED,
 ) -> str:
-    """Appetite RAG (SPEC v2.5 §2). Two gates, evaluated in order; danger first.
+    """Appetite RAG (SPEC v2.6 §1). Three gates, evaluated in order.
 
-    * Gate 1 (danger)     -- ``p_exceed >= p_red`` -> ``over`` (red). A reasonably
-      probable breach is the actionable fact regardless of where the mean sits.
-    * Gate 2 (efficiency) -- among risks unlikely to breach, ``mean >= floor ×
-      threshold`` -> ``at`` (green, using the declared tolerance), else ``below``
-      (amber, unused tolerance).
+    * Gate 0 (position, ceiling) -- ``mean >= threshold`` -> ``over`` (red).
+      Expected loss at or past declared tolerance IS the breach, full stop: this
+      is not a probability question, because appetite is a statement about
+      expected annual loss.
+    * Gate 1 (danger)            -- ``p_exceed >= p_red`` -> ``over`` (red). A
+      reasonably probable breach is the actionable fact regardless of the mean.
+    * Gate 2 (efficiency)        -- among risks unlikely to breach and under the
+      line, ``mean >= floor × threshold`` -> ``at`` (green, using the declared
+      tolerance), else ``below`` (amber, unused tolerance).
+
+    Gates 0 and 1 are independent and neither subsumes the other. A fat-tailed
+    risk (median << mean) can exceed appetite in expectation while its breach
+    probability stays modest; a wide-banded risk can sit under appetite in
+    expectation with a probable breach. Different failures; both are red. (This
+    reasoning is the thing most likely to be "simplified" away by a later reader,
+    which is exactly why it lives here.)
 
     Colour is position, probability is tail, and one never decides the other:
     green is bounded BELOW by the mean floor ("are you using it?") and ABOVE by
-    the breach probability ("are you about to blow through it?"). The old straddle
-    branch — a wide right tail turning a low-mean risk green — is gone (SPEC v2.5
-    §1). Green now also requires controlled uncertainty: a mean at 85% with bands
-    wide enough to push p_exceed past p_red reads red, which is emergent, not
-    bolted on.
+    both the appetite line and the breach probability ("are you about to blow
+    through it?"). The old straddle branch — a wide right tail turning a low-mean
+    risk green — is gone (SPEC v2.5 §1). Green also requires controlled
+    uncertainty: a mean at 85% with bands wide enough to push p_exceed past p_red
+    reads red, which is emergent, not bolted on.
     """
+    if mean >= threshold:            # gate 0: position ceiling — a mean past the line IS the breach
+        return RAG_OVER
     if p_exceed >= p_red:            # gate 1: reasonably probable breach
         return RAG_OVER
     if mean >= floor * threshold:    # gate 2: using declared tolerance
