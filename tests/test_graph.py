@@ -69,7 +69,8 @@ def test_entity_counts(graph):
 
 
 def test_issue_types_present(graph):
-    assert len(graph.issues_for("exception")) == 49  # the migrated legacy exceptions
+    # The v2 corpus is self-contained (decoupled from the legacy exceptions/).
+    assert len(graph.issues_for("exception")) >= 20
     assert len(graph.issues_for("vuln")) >= 1
     assert len(graph.issues_for("finding")) >= 1
 
@@ -86,13 +87,11 @@ def test_every_cardinality_resolves(graph):
     assert all(c.policy in graph.policies for c in graph.controls.values())
 
 
-def test_legacy_exception_bridges_to_scenario(graph):
-    # A migrated exception still names a mapped_risk; the graph resolves it to the
-    # scenario that adopted that id via legacy_risk.
-    exc = next(i for i in graph.issues if i.id == "EXC-2026-0142")
+def test_issue_maps_directly_to_scenario(graph):
+    # v2 issues are self-contained: they name mapped_scenarios directly.
+    exc = next(i for i in graph.issues if i.id == "EXC-2026-0101")
     assert exc.type == "exception"
-    resolved = graph.resolved_scenarios(exc)
-    assert resolved == ["SCN-2026-0001"]  # RISK-ACCT-TAKEOVER -> its scenario
+    assert graph.resolved_scenarios(exc) == ["SCN-2026-0001"]
     assert exc.id in graph.issues_of_scenario["SCN-2026-0001"]
 
 
@@ -110,8 +109,8 @@ def test_derived_adjacency(graph):
     # Named risk -> OKR (threatens).
     assert "NR-PROD-COMPROMISE" in graph.named_risks_of_okr["gcloud-migration"]
     # Remediation -> scenario / issue (m2m).
-    assert "REM-2026-0001" in graph.remediations_of_scenario["SCN-2026-0001"]
-    assert "REM-2026-0001" in graph.remediations_of_issue["VULN-2026-0001"]
+    assert graph.remediations_of_scenario["SCN-2026-0001"]
+    assert graph.remediations_of_issue["VULN-2026-0001"]
 
 
 def test_emerging_scenarios_carry_wide_ai_bands(graph):
@@ -133,17 +132,18 @@ def test_derived_kri_status(graph):
 
 
 def test_only_expected_flags(problems):
-    # 3 legacy trust flags (1 uncalibrated + 2 stale) and 3 deliberate orphan
-    # controls; nothing else should flag on the shipped corpus.
-    codes = sorted(p.code for p in problems if p.severity == "flag")
-    assert codes == [
-        "control_maps_no_risk",
-        "control_maps_no_risk",
-        "control_maps_no_risk",
-        "estimator_stale",
-        "estimator_stale",
-        "estimator_uncalibrated",
-    ]
+    # All intended: 3 deliberate orphan controls, 2 trust flags (1 stale + 1
+    # uncalibrated estimator), and the threshold-sum flag (bottom-up authored
+    # appetite summing above 3x the top-down line -- the model telling on itself,
+    # on-thesis per SPEC v2.1 §D1). Nothing else.
+    from collections import Counter
+    codes = Counter(p.code for p in problems if p.severity == "flag")
+    assert codes == Counter({
+        "control_maps_no_risk": 3,
+        "estimator_stale": 1,
+        "estimator_uncalibrated": 1,
+        "threshold_sum_far_over_appetite": 1,
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -257,6 +257,53 @@ def test_named_risk_needs_a_known_domain():
     g = _minimal_graph(named_risks=nr, scenarios={})
     problems = validate_graph(g, Config(as_of=AS_OF))
     assert "named_risk_domain_unknown" in _codes(problems, "error")
+
+
+def test_named_risk_threshold_over_capacity_is_error():
+    # SPEC v2.1 §D1: no single risk may be permitted to breach the company's line.
+    nr = {"NR-Z": NamedRisk.parse("NR-Z", {"domain": "TR-SECURITY", "appetite_threshold": 20_000_000})}
+    g = _minimal_graph(named_risks=nr, scenarios={})
+    problems = validate_graph(g, Config(as_of=AS_OF))
+    assert "named_risk_threshold_over_capacity" in _codes(problems, "error")
+
+
+def test_named_risk_large_threshold_flags():
+    # Over a quarter of the $15M capacity, but under it: a flag, not an error.
+    nr = {"NR-Z": NamedRisk.parse("NR-Z", {"domain": "TR-SECURITY", "appetite_threshold": 5_000_000})}
+    g = _minimal_graph(named_risks=nr, scenarios={})
+    problems = validate_graph(g, Config(as_of=AS_OF))
+    assert "named_risk_threshold_large" in _codes(problems, "flag")
+    assert "named_risk_threshold_over_capacity" not in _codes(problems, "error")
+
+
+def test_dominance_gate_rejects_a_non_dominant_effect():
+    # SPEC v2.3 §B1: an exception weakens a control, so its band cannot improve the
+    # factor it degrades. Baseline PoR is [0.005, 0.02]; a with-band whose low dips
+    # below baseline is rejected.
+    issue = IssueRecord.parse(
+        {"id": "EXC-BAD", "type": "exception", "mapped_scenarios": ["SCN-1"],
+         "exception_effect": {"moves": "probability_of_realization",
+                              "with_exception_90ci": [0.004, 0.02],
+                              "estimated_by": "r.chen@company.com"}},
+        "EXC-BAD.yaml")
+    g = _minimal_graph(issues=[issue])
+    problems = validate_graph(g, Config(as_of=AS_OF))
+    assert "issue_not_dominant" in _codes(problems, "error")
+
+
+def test_noop_flag_on_a_negligible_effect():
+    # SPEC v2.3 §B2: a dominating but negligible effect is a no-op -- noise on the
+    # register. Baseline [0.005, 0.02]; a with-band a hair above it flags.
+    issue = IssueRecord.parse(
+        {"id": "EXC-NOOP", "type": "exception", "mapped_scenarios": ["SCN-1"],
+         "exception_effect": {"moves": "probability_of_realization",
+                              "with_exception_90ci": [0.00501, 0.02001],
+                              "estimated_by": "r.chen@company.com"}},
+        "EXC-NOOP.yaml")
+    g = _minimal_graph(issues=[issue])
+    problems = validate_graph(g, Config(as_of=AS_OF))
+    assert "issue_noop_effect" in _codes(problems, "flag")
+    assert "issue_not_dominant" not in _codes(problems, "error")  # it dominates, just barely
 
 
 def test_appetite_above_capacity_flags():

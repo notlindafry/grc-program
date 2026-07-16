@@ -1,0 +1,10 @@
+id: REM-2026-0119
+title: Restore fraud-review staffing off-peak
+type: restore
+status: proposed
+target_date: 2026-06-01
+owner: platform-lead@company.com
+operational_owner: payments-oncall@company.com
+mechanism: restore_fraud-review_staffing_off-peak
+restores_control: A.8.16
+addresses_scenarios: [SCN-2026-0015]

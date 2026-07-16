@@ -1,0 +1,28 @@
+id: EXC-2026-0152
+type: exception
+title: Delayed detection-model retrain -- ML team pulled to migration
+owner: tns-lead@company.com
+filed_on: 2026-05-18
+status: active
+mapped_scenarios: [SCN-2026-0008]
+control: [A.8.16]
+okr: trust-and-safety
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.02, 0.06]
+  estimated_by: p.nguyen@company.com
+  estimated_on: 2026-05-18
+reason: resource_reallocation
+reason_detail:
+  diverted_to: gcloud-migration
+scope:
+  type: enumerated
+  assets: [scn-2026-0008]
+remediation:
+  target_date: 2026-09-01
+  mechanism: retrain_detection_model
+  reduces: probability_of_realization
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

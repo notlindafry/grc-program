@@ -18,7 +18,8 @@ on:
     paths:
       - "data/**"
       - "risk_ledger/**"
-      - "examples/generate_corpus.py"
+      - "examples/generate_ecosystem.py"
+      - "docs/dashboard.html"
       - ".github/workflows/deploy-report.yml"
   workflow_dispatch:
 
@@ -39,14 +40,20 @@ jobs:
       - name: Install dependencies
         run: pip install pyyaml
 
-      - name: Regenerate the sample report
-        run: python examples/generate_corpus.py
+      - name: Regenerate the corpus (validates it builds)
+        run: python examples/generate_ecosystem.py
 
       - name: Assemble static site
         run: |
           mkdir -p public
-          cp docs/example-report.html public/index.html
-          # The report is served on a public URL -- keep crawlers out entirely.
+          # The Day-4 dashboard renders to docs/dashboard.html. Until it lands,
+          # deploy a minimal placeholder so the URL never serves a stale report.
+          if [ -f docs/dashboard.html ]; then
+            cp docs/dashboard.html public/index.html
+          else
+            printf '<!doctype html><meta name="robots" content="noindex"><title>GRC report</title><p>Dashboard building.</p>' > public/index.html
+          fi
+          # The page is served on a public URL -- keep crawlers out entirely.
           printf 'User-agent: *\nDisallow: /\n' > public/robots.txt
 
       - name: Deploy to Vercel

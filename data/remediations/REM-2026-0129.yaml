@@ -1,0 +1,9 @@
+id: REM-2026-0129
+title: Endpoint EDR tuning wave 2
+type: restore
+status: proposed
+target_date: 2026-05-15
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: endpoint_edr_tuning_wave_2
+addresses_scenarios: [SCN-2026-0012]

@@ -1,0 +1,26 @@
+id: EXC-2026-0162
+type: exception
+title: Temporary vendor access for analytics SDK
+owner: mobile-lead@company.com
+filed_on: 2024-11-18
+status: active
+mapped_scenarios: [SCN-2026-0011]
+control: [A.5.19]
+okr: mobile-app
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.01, 0.03]
+  estimated_by: p.nguyen@company.com
+  estimated_on: 2024-11-18
+reason: cost
+scope:
+  type: enumerated
+  assets: [scn-2026-0011]
+remediation:
+  target_date: 2026-09-01
+  mechanism: remediate_gap
+  reduces: probability_of_realization
+expires_on: 2026-09-01
+renewals:
+  count: 5
+  justification_changed_last: null

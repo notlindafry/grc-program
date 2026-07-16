@@ -1,0 +1,26 @@
+id: EXC-2026-0105
+type: exception
+title: Keep password-only auth on legacy build server
+owner: platform-lead@company.com
+filed_on: 2026-03-20
+status: active
+mapped_scenarios: [SCN-2026-0001]
+control: [A.8.5]
+okr: gcloud-migration
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.015, 0.032]
+  estimated_by: m.haddad@company.com
+  estimated_on: 2026-03-20
+reason: timeline
+scope:
+  type: enumerated
+  assets: [scn-2026-0001]
+remediation:
+  target_date: 2026-09-01
+  mechanism: enforce_sso_via_idp
+  reduces: probability_of_realization
+expires_on: 2026-09-01
+renewals:
+  count: 4
+  justification_changed_last: null

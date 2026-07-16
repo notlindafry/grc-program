@@ -1,0 +1,10 @@
+id: REM-2026-0112
+title: Complete network segmentation for PCI
+type: restore
+status: proposed
+target_date: 2026-05-20
+owner: platform-lead@company.com
+operational_owner: payments-oncall@company.com
+mechanism: complete_network_segmentation_for_pci
+restores_control: A.8.22
+addresses_scenarios: [SCN-2026-0004]

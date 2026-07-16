@@ -1,0 +1,9 @@
+id: REM-2026-0123
+title: Legacy API-key decommission
+type: restore
+status: proposed
+target_date: 2026-04-20
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: legacy_api-key_decommission
+addresses_scenarios: [SCN-2026-0001]

@@ -1,0 +1,10 @@
+id: REM-2026-0115
+title: Enforce TLS 1.3 on the supplier gateway
+type: restore
+status: funded
+target_date: 2026-09-05
+owner: platform-lead@company.com
+operational_owner: it-oncall@company.com
+mechanism: enforce_tls_1.3_on_the_supplier_gateway
+restores_control: A.8.24
+addresses_scenarios: [SCN-2026-0020]

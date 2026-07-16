@@ -1,0 +1,10 @@
+id: REM-2026-0110
+title: Retrain the abuse-detection model
+type: restore
+status: proposed
+target_date: 2026-05-01
+owner: platform-lead@company.com
+operational_owner: tns-oncall@company.com
+mechanism: retrain_the_abuse-detection_model
+restores_control: A.8.16
+addresses_scenarios: [SCN-2026-0008]

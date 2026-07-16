@@ -58,7 +58,7 @@ appetite reads green), configurable via `green_band_floor` on `enterprise.yaml`.
 Consequence: the "within appetite" set is mostly amber *possibly over-controlling*
 signals, not a green all-clear.
 
-### Capacity vs appetite
+### Capacity vs appetite, read as exceedance
 
 Two enterprise lines (spec §4):
 
@@ -67,12 +67,24 @@ Two enterprise lines (spec §4):
 - **Capacity** = `capacity_materiality` — the hard audit line the company cannot
   cross by choice.
 
-Named-risk thresholds are bottom-up; the enterprise lines are top-down
-constraints the rolled-up aggregate must satisfy. **When the bottom-up aggregate
-exceeds declared appetite, that is itself the signal** (`portfolio().over_appetite`)
-— it forces remediation or an explicit, board-signed appetite increase. Domains
-are monitored rollups with **no hard per-domain ceiling** (a per-domain budget is
-where a model like this drifts into arbitrary allocation).
+Named-risk appetites are **authored bottom-up** (v2.2 §D); the enterprise lines
+are top-down constraints the rolled-up aggregate must satisfy. **When the
+bottom-up aggregate exceeds declared appetite, that is itself the signal**
+(`portfolio().over_appetite`). Domains are monitored rollups with **no hard
+per-domain ceiling** (a per-domain budget is where a model like this drifts into
+arbitrary allocation).
+
+For a **hard line, the tail is the question, not the mean** (v2.2 §E). A band
+whose upper bound grazes capacity can still cross it a meaningful fraction of the
+time, and that gap between the visual and the probability is the reason to
+compute the number. `PortfolioResult` carries `p_over_appetite` and
+`p_over_capacity` — the share of simulated trials crossing each line, from the
+same portfolio samples (no new path into residual) — and `NamedRiskResidual`
+carries `p_over_threshold` for drill-down. The dashboard states **one position
+and one probability**: *"Residual $10.8M–$17.5M against a $10M appetite: over.
+Roughly a 20% chance of crossing the $15M materiality line this year"* — never
+"mean within, upper bound crosses", which are two statements that argue with each
+other.
 
 ## 4. Emerging, surfaced separately
 
@@ -114,12 +126,34 @@ on a risk (`kri_signals_for_named_risk`) and the breached set as triggers
 (`breached_kris`) — it does not auto-re-estimate (that would rewrite the record);
 the seam for live ingestion is the KRI record shape (spec §8).
 
-## What is next (Day 3 / Day 4)
+## Threshold invariants and domain rollups (v2.1 §D1, §D2)
 
-- **Day 3 — Corpus.** Tune the synthetic magnitudes so the ten spec §5 stories
-  land cleanly (domain over from a single large risk vs. from accumulation; the
-  orphan risks; the `diverted_to` starvation chain; the offline AI
-  incident→scenario step producing a stored mapping). The engine mechanics here
-  are final; only the data calibration remains.
-- **Day 4 — Dashboard.** The brand HTML/CSS shell and the six views plus the
-  portfolio summary, built on these engine outputs with baked SVG charts.
+- **Threshold-vs-capacity invariants** (`validation.py`): a named-risk threshold
+  above enterprise capacity is a hard **error**; above a quarter of capacity, or
+  a threshold sum above 3× the declared appetite, is a **flag** ("the model
+  telling on itself"). A managed scenario whose residual band high crosses
+  capacity is surfaced by `scenarios_over_capacity()` (engine-side, since it
+  needs the residual).
+- **Domain RAG counts** (`DomainRollup.rag_counts`, `amber_end_to_end`): a rollup
+  of constituent named-risk RAG states — not a per-domain dollar ceiling, so §4
+  still holds — making "this domain is amber end to end" a checkable statement.
+
+## Ported views (v2.2 §C)
+
+The legacy v1 engine/report were retired; two capabilities were ported onto the
+graph because they drive dashboard views the engine did not already cover
+(`graph_views.py`, exposed as `risk-ledger drift` / `risk-ledger renewals`):
+
+- **Drift** — the per-OKR two-ledger read: an OKR's *reported* footprint (the
+  exceptions filed on it) versus its *true* footprint once the `diverted_to`
+  reallocation from other OKRs is counted. Reuses the engine's per-issue
+  contribution samples; the gap is undeclared risk debt.
+- **Renewals / can-kicking** — "temporary forever" exceptions renewed past the
+  alert count without their justification revisited, plus remediations whose
+  target date has already slipped.
+
+## What is next (Day 4)
+
+The dashboard: the brand HTML/CSS shell and the six views plus the portfolio
+summary — carrying the one-position/one-probability read and the drift wiring —
+built on these engine outputs with baked SVG charts.

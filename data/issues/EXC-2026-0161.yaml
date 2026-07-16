@@ -1,0 +1,26 @@
+id: EXC-2026-0161
+type: exception
+title: Defer endpoint EDR upgrade on team laptops
+owner: it-lead@company.com
+filed_on: 2026-04-14
+status: active
+mapped_scenarios: [SCN-2026-0012]
+control: [A.8.7]
+okr: internal-tools
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.012, 0.035]
+  estimated_by: t.brooks@company.com
+  estimated_on: 2026-04-14
+reason: cost
+scope:
+  type: enumerated
+  assets: [scn-2026-0012]
+remediation:
+  target_date: 2026-09-01
+  mechanism: remediate_gap
+  reduces: probability_of_realization
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

@@ -1,0 +1,10 @@
+id: REM-2026-0111
+title: Refresh the abuse-escalation playbook
+type: restore
+status: in_progress
+target_date: 2026-04-15
+owner: platform-lead@company.com
+operational_owner: tns-oncall@company.com
+mechanism: refresh_the_abuse-escalation_playbook
+restores_control: A.8.16
+addresses_scenarios: [SCN-2026-0007]

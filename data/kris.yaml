@@ -1,10 +1,7 @@
-# Key risk indicators (SPEC §2.9, thin -- like evidence). A KRI INFORMS
-# re-estimation of an existing scenario/named-risk factor (never an additive
-# term, SPEC §4) and triggers emerging-risk changes. status (ok | amber |
-# breached) is DERIVED from current_value vs threshold; `direction: under` means
-# a breach is a value at/below threshold (e.g. patch-SLA coverage). On the
-# dashboard a KRI is a light signal on a risk, not its own view. The record shape
-# is the seam for later live-metric ingestion (SPEC §8). All synthetic.
+# Key risk indicators (SPEC §2.9, thin). A KRI INFORMS re-estimation of a factor
+# (never an additive term, SPEC §4) and triggers emerging-risk changes. status
+# (ok | amber | breached) is DERIVED from current_value vs threshold; direction
+# `under` means a breach is a value at/below threshold. All synthetic.
 
 
 KRI-MODEL-CONCENTRATION:

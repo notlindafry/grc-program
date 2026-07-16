@@ -1,7 +1,6 @@
-# OKRs the exceptions attach to. An OKR is an Objective plus Key Results. The
-# drift view's headline names the objective and displays the key results as the
-# commitments the exception footprint is eroding. period_end lets the trajectory
-# analysis measure the run-up to a real deadline.
+# OKRs the named risks threaten and the exceptions attach to (SPEC §2.12).
+# Expanded to a launch/rebuild portfolio so the "risk riding on your launches"
+# view has a real set to draw from (SPEC v2.1 §D6). All synthetic.
 
 gcloud-migration:
   title: gcloud-migration
@@ -11,7 +10,6 @@ gcloud-migration:
     - maintain 99.9% availability through and after cutover
     - zero critical security findings at cutover
   period_end: 2026-06-30
-
 payments-launch:
   title: payments-launch
   objective: launch the new payments platform to general availability
@@ -19,7 +17,6 @@ payments-launch:
     - pass the external PCI assessment before launch
     - fraud loss rate under target at GA
   period_end: 2026-07-31
-
 data-platform:
   title: data-platform
   objective: a governed, reliable central data platform
@@ -27,7 +24,6 @@ data-platform:
     - DLP enforced on every export path
     - 99.9% pipeline availability
   period_end: 2026-09-30
-
 trust-and-safety:
   title: trust-and-safety
   objective: keep abuse and policy-violating content off the platform
@@ -35,7 +31,6 @@ trust-and-safety:
     - abuse-escalation SLA met
     - detection-model recall above target
   period_end: 2026-09-30
-
 mobile-app:
   title: mobile-app
   objective: ship the redesigned mobile application
@@ -43,7 +38,6 @@ mobile-app:
     - redesigned app in general availability
     - crash-free sessions above target
   period_end: 2026-08-31
-
 internal-tools:
   title: internal-tools
   objective: modernize internal developer and operations tooling
@@ -51,7 +45,6 @@ internal-tools:
     - legacy toolchain decommissioned
     - TLS 1.3 enforced across internal tools
   period_end: 2026-10-31
-
 core-platform:
   title: core-platform
   objective: keep the core platform reliable and available
@@ -59,8 +52,62 @@ core-platform:
     - 99.9% availability across core services
     - quarterly DR test passing
   period_end: 2026-12-31
-
+ai-platform:
+  title: ai-platform
+  objective: stand up a governed internal AI/ML platform
+  key_results:
+    - model registry and eval gates in place
+    - agentic workflows behind guardrails before prod
+  period_end: 2026-12-31
+checkout-rebuild:
+  title: checkout-rebuild
+  objective: rebuild the checkout flow for conversion and resilience
+  key_results:
+    - new checkout at general availability
+    - step-up 3DS on every high-risk transaction
+  period_end: 2026-09-15
+identity-platform:
+  title: identity-platform
+  objective: consolidate identity onto a single phishing-resistant IdP
+  key_results:
+    - passkeys enforced on all internal consoles
+    - legacy auth paths decommissioned
+  period_end: 2026-11-30
+data-residency:
+  title: data-residency
+  objective: enforce regional data residency by default
+  key_results:
+    - residency tags on every regulated dataset
+    - automated cross-region egress controls live
+  period_end: 2026-10-31
+observability:
+  title: observability
+  objective: unify logging, metrics, and tracing across services
+  key_results:
+    - SIEM coverage on all production services
+    - p95 alert-to-ack under target
+  period_end: 2026-11-15
+vendor-consolidation:
+  title: vendor-consolidation
+  objective: reduce third-party concentration and standing access
+  key_results:
+    - standing vendor access reduced by half
+    - tested fallback for every critical supplier
+  period_end: 2026-12-15
+mobile-launch:
+  title: mobile-launch
+  objective: launch the redesigned app in two new markets
+  key_results:
+    - localized app live in both markets
+    - support SLA met at launch
+  period_end: 2026-10-15
+fraud-platform:
+  title: fraud-platform
+  objective: modernize the real-time fraud decisioning platform
+  key_results:
+    - device fingerprinting live at checkout
+    - fraud model refresh cadence under a week
+  period_end: 2026-11-01
 run-the-business:
   title: run-the-business
   objective: maintain core operations otherwise not associated with a strategic objective
-  # the non-strategic catch-all: no key results, and ongoing (no period_end)

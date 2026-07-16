@@ -1,0 +1,9 @@
+id: REM-2026-0137
+title: Data-availability failover automation
+type: restore
+status: proposed
+target_date: 2026-05-22
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: data-availability_failover_automation
+addresses_scenarios: [SCN-2026-0006]

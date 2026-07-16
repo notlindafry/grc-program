@@ -1,0 +1,9 @@
+id: REM-2026-0125
+title: Break-glass session logging
+type: restore
+status: proposed
+target_date: 2026-05-25
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: break-glass_session_logging
+addresses_scenarios: [SCN-2026-0019]

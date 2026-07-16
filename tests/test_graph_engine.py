@@ -173,11 +173,11 @@ def test_portfolio_appetite_and_capacity():
     eng = _engine([_scn("SCN-1", lm=(2000000, 5000000))], [exc],
                   appetite=1_000_000, capacity=2_000_000)
     p = eng.portfolio()
-    # The aggregate-over-appetite signal (SPEC §4) is mean-based; the RAG state
-    # may read "at" when the wide band straddles a small line.
+    # The aggregate-over-appetite signal (SPEC §4) is mean-based; capacity is read
+    # as a tail probability, not a mean test (SPEC v2.2 §E2).
     assert p.over_appetite is True
-    assert p.capacity_breached is True
     assert p.band.mean > p.capacity
+    assert 0.0 <= p.p_over_capacity <= 1.0 and p.p_over_capacity > 0.5
 
 
 # ---------------------------------------------------------------------------
@@ -210,18 +210,23 @@ def test_named_risk_drivers_are_factor_moving_only(corpus_engine):
     assert all(c.issue.moves_a_factor for c in r.drivers)  # never a finding
 
 
-def test_legacy_exception_contributes_to_bridged_scenario(corpus_engine):
+def test_issue_contributes_to_its_scenario(corpus_engine):
     _, eng = corpus_engine
     res = eng.scenario_residual("SCN-2026-0001")
-    assert "EXC-2026-0142" in {c.issue.id for c in res.contributors}
+    assert "EXC-2026-0101" in {c.issue.id for c in res.contributors}
 
 
-def test_portfolio_over_declared_appetite(corpus_engine):
+def test_portfolio_over_appetite_under_capacity(corpus_engine):
+    # The aggregate is OVER the $10M appetite (the signal fires) with its mean
+    # UNDER the $15M capacity line -- a governance moment, not a catastrophe. The
+    # capacity read is a tail probability, reported honestly (SPEC v2.2 §E).
     _, eng = corpus_engine
     p = eng.portfolio()
-    assert p.over_appetite is True         # the aggregate exceeds the $10M line
-    assert p.capacity_breached is True     # and the $15M hard line
-    assert p.band.low > p.appetite
+    assert p.over_appetite is True
+    assert p.appetite < p.band.mean < p.capacity
+    assert 0.0 < p.p_over_capacity < 0.5       # a real tail, not a coin-flip
+    assert p.p_over_appetite > 0.9             # decisively over the appetite line
+    assert p.band.mean < 0.01 * 2_000_000_000  # well under 1% of revenue (SPEC §I.10)
 
 
 def test_control_health_stories(corpus_engine):
@@ -263,3 +268,141 @@ def test_kri_triggers_surface_as_signals(corpus_engine):
     # The MFA-coverage KRI is a signal on the compromise risk, not its own term.
     sigs = {s.kri_id: s.status for s in eng.kri_signals_for_named_risk("NR-PROD-COMPROMISE")}
     assert sigs.get("KRI-MFA-COVERAGE") == "breached"
+
+
+# --- Day-3 designed stories (SPEC v2.2 §B, §E, §F) -------------------------
+
+
+def test_rag_spread_is_a_reasonable_outcome(corpus_engine):
+    # The spread is a JUDGED outcome of authored appetite meeting tuned exposure,
+    # NOT a fitted target (SPEC v2.2 §B): a few over, green demonstrably
+    # achievable, a majority below, and no colour the default.
+    _, eng = corpus_engine
+    from collections import Counter
+    spread = Counter(r.state for r in eng.all_named_risk_residuals())
+    total = sum(spread.values())
+    assert spread[RAG_OVER] >= 2                      # a few breaches
+    assert spread[RAG_AT] >= 2                        # green is demonstrably achievable
+    assert spread[RAG_BELOW] > total / 2              # over-controlling is the majority (on-thesis)
+    assert spread[RAG_BELOW] < total                  # ...but not the only colour
+
+
+def test_exactly_one_amber_end_to_end_domain(corpus_engine):
+    # SPEC v2.2 §F: exactly one domain reads amber end to end, and it is Privacy
+    # -- regulated, engineering-adjacent, and the one a VP files as "legal's".
+    _, eng = corpus_engine
+    amber = [d.domain.id for d in eng.all_domain_rollups() if d.amber_end_to_end]
+    assert amber == ["TR-PRIVACY"]
+    privacy = eng.domain_rollup("TR-PRIVACY")
+    assert len(privacy.named_risk_ids) >= 4           # "end to end" across a real domain
+
+
+def test_exceedance_probabilities(corpus_engine):
+    # SPEC v2.2 §E / v2.3 §E: the capacity read is the tail probability, and it is
+    # tuned into a governance band -- P(>capacity) in 5-8%, P(>appetite) above 90%.
+    _, eng = corpus_engine
+    p = eng.portfolio()
+    assert 0.05 <= p.p_over_capacity <= 0.085   # a governance moment, not a crisis
+    assert p.p_over_appetite > 0.90             # the breach signal stays unambiguous
+    # An over-appetite named risk exceeds its own threshold on most trials.
+    over = next(r for r in eng.all_named_risk_residuals() if r.state == RAG_OVER)
+    assert over.p_over_threshold > 0.5
+
+
+def test_no_negative_residuals(corpus_engine):
+    # SPEC v2.3 §B1.2: loss exposure cannot be negative. With the dominance gate
+    # holding, the backstop finds nothing.
+    _, eng = corpus_engine
+    assert eng.negative_residuals() == []
+
+
+def test_no_noop_records_on_the_corpus(corpus_engine):
+    # SPEC v2.3 §F3: the no-op flag fires on nothing in the shipped corpus.
+    graph, _ = corpus_engine
+    from risk_ledger.validation import validate_graph
+    from risk_ledger.config import Config
+    problems = validate_graph(graph, Config(as_of=AS_OF))
+    assert not any(p.code == "issue_noop_effect" for p in problems)
+
+
+def test_security_reads_mixed(corpus_engine):
+    # SPEC v2.3 §C/§F4: Security must read mixed, not a near-uniform wall of amber,
+    # so the Privacy standout is the reveal. It carries its OVER accumulation risk
+    # plus a spread of AT and BELOW.
+    _, eng = corpus_engine
+    sec = [r.state for r in eng.all_named_risk_residuals()
+           if eng.graph.named_risks[r.named_risk.id].domain == "TR-SECURITY"]
+    assert RAG_OVER in sec and RAG_AT in sec and RAG_BELOW in sec  # all three colours
+    assert not eng.domain_rollup("TR-SECURITY").amber_end_to_end
+
+
+def test_appetite_is_authored_not_derived(corpus_engine):
+    # SPEC v2.2 §D: every named risk carries a round-number authored threshold and
+    # a rationale; no threshold is a fitted function of its residual.
+    graph, _ = corpus_engine
+    for nr in graph.named_risks.values():
+        assert nr.appetite_threshold and nr.appetite_threshold % 50_000 == 0  # round number
+        assert nr.appetite_rationale                                          # authored reason
+        assert nr.appetite_threshold <= graph.enterprise.capacity_materiality  # §D1
+
+
+def test_privacy_has_a_dramatic_standout(corpus_engine):
+    # At least one Privacy risk sits dramatically under its authored threshold
+    # (residual mean ~10-20% of appetite) -- unused tolerance, over-controlled.
+    _, eng = corpus_engine
+    ratios = [
+        r.band.mean / r.threshold
+        for r in eng.all_named_risk_residuals()
+        if eng.graph.named_risks[r.named_risk.id].domain == "TR-PRIVACY"
+    ]
+    assert all(x < 0.75 for x in ratios)              # every Privacy risk is BELOW
+    assert min(ratios) < 0.2                          # one dramatically so
+
+
+def test_orphans_have_no_funded_remediation(corpus_engine):
+    # SPEC §E story 3: >=2 orphan risks (OVER, no funded remediation addressing them).
+    graph, eng = corpus_engine
+    funded = {"funded", "in_progress"}
+    orphans = []
+    for r in eng.all_named_risk_residuals():
+        if r.state != RAG_OVER:
+            continue
+        scn_ids = set(r.scenario_ids)
+        rem_ids = {rid for sid in scn_ids for rid in graph.remediations_of_scenario.get(sid, [])}
+        rems = [rm for rm in graph.remediations if rm.id in rem_ids]
+        if not any(rm.status in funded for rm in rems):
+            orphans.append(r.named_risk.id)
+    assert {"NR-PLATFORM-OUTAGE", "NR-PCI-SCOPE"} <= set(orphans)
+
+
+def test_no_scenario_multiplier_over_5x(corpus_engine):
+    # SPEC v2.1 §F7: no managed scenario's residual/baseline multiplier exceeds ~5x.
+    _, eng = corpus_engine
+    for sid, res in ((s, eng.scenario_residual(s)) for s in eng.graph.scenarios):
+        if res is None or eng.graph.scenarios[sid].is_emerging or res.baseline.high <= 0:
+            continue
+        assert res.band.high / res.baseline.high <= 5.0, sid
+
+
+def test_no_managed_scenario_over_capacity(corpus_engine):
+    # SPEC v2.1 §F4/B2: no managed scenario residual crosses the $15M capacity line.
+    _, eng = corpus_engine
+    assert eng.scenarios_over_capacity() == []
+
+
+def test_diverted_to_starvation_chain_exists(corpus_engine):
+    # SPEC §E story 7: exceptions reallocated to a named launch OKR.
+    graph, _ = corpus_engine
+    diverted = [i for i in graph.issues
+                if i.type == "exception" and i.reason == "resource_reallocation" and i.diverted_to]
+    assert len(diverted) >= 3
+    assert all(i.diverted_to in graph.okrs for i in diverted)
+
+
+def test_incident_mapping_stored_as_data(corpus_engine):
+    # SPEC §8 / §E story 8: the offline AI incident->scenario mapping, as data.
+    graph, _ = corpus_engine
+    scn = graph.scenarios["SCN-2026-0019"]
+    assert scn.incident is not None
+    assert scn.incident["suggested_named_risk"] == "NR-PROD-COMPROMISE"
+    assert scn.incident["mapped_by"] == "offline-ai-incident-mapper"

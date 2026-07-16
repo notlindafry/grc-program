@@ -1,0 +1,9 @@
+id: REM-2026-0128
+title: Detection-model eval-gate rollout
+type: restore
+status: in_progress
+target_date: 2026-06-05
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: detection-model_eval-gate_rollout
+addresses_scenarios: [SCN-2026-0008]

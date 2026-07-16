@@ -1,0 +1,26 @@
+id: EXC-2026-0168
+type: exception
+title: Deferred schema-validation gate on a new pipeline writer
+owner: data-platform-lead@company.com
+filed_on: 2026-05-06
+status: active
+mapped_scenarios: [SCN-2026-0016]
+control: [A.8.33]
+okr: data-platform
+exception_effect:
+  moves: opportunity_frequency
+  with_exception_90ci: [8, 22]
+  estimated_by: m.haddad@company.com
+  estimated_on: 2026-05-06
+reason: timeline
+scope:
+  type: enumerated
+  assets: [scn-2026-0016]
+remediation:
+  target_date: 2026-09-01
+  mechanism: remediate_gap
+  reduces: opportunity_frequency
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

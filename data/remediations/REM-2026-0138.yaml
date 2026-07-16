@@ -1,0 +1,9 @@
+id: REM-2026-0138
+title: Subprocessor inventory reconciliation
+type: restore
+status: in_progress
+target_date: 2026-04-25
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: subprocessor_inventory_reconciliation
+addresses_scenarios: [SCN-2026-0018]

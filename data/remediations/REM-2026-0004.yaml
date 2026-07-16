@@ -1,8 +1,0 @@
-id: REM-2026-0004
-title: Resume quarterly platform DR tests
-type: restore
-status: proposed
-target_date: 2026-09-01
-owner: platform-lead@company.com
-mechanism: resume_quarterly_dr_tests
-restores_control: REL-DR-TEST-015

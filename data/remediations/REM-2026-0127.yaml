@@ -1,0 +1,9 @@
+id: REM-2026-0127
+title: Fraud-rule tuning backlog burn-down
+type: restore
+status: proposed
+target_date: 2026-04-30
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: fraud-rule_tuning_backlog_burn-down
+addresses_scenarios: [SCN-2026-0003]

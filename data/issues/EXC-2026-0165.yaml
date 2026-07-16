@@ -1,0 +1,26 @@
+id: EXC-2026-0165
+type: exception
+title: Deferred residency tagging on a new export connector
+owner: data-platform-lead@company.com
+filed_on: 2026-04-16
+status: active
+mapped_scenarios: [SCN-2026-0014]
+control: [A.8.11]
+okr: data-platform
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.04, 0.1]
+  estimated_by: r.chen@company.com
+  estimated_on: 2026-04-16
+reason: timeline
+scope:
+  type: enumerated
+  assets: [scn-2026-0014]
+remediation:
+  target_date: 2026-09-01
+  mechanism: remediate_gap
+  reduces: probability_of_realization
+expires_on: 2026-09-01
+renewals:
+  count: 0
+  justification_changed_last: null

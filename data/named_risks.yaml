@@ -1,145 +1,201 @@
 # Tier 2 -- the owned, appetite-bearing risk (executive / VP altitude, SPEC §2.3).
-# Each names its Tier-1 domain (many-to-one), the accountable owner in the mgmt
-# hierarchy, the bottom-up per-risk dollar appetite, and the OKRs it threatens
-# (M2M, SPEC §2.12). All data synthetic.
+# Each names its Tier-1 domain (many-to-one), the accountable owner, the OKRs it
+# threatens (M2M, SPEC §2.12), and a per-risk dollar appetite. Appetite is
+# AUTHORED, not derived (SPEC v2.2 §D): a round number a governance forum would
+# set from what the company tolerates for that risk, with an appetite_rationale
+# recording why. The RAG colour is an outcome of that line meeting tuned
+# exposure, never a target the threshold was fitted to. Every threshold sits
+# under the $15M enterprise capacity (SPEC v2.1 §D1). All data synthetic.
 
 
 NR-PROD-COMPROMISE:
   title: Compromise of production systems via credential or access failure
   domain: TR-SECURITY
   owner: security-eng-lead@company.com
-  appetite_threshold: 5000000
-  threatens_okrs: [gcloud-migration]
+  appetite_threshold: 1500000
+  appetite_rationale: "Core-launch risk; some tolerance during the rebuild, but production compromise erodes customer trust fast."
+  threatens_okrs: [gcloud-migration, core-platform]
 
 NR-DATA-EXFIL:
   title: Exfiltration of regulated data from an analytics or export path
   domain: TR-SECURITY
   owner: security-eng-lead@company.com
-  appetite_threshold: 6000000
+  appetite_threshold: 2000000
+  appetite_rationale: "Regulated data, but exfil is adversarial and partly insurable; moderate tolerance."
   threatens_okrs: [data-platform]
 
 NR-PAYMENT-FRAUD:
   title: Fraudulent transactions against the payments platform
   domain: TR-SECURITY
   owner: payments-lead@company.com
-  appetite_threshold: 30000000
+  appetite_threshold: 2500000
+  appetite_rationale: "Fraud is a managed cost of running payments; higher tolerance, tracked against margin."
   threatens_okrs: [payments-launch]
 
-NR-PCI-SCOPE:
-  title: PCI scope expansion / cardholder data handling gap
-  domain: TR-COMPLIANCE
+NR-ENDPOINT-MALWARE:
+  title: Malware on a corporate endpoint leading to lateral movement
+  domain: TR-SECURITY
+  owner: it-lead@company.com
+  appetite_threshold: 2000000
+  appetite_rationale: "Recoverable with EDR and reimaging; moderate tolerance."
+  threatens_okrs: [internal-tools]
+
+NR-CARD-TESTING:
+  title: Automated card-testing against the public checkout flow
+  domain: TR-SECURITY
   owner: payments-lead@company.com
-  appetite_threshold: 25000000
+  appetite_threshold: 1500000
+  appetite_rationale: "Financial and recoverable; velocity limits cap the downside."
   threatens_okrs: [payments-launch]
-
-NR-DATA-QUALITY:
-  title: Corrupted or unvalidated data feeding downstream decisions
-  domain: TR-DATA-INTEGRITY
-  owner: data-platform-lead@company.com
-  appetite_threshold: 15000000
-  threatens_okrs: [data-platform]
-
-NR-DATA-AVAILABILITY:
-  title: Loss of availability of a core data platform service
-  domain: TR-RESILIENCE
-  owner: data-platform-lead@company.com
-  appetite_threshold: 15000000
-  threatens_okrs: [data-platform]
 
 NR-ABUSE-ESCALATION:
   title: Unmitigated abuse escalating on the platform
   domain: TR-SECURITY
   owner: tns-lead@company.com
-  appetite_threshold: 15000000
+  appetite_threshold: 1500000
+  appetite_rationale: "Reputational; moderate tolerance backed by an SLA-driven response."
   threatens_okrs: [trust-and-safety]
 
 NR-ABUSE-DETECTION:
   title: Gaps in automated detection of policy-violating content
   domain: TR-SECURITY
   owner: tns-lead@company.com
-  appetite_threshold: 15000000
+  appetite_threshold: 1500000
+  appetite_rationale: "Detection gaps are recoverable via retrain; moderate tolerance."
   threatens_okrs: [trust-and-safety]
+
+NR-PLATFORM-OUTAGE:
+  title: Customer-facing outage of a core platform service
+  domain: TR-RESILIENCE
+  owner: platform-lead@company.com
+  appetite_threshold: 2500000
+  appetite_rationale: "Availability risk knowingly carried to sustain launch velocity; bounded by SLA credits."
+  threatens_okrs: [core-platform]
+
+NR-DATA-AVAILABILITY:
+  title: Loss of availability of a core data platform service
+  domain: TR-RESILIENCE
+  owner: data-platform-lead@company.com
+  appetite_threshold: 2000000
+  appetite_rationale: "Recoverable; failover reduces the blast radius."
+  threatens_okrs: [data-platform]
+
+NR-DATA-QUALITY:
+  title: Corrupted or unvalidated data feeding downstream decisions
+  domain: TR-DATA-INTEGRITY
+  owner: data-platform-lead@company.com
+  appetite_threshold: 2000000
+  appetite_rationale: "Correctness matters, but bad data is usually caught and reprocessed."
+  threatens_okrs: [data-platform]
+
+NR-PIPELINE-INTEGRITY:
+  title: Schema-invalid or corrupted writes entering the data pipeline
+  domain: TR-DATA-INTEGRITY
+  owner: data-platform-lead@company.com
+  appetite_threshold: 2000000
+  appetite_rationale: "Recoverable via replay; write-time gates cap the downside."
+  threatens_okrs: [data-platform]
+
+NR-DATA-RESIDENCY:
+  title: Regulated customer data processed or stored outside its required region
+  domain: TR-PRIVACY
+  owner: privacy-eng-lead@company.com
+  appetite_threshold: 650000
+  appetite_rationale: "Regulated data; low tolerance regardless of delivery upside."
+  threatens_okrs: [data-platform, data-residency]
+
+NR-SUBPROCESSOR-GOV:
+  title: Ungoverned subprocessor handling of regulated data
+  domain: TR-PRIVACY
+  owner: privacy-eng-lead@company.com
+  appetite_threshold: 500000
+  appetite_rationale: "Regulated third-party processing; low tolerance -- a licence-to-operate risk."
+  threatens_okrs: [data-platform]
+
+NR-DATA-RETENTION:
+  title: Personal data retained beyond its lawful retention window
+  domain: TR-PRIVACY
+  owner: privacy-eng-lead@company.com
+  appetite_threshold: 600000
+  appetite_rationale: "Over-retention of PII is a pure obligation failure; low tolerance."
+  threatens_okrs: [data-platform]
+
+NR-CONSENT-MGMT:
+  title: Tracking or processing without valid, current consent
+  domain: TR-PRIVACY
+  owner: privacy-eng-lead@company.com
+  appetite_threshold: 750000
+  appetite_rationale: "Consent and tracking are regulator-facing; low tolerance regardless of product upside."
+  threatens_okrs: [mobile-app]
+
+NR-PII-MINIMIZATION:
+  title: Collecting or exposing more personal data than needed
+  domain: TR-PRIVACY
+  owner: privacy-eng-lead@company.com
+  appetite_threshold: 500000
+  appetite_rationale: "Excess PII only adds liability; low tolerance."
+  threatens_okrs: [data-platform]
 
 NR-MIGRATION-AVAILABILITY:
   title: Availability regressions introduced by the migration
   domain: TR-CHANGE
   owner: platform-lead@company.com
-  appetite_threshold: 10000000
+  appetite_threshold: 2000000
+  appetite_rationale: "Elevated change risk deliberately accepted during the rebuild window."
   threatens_okrs: [gcloud-migration]
 
 NR-MIGRATION-DATAINTEGRITY:
   title: Data integrity loss during monolith-to-microservices cutover
   domain: TR-CHANGE
   owner: platform-lead@company.com
-  appetite_threshold: 10000000
+  appetite_threshold: 1500000
+  appetite_rationale: "Cutover integrity issues are recoverable with dual-write checks."
   threatens_okrs: [gcloud-migration]
-
-NR-VENDOR-ACCESS:
-  title: Excessive third-party vendor access to internal systems
-  domain: TR-THIRDPARTY
-  owner: ciso-office@company.com
-  appetite_threshold: 8000000
-  threatens_okrs: [mobile-app, internal-tools]
-
-NR-ENDPOINT-MALWARE:
-  title: Malware on a corporate endpoint leading to lateral movement
-  domain: TR-SECURITY
-  owner: it-lead@company.com
-  appetite_threshold: 10000000
-  threatens_okrs: [internal-tools]
-
-NR-PLATFORM-OUTAGE:
-  title: Customer-facing outage of a core platform service
-  domain: TR-RESILIENCE
-  owner: platform-lead@company.com
-  appetite_threshold: 15000000
-  threatens_okrs: [core-platform]
-
-NR-DATA-RESIDENCY:
-  title: Regulated data leaving its required residency region
-  domain: TR-PRIVACY
-  owner: dpo@company.com
-  appetite_threshold: 14000000
-  threatens_okrs: [data-platform]
-
-NR-CARD-TESTING:
-  title: Automated card-testing against the public checkout flow
-  domain: TR-SECURITY
-  owner: payments-lead@company.com
-  appetite_threshold: 12000000
-  threatens_okrs: [payments-launch]
-
-NR-PIPELINE-INTEGRITY:
-  title: Schema-invalid or corrupted writes entering the data pipeline
-  domain: TR-DATA-INTEGRITY
-  owner: data-platform-lead@company.com
-  appetite_threshold: 8000000
-  threatens_okrs: [data-platform]
-
-NR-REG-FILINGS:
-  title: Missed regulatory filing or lapsed certification
-  domain: TR-COMPLIANCE
-  owner: compliance-lead@company.com
-  appetite_threshold: 8000000
-  threatens_okrs: [run-the-business]
-
-NR-SUBPROCESSOR-GOV:
-  title: Ungoverned subprocessor handling of regulated data
-  domain: TR-PRIVACY
-  owner: dpo@company.com
-  appetite_threshold: 9000000
-  threatens_okrs: [data-platform]
 
 NR-AI-AGENT-AUTONOMY:
   title: Autonomous agents taking unsafe action in production
   domain: TR-CHANGE
   owner: ai-platform-lead@company.com
-  appetite_threshold: 6000000
+  appetite_threshold: 1500000
+  appetite_rationale: "Emerging; a nominal tolerance pending the calibration to trust the number."
+  threatens_okrs: [ai-platform]
+
+NR-VENDOR-ACCESS:
+  title: Excessive third-party vendor access to internal systems
+  domain: TR-THIRDPARTY
+  owner: ciso-office@company.com
+  appetite_threshold: 2000000
+  appetite_rationale: "Vendor access is scoped and revocable; moderate tolerance."
+  threatens_okrs: [mobile-app, internal-tools]
+
+NR-SUPPLIER-OUTAGE:
+  title: A critical supplier's outage cascades into our service
+  domain: TR-THIRDPARTY
+  owner: ciso-office@company.com
+  appetite_threshold: 2000000
+  appetite_rationale: "External dependency; tolerance bounded by tested fallbacks."
   threatens_okrs: [core-platform]
 
 NR-MODEL-SUPPLY:
   title: Concentration on a single external model provider
   domain: TR-THIRDPARTY
   owner: ai-platform-lead@company.com
-  appetite_threshold: 7000000
-  threatens_okrs: [data-platform]
+  appetite_threshold: 1500000
+  appetite_rationale: "Emerging; a nominal tolerance pending a tested fallback."
+  threatens_okrs: [ai-platform]
+
+NR-PCI-SCOPE:
+  title: PCI scope expansion / cardholder data handling gap
+  domain: TR-COMPLIANCE
+  owner: payments-lead@company.com
+  appetite_threshold: 1000000
+  appetite_rationale: "PCI is pass/fail with the card schemes; low tolerance."
+  threatens_okrs: [payments-launch]
+
+NR-REG-FILINGS:
+  title: Missed regulatory filing or lapsed certification
+  domain: TR-COMPLIANCE
+  owner: compliance-lead@company.com
+  appetite_threshold: 1000000
+  appetite_rationale: "Filing obligations are binary; low tolerance."
+  threatens_okrs: [run-the-business]

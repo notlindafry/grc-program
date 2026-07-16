@@ -1,0 +1,26 @@
+id: EXC-2026-0160
+type: exception
+title: Broad vendor VPN access retained on mobile build farm
+owner: mobile-lead@company.com
+filed_on: 2024-06-03
+status: active
+mapped_scenarios: [SCN-2026-0011]
+control: [A.5.18]
+okr: mobile-app
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.015, 0.04]
+  estimated_by: l.romano@company.com
+  estimated_on: 2024-06-03
+reason: cost
+scope:
+  type: enumerated
+  assets: [scn-2026-0011]
+remediation:
+  target_date: 2026-09-01
+  mechanism: remediate_gap
+  reduces: probability_of_realization
+expires_on: 2026-09-01
+renewals:
+  count: 4
+  justification_changed_last: null

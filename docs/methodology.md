@@ -243,3 +243,28 @@ The view displays the OKR's key results as the commitments the footprint is
 eroding. The trajectory is time-aware: it compares the first-quarter filing count
 to the count in the final stretch before the `period_end` (default 8 weeks), and
 flags acceleration into a deadline: the tell.
+
+## Exceedance probability
+
+A residual is a distribution; a line (declared appetite, or the capacity /
+materiality line) is a single number. Reading the band against the line by eye is
+a poor answer to "should I worry": a band whose 95th percentile sits just above a
+line eyeballs as a graze, while the actual share of years that cross it can be
+materially higher.
+
+So the engine reports the **exceedance probability** directly — the share of
+simulated trials in which the residual crosses the line:
+
+```python
+p_exceed = sum(1 for s in samples if s > line) / len(samples)
+```
+
+It is another read of the same portfolio samples the residual band is taken from
+— no second Monte Carlo, no new path into residual. `PortfolioResult` carries
+`p_over_appetite` and `p_over_capacity`; `NamedRiskResidual` carries
+`p_over_threshold` for drill-down.
+
+For a **hard line, the tail is the question, not the mean**. The portfolio
+summary states a single position and a single probability — *"over the $10M
+appetite; roughly a 20% chance of crossing the $15M materiality line this
+year"* — rather than a mean-based "within" that argues with a band that crosses.

@@ -1,0 +1,9 @@
+id: REM-2026-0131
+title: Supplier fallback runbook
+type: restore
+status: proposed
+target_date: 2026-05-30
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: supplier_fallback_runbook
+addresses_scenarios: [SCN-2026-0020]

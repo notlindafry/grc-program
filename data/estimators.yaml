@@ -1,6 +1,6 @@
-# The calibration gate. Each estimate records who made it; the tool checks that
-# person here. An estimate from someone uncalibrated, or whose calibration is
-# older than the configured refresh window, is flagged and not trusted.
+# The calibration gate (SPEC §2.9 estimators). An estimate from someone
+# uncalibrated, or whose calibration is older than the refresh window, is flagged
+# and its factor move is held out of the trusted residual bands. All synthetic.
 
 r.chen@company.com:
   calibrated: true

@@ -1,0 +1,10 @@
+id: REM-2026-0102
+title: Rotate and scope migrated service accounts
+type: restore
+status: in_progress
+target_date: 2026-08-15
+owner: iam-lead@company.com
+operational_owner: iam-oncall@company.com
+mechanism: rotate_and_scope_service_accounts
+restores_control: A.8.2
+addresses_scenarios: [SCN-2026-0019]

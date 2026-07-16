@@ -1,0 +1,10 @@
+id: REM-2026-0121
+title: Backfill privileged-access reviews
+type: restore
+status: funded
+target_date: 2026-09-20
+owner: platform-lead@company.com
+operational_owner: iam-oncall@company.com
+mechanism: backfill_privileged-access_reviews
+restores_control: A.8.2
+addresses_scenarios: [SCN-2026-0001]

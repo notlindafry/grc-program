@@ -1,8 +1,7 @@
-# Proof a control operates (SPEC §2.8, thin -- DATA ONLY, no collector is built).
-# status (fresh | stale | missing) is DERIVED from cadence + last_collected at
-# build time. The record shape is the seam a real collector fills later (SPEC §8).
-# A representative subset of controls carries evidence; a few are deliberately
-# stale or missing to exercise the provability signal (SPEC §5.5). All synthetic.
+# Proof a control operates (SPEC §2.8, thin -- DATA ONLY, no collector). status
+# (fresh | stale | missing) is DERIVED from cadence + last_collected. A few are
+# deliberately stale/missing to exercise the provability signal (SPEC §5.5).
+# All synthetic.
 
 
 EV-IAM-0001:
@@ -88,3 +87,17 @@ EV-SUPPLIER-0001:
   collection_method: manual
   cadence: annual
   last_collected: 2026-01-10
+
+EV-BACKUP-0002:
+  supports_controls: [A.8.14]
+  source: redundancy-drill-report
+  collection_method: manual
+  cadence: quarterly
+  last_collected: 2026-05-12
+
+EV-CODE-0001:
+  supports_controls: [A.8.28, A.8.33]
+  source: sast-coverage-report
+  collection_method: api
+  cadence: monthly
+  last_collected: 2026-06-03

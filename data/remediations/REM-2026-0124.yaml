@@ -1,0 +1,9 @@
+id: REM-2026-0124
+title: Session-timeout hardening on legacy portals
+type: restore
+status: in_progress
+target_date: 2026-03-15
+owner: platform-lead@company.com
+operational_owner: platform-oncall@company.com
+mechanism: session-timeout_hardening_on_legacy_port
+addresses_scenarios: [SCN-2026-0001]

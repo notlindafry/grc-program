@@ -1,0 +1,14 @@
+id: REM-2026-0106
+title: Write-time schema validation and integrity gates
+type: strengthen
+status: in_progress
+target_date: 2026-09-15
+owner: data-platform-lead@company.com
+operational_owner: data-oncall@company.com
+mechanism: add_write_time_integrity_gates
+mapped_risk: NR-PIPELINE-INTEGRITY
+moves: opportunity_frequency
+post_control_90ci: [2, 8]
+estimated_by: m.haddad@company.com
+estimated_on: 2026-06-01
+addresses_scenarios: [SCN-2026-0016]

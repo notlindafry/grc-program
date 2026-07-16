@@ -1,0 +1,14 @@
+id: REM-2026-0104
+title: Automated data-residency egress controls
+type: strengthen
+status: funded
+target_date: 2026-10-01
+owner: dpo@company.com
+operational_owner: data-oncall@company.com
+mechanism: implement_automated_data_residency_controls
+mapped_risk: NR-DATA-RESIDENCY
+moves: probability_of_realization
+post_control_90ci: [0.01, 0.03]
+estimated_by: r.chen@company.com
+estimated_on: 2026-06-01
+addresses_scenarios: [SCN-2026-0014]
