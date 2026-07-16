@@ -108,13 +108,17 @@ risk-ledger graph                    # load the corpus, validate the derived gra
 risk-ledger portfolio                # residual aggregation, appetite/capacity, control health, emerging
 risk-ledger drift [OKR]              # per-OKR reported-vs-true footprint (undeclared risk debt)
 risk-ledger renewals                 # the can-you-keep-kicking view: temporary-forever + slipped work
+risk-ledger dashboard                # render the executive dashboard (the hero artifact) to HTML
 ```
 
 By default the tool reads the corpus in `./data`. Regenerate the whole
 synthetic corpus with `python examples/generate_ecosystem.py`.
 
-The hero artifact is an executive dashboard (built against the `frontend-design`
-system) rendered from this corpus; it is published to Vercel:
+The hero artifact is an executive dashboard rendered from this corpus by
+`risk-ledger dashboard` (a single self-contained dark HTML page — a portfolio
+summary plus a closed set of six views and one worked AI example, with charts
+baked as inline SVG and no JS framework, SPEC §6/§7/§10). It writes to
+`docs/dashboard.html`, which the deploy Action publishes to Vercel:
 
 **▶ [Live dashboard](https://grc-report.vercel.app)**
 
