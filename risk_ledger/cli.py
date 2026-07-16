@@ -4,6 +4,7 @@
     risk-ledger portfolio    residual aggregation, appetite/capacity, control health, emerging
     risk-ledger drift [OKR]  per-OKR reported-vs-true footprint (undeclared risk debt)
     risk-ledger renewals     the can-you-keep-kicking view: temporary-forever + slipped work
+    risk-ledger dashboard    render the executive dashboard (the hero artifact) to HTML
 
 Global options pin the Monte Carlo run and the calibration window; they override
 any ``config.yaml`` in the corpus.
@@ -172,6 +173,20 @@ def _cmd_portfolio(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_dashboard(args: argparse.Namespace) -> int:
+    """Render the hero artifact — the executive dashboard — to a single
+    self-contained HTML page (SPEC §6, §7)."""
+    from . import dashboard
+
+    data_dir = Path(args.data)
+    cfg = _build_config(args, data_dir)
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    dashboard.render_to(data_dir, cfg, out)
+    print(f"Wrote {out}")
+    return 0
+
+
 def _cmd_drift(args: argparse.Namespace) -> int:
     graph, cfg, eng = _prepare(args)
     print(render_drift(graph, eng, cfg, only_okr=args.okr))
@@ -198,6 +213,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_drift = sub.add_parser("drift", help="per-OKR reported-vs-true footprint")
     p_drift.add_argument("okr", nargs="?", default=None, help="limit to one OKR")
     sub.add_parser("renewals", help="the can-you-keep-kicking view")
+    p_dash = sub.add_parser("dashboard", help="render the executive dashboard (hero artifact) to HTML")
+    p_dash.add_argument("--out", default="docs/dashboard.html", help="output path (default: docs/dashboard.html)")
     return parser
 
 
@@ -209,6 +226,7 @@ def main(argv: list[str] | None = None) -> int:
         "portfolio": _cmd_portfolio,
         "drift": _cmd_drift,
         "renewals": _cmd_renewals,
+        "dashboard": _cmd_dashboard,
     }
     try:
         return dispatch[args.command](args)

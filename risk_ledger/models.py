@@ -369,6 +369,11 @@ class NamedRisk:
     domain: str
     owner: str
     appetite_threshold: Optional[float]
+    # Two-to-four human words for headline use — chart labels, chips, table name
+    # cells (SPEC v2.4 §3 / v2 §6: IDs and foreign keys are drill-down detail,
+    # never the headline). Authored, not a cosmetic filter over the ID. The full
+    # ``title`` stays for drill-down text and tooltips. Falls back to ``title``.
+    short_title: str = ""
     # A one-line record of WHY this appetite was set (SPEC v2.2 §D2). Appetite is
     # an authored, declared tolerance -- never derived from the residual -- and
     # the rationale makes that authorship legible on the record and in drill-down.
@@ -384,10 +389,16 @@ class NamedRisk:
             domain=str(raw.get("domain", "")),
             owner=str(raw.get("owner", "")),
             appetite_threshold=_num(raw.get("appetite_threshold")),
+            short_title=str(raw.get("short_title", "")),
             appetite_rationale=str(raw.get("appetite_rationale", "")),
             threatens_okrs=_str_list(raw.get("threatens_okrs")),
             raw=raw,
         )
+
+    @property
+    def label(self) -> str:
+        """The headline name: ``short_title`` if authored, else the full title."""
+        return self.short_title or self.title
 
 
 @dataclass
@@ -510,7 +521,17 @@ class Policy:
 
 @dataclass
 class Evidence:
-    """Proof a control operates (SPEC §2.8). Data only — no collector is built.
+    """Proof a control operates (SPEC §2.8).
+
+    SEAM — automated evidence collection (SPEC §8): this record *is* the seam,
+    and no collector is built. A real collector later populates ``last_collected``
+    (and, if the schema grows, a raw artifact pointer) on each cadence tick; the
+    ``status`` derivation below then flips fresh→stale→missing on its own. The
+    dashboard's control-health view already reads that status as the *provability*
+    signal (a control can be clean on findings yet amber because its evidence is
+    stale or missing), so wiring a live source changes the inputs, not the model.
+    Evidence never enters the quant — it informs control health only, keeping the
+    one quantitative path (SPEC §1). Build no collector here.
 
     ``status`` (fresh|stale|missing) is derived from ``cadence`` + ``last_collected``.
     """
@@ -559,6 +580,15 @@ class Evidence:
 @dataclass
 class KRI:
     """A key risk indicator (SPEC §2.9, thin). Informs re-estimation; never additive.
+
+    SEAM — live KRI ingestion (SPEC §8): this record *is* the seam, and no
+    ingestion is built. A real metric source later populates ``current_value``
+    (and thus ``status``) on each refresh; a breach then *informs re-estimation
+    of an existing factor* and *triggers emerging-risk changes* (SPEC §4), never
+    adding a term of its own. On the dashboard a KRI is a light signal on a risk
+    and a feed into the horizon view, not its own monitoring surface — so
+    connecting a live source (Prometheus / a metrics warehouse) changes the
+    inputs, not the model. Build no ingestion here.
 
     ``status`` (ok|amber|breached) is derived from ``current_value`` vs ``threshold``.
     """
@@ -645,6 +675,14 @@ class IssueRecord:
 
     A legacy exception file names a single ``mapped_risk`` and a single ``control``
     rather than the new list fields; both are read here and reconciled in the graph.
+
+    SEAM — dynamic intake / triage (SPEC §8, narrative only): this record is where
+    the intake seam attaches. Today every issue is hand-authored YAML. A real
+    intake workflow would sit in front of this record — raw report → suggested
+    taxonomy (type, mapped scenario, moved factor, band) → a *draft* IssueRecord a
+    human confirms before it lands. The confirmed output is exactly this shape, so
+    the model, the quant, and the dashboard are unchanged by adding the workflow;
+    only the authoring path in front of it changes. No intake machine is built here.
     """
 
     id: str

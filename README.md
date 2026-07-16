@@ -52,7 +52,10 @@ the harm) and **AI as a causation vector**. Both are tags on a scenario, and the
 portfolio can pivot to either. See **[`docs/schema.md`](docs/schema.md)** for
 every entity shape with a populated example, **[`docs/engine.md`](docs/engine.md)**
 for the aggregation and banding, and **[`docs/corpus-stories.md`](docs/corpus-stories.md)**
-for the designed stories the corpus tells.
+for the designed stories the corpus tells. **[`docs/next-steps.md`](docs/next-steps.md)**
+draws the scope line: what a full build would add (live evidence collection,
+policy-as-code, live incident mapping, intake/triage, KRI ingestion, tier-aware
+dedup) and what is deliberately left out.
 
 **The quant** is a deliberately light, domain-neutral adaptation loosely inspired
 by FAIR's frequency-times-magnitude decomposition, generalized so non-adversarial
@@ -108,13 +111,17 @@ risk-ledger graph                    # load the corpus, validate the derived gra
 risk-ledger portfolio                # residual aggregation, appetite/capacity, control health, emerging
 risk-ledger drift [OKR]              # per-OKR reported-vs-true footprint (undeclared risk debt)
 risk-ledger renewals                 # the can-you-keep-kicking view: temporary-forever + slipped work
+risk-ledger dashboard                # render the executive dashboard (the hero artifact) to HTML
 ```
 
 By default the tool reads the corpus in `./data`. Regenerate the whole
 synthetic corpus with `python examples/generate_ecosystem.py`.
 
-The hero artifact is an executive dashboard (built against the `frontend-design`
-system) rendered from this corpus; it is published to Vercel:
+The hero artifact is an executive dashboard rendered from this corpus by
+`risk-ledger dashboard` (a single self-contained dark HTML page — a portfolio
+summary plus a closed set of six views and one worked AI example, with charts
+baked as inline SVG and no JS framework, SPEC §6/§7/§10). It writes to
+`docs/dashboard.html`, which the deploy Action publishes to Vercel:
 
 **▶ [Live dashboard](https://grc-report.vercel.app)**
 

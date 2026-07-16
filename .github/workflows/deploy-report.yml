@@ -46,13 +46,12 @@ jobs:
       - name: Assemble static site
         run: |
           mkdir -p public
-          # The Day-4 dashboard renders to docs/dashboard.html. Until it lands,
-          # deploy a minimal placeholder so the URL never serves a stale report.
-          if [ -f docs/dashboard.html ]; then
-            cp docs/dashboard.html public/index.html
-          else
-            printf '<!doctype html><meta name="robots" content="noindex"><title>GRC report</title><p>Dashboard building.</p>' > public/index.html
-          fi
+          # Render the dashboard fresh from the corpus + code so the live page can
+          # never drift from what is committed. Pinned to the canonical reference
+          # date the corpus stories are written against (docs/corpus-stories.md);
+          # the synthetic corpus lives in a 2026 window, so staleness/expiry math
+          # must run as-of that date, not the runner's wall clock.
+          python -m risk_ledger.cli --as-of 2026-06-18 dashboard --out public/index.html
           # The page is served on a public URL -- keep crawlers out entirely.
           printf 'User-agent: *\nDisallow: /\n' > public/robots.txt
 
