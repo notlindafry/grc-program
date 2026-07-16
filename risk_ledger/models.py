@@ -314,7 +314,11 @@ class Enterprise:
     revenue_annual: Optional[float]
     capacity_materiality: Optional[float]
     appetite_pct_of_revenue: Optional[float]
-    green_band_floor: float = 0.75  # top quarter of tolerance reads green (SPEC §4)
+    green_band_floor: float = 0.75  # mean >= 75% of appetite reads green (SPEC v2.5 §2)
+    # A breach this probable is red regardless of where the mean sits (SPEC v2.5
+    # §2, gate 1). Floored structurally: a risk sitting exactly at appetite has a
+    # ~40-48% breach probability, so p_red below that collapses green again.
+    appetite_red_prob: float = 0.33
     raw: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -324,6 +328,7 @@ class Enterprise:
             capacity_materiality=_num(raw.get("capacity_materiality")),
             appetite_pct_of_revenue=_num(raw.get("appetite_pct_of_revenue")),
             green_band_floor=_num(raw.get("green_band_floor")) or 0.75,
+            appetite_red_prob=_num(raw.get("appetite_red_prob")) or 0.33,
             raw=raw,
         )
 

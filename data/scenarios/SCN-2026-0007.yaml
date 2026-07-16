@@ -8,9 +8,9 @@ id: SCN-2026-0007
 title: Unmitigated abuse escalating on the platform
 named_risk: NR-ABUSE-ESCALATION
 baseline:
-  opportunity_frequency_90ci: [24, 62]
-  probability_of_realization_90ci: [0.018, 0.05]
-  loss_magnitude_90ci: [170000, 1050000]
+  opportunity_frequency_90ci: [28, 52]
+  probability_of_realization_90ci: [0.02, 0.048]
+  loss_magnitude_90ci: [660000, 1120000]
 impact: [individual_harm, reputational]
 vectors: [adversarial]
 lifecycle_state: managed

@@ -67,25 +67,39 @@ _GAP_WEIGHT = 2
 _HEALTH_RED_AT = 6   # burden at/above this -> red (e.g. two highs, or critical+high)
 _HEALTH_AMBER_AT = 2  # burden at/above this (but below red) -> amber
 
-DEFAULT_GREEN_FLOOR = 0.75  # residual >= 75% of appetite reads green (top quarter)
+DEFAULT_GREEN_FLOOR = 0.75  # mean >= 75% of appetite reads green (SPEC v2.5 §2)
+DEFAULT_P_RED = 0.33        # P(loss > appetite) >= 1/3 reads red, whatever the mean
 
 
-def rag_band(residual: Band, threshold: float, green_floor: float = DEFAULT_GREEN_FLOOR) -> str:
-    """Two-sided appetite banding for the managed, calibrated set (SPEC §4).
+def rag_band(
+    mean: float,
+    threshold: float,
+    p_exceed: float,
+    *,
+    floor: float = DEFAULT_GREEN_FLOOR,
+    p_red: float = DEFAULT_P_RED,
+) -> str:
+    """Appetite RAG (SPEC v2.5 §2). Two gates, evaluated in order; danger first.
 
-    * ``over``  (red)   -- the whole band sits above appetite. A breach.
-    * ``at``    (green) -- the band straddles the line (the truest "at appetite"),
-      or sits within the top quarter of tolerance. The only green condition.
-    * ``below`` (amber) -- unused tolerance below the green band: over-controlled,
-      opportunity cost, or an appetite set too high / estimate understated.
+    * Gate 1 (danger)     -- ``p_exceed >= p_red`` -> ``over`` (red). A reasonably
+      probable breach is the actionable fact regardless of where the mean sits.
+    * Gate 2 (efficiency) -- among risks unlikely to breach, ``mean >= floor ×
+      threshold`` -> ``at`` (green, using the declared tolerance), else ``below``
+      (amber, unused tolerance).
+
+    Colour is position, probability is tail, and one never decides the other:
+    green is bounded BELOW by the mean floor ("are you using it?") and ABOVE by
+    the breach probability ("are you about to blow through it?"). The old straddle
+    branch — a wide right tail turning a low-mean risk green — is gone (SPEC v2.5
+    §1). Green now also requires controlled uncertainty: a mean at 85% with bands
+    wide enough to push p_exceed past p_red reads red, which is emergent, not
+    bolted on.
     """
-    if residual.low >= threshold:
+    if p_exceed >= p_red:            # gate 1: reasonably probable breach
         return RAG_OVER
-    if residual.high > threshold:  # straddles the line
+    if mean >= floor * threshold:    # gate 2: using declared tolerance
         return RAG_AT
-    if residual.mean >= green_floor * threshold:
-        return RAG_AT
-    return RAG_BELOW
+    return RAG_BELOW                 # unused tolerance
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +142,13 @@ class NamedRiskResidual:
     # Top drivers for "what is driving each" (SPEC §6 view 1): the biggest
     # factor-moving issues by expected contribution, across the risk's scenarios.
     drivers: list[Contribution] = field(default_factory=list)
+
+    @property
+    def p_over_appetite(self) -> float:
+        """P(loss > appetite) — the tail surfaced beside the position (SPEC v2.5
+        §2c). The threshold *is* the risk's appetite, so this aliases
+        ``p_over_threshold`` under the name the rule speaks in."""
+        return self.p_over_threshold
 
 
 @dataclass
@@ -206,6 +227,9 @@ class GraphEngine:
         self.mc = MonteCarlo(iterations=config.iterations, seed=config.seed)
         self.green_floor = (
             graph.enterprise.green_band_floor if graph.enterprise else DEFAULT_GREEN_FLOOR
+        )
+        self.p_red = (
+            graph.enterprise.appetite_red_prob if graph.enterprise else DEFAULT_P_RED
         )
 
         self._scn_dists: dict[str, dict[str, Distribution]] = {}
@@ -358,12 +382,14 @@ class GraphEngine:
         for sid in scn_ids:
             drivers.extend(self._scn_residual[sid].contributors)
         drivers.sort(key=lambda c: c.band.mean, reverse=True)
+        p_over = _p_exceed(samples, nr.appetite_threshold)
         return NamedRiskResidual(
             named_risk=nr,
             band=band,
-            state=rag_band(band, nr.appetite_threshold, self.green_floor),
+            state=rag_band(band.mean, nr.appetite_threshold, p_over,
+                           floor=self.green_floor, p_red=self.p_red),
             threshold=nr.appetite_threshold,
-            p_over_threshold=_p_exceed(samples, nr.appetite_threshold),
+            p_over_threshold=p_over,
             scenario_ids=scn_ids,
             drivers=drivers[:5],
         )
@@ -419,7 +445,11 @@ class GraphEngine:
         ent = self.graph.enterprise
         appetite = ent.declared_appetite if ent else None
         capacity = ent.capacity_materiality if ent else None
-        state = rag_band(band, appetite, self.green_floor) if appetite else RAG_AT
+        p_over_appetite = _p_exceed(samples, appetite) if appetite else 0.0
+        # Same two-gate rule and parameters as the risk level (SPEC v2.5 §2c).
+        state = (rag_band(band.mean, appetite, p_over_appetite,
+                          floor=self.green_floor, p_red=self.p_red)
+                 if appetite else RAG_AT)
         # The position is the band-vs-appetite RAG read; the capacity read is a
         # tail probability, not a mean test (SPEC v2.2 §E2). "When the bottom-up
         # aggregate exceeds declared appetite, that is the signal."
@@ -430,7 +460,7 @@ class GraphEngine:
             appetite_state=state,
             capacity=capacity,
             over_appetite=over_appetite,
-            p_over_appetite=_p_exceed(samples, appetite) if appetite else 0.0,
+            p_over_appetite=p_over_appetite,
             p_over_capacity=_p_exceed(samples, capacity) if capacity else 0.0,
         )
 

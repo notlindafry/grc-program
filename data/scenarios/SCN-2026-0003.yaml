@@ -10,7 +10,7 @@ named_risk: NR-PAYMENT-FRAUD
 baseline:
   opportunity_frequency_90ci: [15, 45]
   probability_of_realization_90ci: [0.01, 0.03]
-  loss_magnitude_90ci: [80000, 420000]
+  loss_magnitude_90ci: [60000, 260000]
 impact: [financial, public_market_harm]
 vectors: [adversarial]
 lifecycle_state: managed

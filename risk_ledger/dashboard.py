@@ -96,9 +96,13 @@ def _rect(x, y, w, h, fill, *, rx=None, extra="") -> str:
 
 
 def exposure_bar_svg(rows: list[tuple], axis_max: float) -> str:
-    """View 1: ranked residual bars, RAG-coloured, with a 5–95 whisker and an
-    appetite tick. rows = [(name, low, mean, high, threshold, state)]."""
-    left, right, top = 172, 96, 8
+    """View 1: ranked residual bars taught to explain the two-gate rule (SPEC v2.5
+    §4). The bar is the mean and the tick is appetite, so their relationship *is*
+    the colour: the shaded gap from bar-end to the tick is unused tolerance
+    (amber), the shaded overshoot past the tick is the breach (red). The whisker
+    is receded — it now carries uncertainty only and must not imply the colour.
+    rows = [(name, low, mean, high, threshold, state, p_exceed)]."""
+    left, right, top = 172, 104, 8
     row_h, gap = 26, 10
     axis_h, caption_h = 16, 18
     plot_w = 640 - left - right
@@ -109,34 +113,48 @@ def exposure_bar_svg(rows: list[tuple], axis_max: float) -> str:
         return left + plot_w * min(v / axis_max, 1.0)
 
     body = [_rect(0, 0, 640, h, "var(--surface)")]
-    # gridlines + axis value labels (below the plot, above the caption)
     step = nice_ceiling(axis_max / 4)
     v = 0.0
     while v <= axis_max + 1e-6:
         body.append(f'<line x1="{x(v):.1f}" y1="{top}" x2="{x(v):.1f}" y2="{plot_bottom}" style="stroke:var(--border)" stroke-width="1"/>')
         body.append(_t(x(v), plot_bottom + 12, money(v), size=10, fill="var(--text-muted)", anchor="middle"))
         v += step
-    for i, (name, low, mean, high, thr, state) in enumerate(rows):
+    for i, (name, low, mean, high, thr, state, p_exc) in enumerate(rows):
         y = top + i * (row_h + gap)
         cy = y + row_h / 2
         colour = RAG[state][1]
+        bar_top, bar_h = y + 5, row_h - 10
         body.append(_t(left - 10, cy + 4, name, size=12, anchor="end"))
-        # whisker (5–95)
+        # receded whisker (uncertainty only — no longer implies the colour)
         body.append(f'<line x1="{x(low):.1f}" y1="{cy:.1f}" x2="{x(high):.1f}" y2="{cy:.1f}" '
-                    f'style="stroke:{colour}" stroke-width="1.5" opacity="0.5"/>')
-        # mean bar from 0
-        body.append(_rect(left, y + 5, max(x(mean) - left, 2), row_h - 10, colour, rx=4))
+                    f'style="stroke:var(--text-muted)" stroke-width="1" opacity="0.45"/>')
+        # unused-tolerance gap (bar-end -> tick), amber, only when not breaching
+        if state != "over" and mean < thr and thr <= axis_max:
+            body.append(_rect(x(mean), bar_top, max(x(thr) - x(mean), 0), bar_h,
+                              "var(--status-below)", rx=0, extra=' opacity="0.20"'))
+        # mean bar from 0 in the RAG colour
+        body.append(_rect(left, bar_top, max(x(mean) - left, 2), bar_h, colour, rx=4))
+        # breach overshoot (tick -> bar-end), emphasised in red
+        if mean > thr:
+            body.append(_rect(x(thr), bar_top, max(x(mean) - x(thr), 1), bar_h,
+                              "var(--status-over)", rx=0, extra=' opacity="0.55"'))
         # appetite tick
         if thr <= axis_max:
             body.append(f'<line x1="{x(thr):.1f}" y1="{y + 1:.1f}" x2="{x(thr):.1f}" y2="{y + row_h - 1:.1f}" '
                         f'style="stroke:var(--text-strong)" stroke-width="1.5" stroke-dasharray="2 2"/>')
-        body.append(_t(636, cy + 4, RAG[state][0], size=10, fill=colour, anchor="end", weight=600))
-    # caption line on its own baseline, below the axis value labels
+        body.append(_t(636, cy + 1, RAG[state][0], size=10, fill=colour, anchor="end", weight=600))
+        # surface the breach probability where material (>= 10%, SPEC v2.5 §2a).
+        # It is a tail probability, kept distinct from the position — labelled as
+        # a chance so it never reads as "how far over".
+        if p_exc >= 0.10:
+            body.append(_t(636, cy + 12, f"{round(p_exc * 100)}% breach", size=9,
+                           fill="var(--text-muted)", anchor="end"))
     cap_y = h - 5
     body.append(f'<line x1="{left}" y1="{cap_y - 4}" x2="{left}" y2="{cap_y + 2}" '
                 f'style="stroke:var(--text-strong)" stroke-width="1.5" stroke-dasharray="2 2"/>')
     body.append(_t(left + 8, cap_y, "appetite line", size=10, fill="var(--text-muted)"))
-    body.append(_t(636, cap_y, "bar = mean residual · line = 5–95% range", size=10, fill="var(--text-muted)", anchor="end"))
+    body.append(_t(636, cap_y, "bar = mean · line = 5–95% · shading = unused / breach",
+                   size=10, fill="var(--text-muted)", anchor="end"))
     return _svg(640, h, "".join(body), "Ranked residual exposure by named risk")
 
 
@@ -289,22 +307,28 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
 def _view1(graph: Graph, eng: GraphEngine) -> str:
     ranked = sorted(eng.all_named_risk_residuals(), key=lambda r: r.band.mean, reverse=True)[:8]
     axis_max = nice_ceiling(max(r.band.high for r in ranked))
-    rows = [(r.named_risk.label, r.band.low, r.band.mean, r.band.high, r.threshold, r.state) for r in ranked]
+    rows = [(r.named_risk.label, r.band.low, r.band.mean, r.band.high, r.threshold, r.state, r.p_over_appetite)
+            for r in ranked]
     items = []
     for r in ranked:
         drivers = ", ".join(c.issue.id for c in r.drivers[:2]) or "baseline exposure"
         funded = "funded plan" if _addressed_by_funded(graph, r.scenario_ids) else "no funded plan"
+        # Position and probability, side by side but never conflated (SPEC v2.5 §2b/§2a):
+        # mean/appetite distinguishes a mild amber from the standout; P(exceed) is the tail.
+        ratio = f"{round(r.band.mean / r.threshold * 100)}% of appetite"
+        pexc = f" · {round(r.p_over_appetite * 100)}% chance of breach" if r.p_over_appetite >= 0.10 else ""
         items.append(
             f'<tr><td>{_dot(r.state)}</td><td class="nm" title="{_esc(r.named_risk.title)}">{_esc(r.named_risk.label)}</td>'
             f'<td class="num">{band_str(r.band.low, r.band.high)}</td>'
             f'<td class="num">{money(r.threshold)}</td>'
+            f'<td class="drv">{_esc(ratio)}{pexc}</td>'
             f'<td class="drv">{_esc(drivers)} · {funded}</td></tr>')
     return _card(
         "1", "Your biggest exposures now",
-        "Top named risks by residual, banded against each risk's appetite, with what is driving each.",
+        "Top named risks by residual, banded against each risk's appetite: position (bar vs line) and breach probability, kept separate.",
         exposure_bar_svg(rows, axis_max)
         + f'<table class="tbl"><thead><tr><th></th><th>Named risk</th><th class="num">Residual (90% CI)</th>'
-        f'<th class="num">Appetite</th><th>Driven by</th></tr></thead><tbody>{"".join(items)}</tbody></table>')
+        f'<th class="num">Appetite</th><th>Position</th><th>Driven by</th></tr></thead><tbody>{"".join(items)}</tbody></table>')
 
 
 def _view2(graph: Graph, eng: GraphEngine) -> str:

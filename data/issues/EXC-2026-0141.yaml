@@ -9,7 +9,7 @@ control: [A.8.12]
 okr: data-platform
 exception_effect:
   moves: loss_magnitude
-  with_exception_90ci: [300000, 2000000]
+  with_exception_90ci: [200000, 1200000]
   estimated_by: a.silva@company.com
   estimated_on: 2026-05-02
 reason: technical_constraint
