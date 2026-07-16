@@ -393,93 +393,119 @@ def render_controls() -> str:
 #    residual. The RAG colour is then an OUTCOME of that authored line meeting
 #    tuned exposure (SPEC v2.2 §B), not a target fitted to.
 # ---------------------------------------------------------------------------
-# (id, title, domain, owner, appetite_threshold, appetite_rationale, threatens_okrs)
+# (id, title, short_title, domain, owner, appetite_threshold, appetite_rationale,
+#  threatens_okrs). short_title is the two-to-four-word headline the dashboard
+# shows (SPEC v2.4 §3); the full title stays for drill-down and tooltips.
 
 NAMED_RISKS = [
     # TR-SECURITY (7)
     ("NR-PROD-COMPROMISE", "Compromise of production systems via credential or access failure",
+     "Production compromise",
      "TR-SECURITY", "security-eng-lead@company.com", 1500000,
      "Core-launch risk; some tolerance during the rebuild, but production compromise erodes customer trust fast.",
      ["gcloud-migration", "core-platform"]),
     ("NR-DATA-EXFIL", "Exfiltration of regulated data from an analytics or export path",
+     "Regulated data exfiltration",
      "TR-SECURITY", "security-eng-lead@company.com", 2000000,
      "Regulated data, but exfil is adversarial and partly insurable; moderate tolerance.",
      ["data-platform"]),
     ("NR-PAYMENT-FRAUD", "Fraudulent transactions against the payments platform",
+     "Payment fraud",
      "TR-SECURITY", "payments-lead@company.com", 2500000,
      "Fraud is a managed cost of running payments; higher tolerance, tracked against margin.",
      ["payments-launch"]),
     ("NR-ENDPOINT-MALWARE", "Malware on a corporate endpoint leading to lateral movement",
+     "Endpoint malware",
      "TR-SECURITY", "it-lead@company.com", 2000000,
      "Recoverable with EDR and reimaging; moderate tolerance.", ["internal-tools"]),
     ("NR-CARD-TESTING", "Automated card-testing against the public checkout flow",
+     "Card-testing attacks",
      "TR-SECURITY", "payments-lead@company.com", 1500000,
      "Financial and recoverable; velocity limits cap the downside.", ["payments-launch"]),
     ("NR-ABUSE-ESCALATION", "Unmitigated abuse escalating on the platform",
+     "Abuse escalation",
      "TR-SECURITY", "tns-lead@company.com", 1500000,
      "Reputational; moderate tolerance backed by an SLA-driven response.", ["trust-and-safety"]),
     ("NR-ABUSE-DETECTION", "Gaps in automated detection of policy-violating content",
+     "Abuse-detection gaps",
      "TR-SECURITY", "tns-lead@company.com", 1500000,
      "Detection gaps are recoverable via retrain; moderate tolerance.", ["trust-and-safety"]),
     # TR-RESILIENCE (2)
     ("NR-PLATFORM-OUTAGE", "Customer-facing outage of a core platform service",
+     "Platform outage",
      "TR-RESILIENCE", "platform-lead@company.com", 2500000,
      "Availability risk knowingly carried to sustain launch velocity; bounded by SLA credits.",
      ["core-platform"]),
     ("NR-DATA-AVAILABILITY", "Loss of availability of a core data platform service",
+     "Data-platform outage",
      "TR-RESILIENCE", "data-platform-lead@company.com", 2000000,
      "Recoverable; failover reduces the blast radius.", ["data-platform"]),
     # TR-DATA-INTEGRITY (2) -- stays BELOW, but no longer the standout (SPEC v2.2 §F)
     ("NR-DATA-QUALITY", "Corrupted or unvalidated data feeding downstream decisions",
+     "Data quality",
      "TR-DATA-INTEGRITY", "data-platform-lead@company.com", 2000000,
      "Correctness matters, but bad data is usually caught and reprocessed.", ["data-platform"]),
     ("NR-PIPELINE-INTEGRITY", "Schema-invalid or corrupted writes entering the data pipeline",
+     "Pipeline integrity",
      "TR-DATA-INTEGRITY", "data-platform-lead@company.com", 2000000,
      "Recoverable via replay; write-time gates cap the downside.", ["data-platform"]),
     # TR-PRIVACY (5) -- regulated, low tolerance across the board; the standout
     # amber-end-to-end domain (SPEC v2.2 §F). Over-control is the canonical
     # regulated failure: gold-plating the domain no one thinks about.
     ("NR-DATA-RESIDENCY", "Regulated customer data processed or stored outside its required region",
+     "Data residency",
      "TR-PRIVACY", "privacy-eng-lead@company.com", 650000,
      "Regulated data; low tolerance regardless of delivery upside.", ["data-platform", "data-residency"]),
     ("NR-SUBPROCESSOR-GOV", "Ungoverned subprocessor handling of regulated data",
+     "Subprocessor governance",
      "TR-PRIVACY", "privacy-eng-lead@company.com", 500000,
      "Regulated third-party processing; low tolerance -- a licence-to-operate risk.", ["data-platform"]),
     ("NR-DATA-RETENTION", "Personal data retained beyond its lawful retention window",
+     "Data over-retention",
      "TR-PRIVACY", "privacy-eng-lead@company.com", 600000,
      "Over-retention of PII is a pure obligation failure; low tolerance.", ["data-platform"]),
     ("NR-CONSENT-MGMT", "Tracking or processing without valid, current consent",
+     "Consent management",
      "TR-PRIVACY", "privacy-eng-lead@company.com", 750000,
      "Consent and tracking are regulator-facing; low tolerance regardless of product upside.",
      ["mobile-app"]),
     ("NR-PII-MINIMIZATION", "Collecting or exposing more personal data than needed",
+     "PII minimization",
      "TR-PRIVACY", "privacy-eng-lead@company.com", 500000,
      "Excess PII only adds liability; low tolerance.", ["data-platform"]),
     # TR-CHANGE (3; one emerging)
     ("NR-MIGRATION-AVAILABILITY", "Availability regressions introduced by the migration",
+     "Migration availability",
      "TR-CHANGE", "platform-lead@company.com", 2000000,
      "Elevated change risk deliberately accepted during the rebuild window.", ["gcloud-migration"]),
     ("NR-MIGRATION-DATAINTEGRITY", "Data integrity loss during monolith-to-microservices cutover",
+     "Cutover data integrity",
      "TR-CHANGE", "platform-lead@company.com", 1500000,
      "Cutover integrity issues are recoverable with dual-write checks.", ["gcloud-migration"]),
     ("NR-AI-AGENT-AUTONOMY", "Autonomous agents taking unsafe action in production",
+     "Unsafe agent autonomy",
      "TR-CHANGE", "ai-platform-lead@company.com", 1500000,
      "Emerging; a nominal tolerance pending the calibration to trust the number.", ["ai-platform"]),
     # TR-THIRDPARTY (3; one emerging)
     ("NR-VENDOR-ACCESS", "Excessive third-party vendor access to internal systems",
+     "Vendor access",
      "TR-THIRDPARTY", "ciso-office@company.com", 2000000,
      "Vendor access is scoped and revocable; moderate tolerance.", ["mobile-app", "internal-tools"]),
     ("NR-SUPPLIER-OUTAGE", "A critical supplier's outage cascades into our service",
+     "Supplier outage",
      "TR-THIRDPARTY", "ciso-office@company.com", 2000000,
      "External dependency; tolerance bounded by tested fallbacks.", ["core-platform"]),
     ("NR-MODEL-SUPPLY", "Concentration on a single external model provider",
+     "Model-provider concentration",
      "TR-THIRDPARTY", "ai-platform-lead@company.com", 1500000,
      "Emerging; a nominal tolerance pending a tested fallback.", ["ai-platform"]),
     # TR-COMPLIANCE (2) -- regulated, low tolerance
     ("NR-PCI-SCOPE", "PCI scope expansion / cardholder data handling gap",
+     "PCI scope creep",
      "TR-COMPLIANCE", "payments-lead@company.com", 1000000,
      "PCI is pass/fail with the card schemes; low tolerance.", ["payments-launch"]),
     ("NR-REG-FILINGS", "Missed regulatory filing or lapsed certification",
+     "Regulatory filings",
      "TR-COMPLIANCE", "compliance-lead@company.com", 1000000,
      "Filing obligations are binary; low tolerance.", ["run-the-business"]),
 ]
@@ -499,11 +525,12 @@ NAMED_RISK_YAML_HEAD = """\
 
 def render_named_risks() -> str:
     out = [NAMED_RISK_YAML_HEAD]
-    for nid, title, domain, owner, threshold, rationale, okrs in NAMED_RISKS:
+    for nid, title, short_title, domain, owner, threshold, rationale, okrs in NAMED_RISKS:
         okr_render = "[" + ", ".join(okrs) + "]"
         out.append(
             f"{nid}:\n"
             f"  title: {title}\n"
+            f"  short_title: {short_title}\n"
             f"  domain: {domain}\n"
             f"  owner: {owner}\n"
             f"  appetite_threshold: {threshold}\n"

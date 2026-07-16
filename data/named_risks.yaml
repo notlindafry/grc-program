@@ -10,6 +10,7 @@
 
 NR-PROD-COMPROMISE:
   title: Compromise of production systems via credential or access failure
+  short_title: Production compromise
   domain: TR-SECURITY
   owner: security-eng-lead@company.com
   appetite_threshold: 1500000
@@ -18,6 +19,7 @@ NR-PROD-COMPROMISE:
 
 NR-DATA-EXFIL:
   title: Exfiltration of regulated data from an analytics or export path
+  short_title: Regulated data exfiltration
   domain: TR-SECURITY
   owner: security-eng-lead@company.com
   appetite_threshold: 2000000
@@ -26,6 +28,7 @@ NR-DATA-EXFIL:
 
 NR-PAYMENT-FRAUD:
   title: Fraudulent transactions against the payments platform
+  short_title: Payment fraud
   domain: TR-SECURITY
   owner: payments-lead@company.com
   appetite_threshold: 2500000
@@ -34,6 +37,7 @@ NR-PAYMENT-FRAUD:
 
 NR-ENDPOINT-MALWARE:
   title: Malware on a corporate endpoint leading to lateral movement
+  short_title: Endpoint malware
   domain: TR-SECURITY
   owner: it-lead@company.com
   appetite_threshold: 2000000
@@ -42,6 +46,7 @@ NR-ENDPOINT-MALWARE:
 
 NR-CARD-TESTING:
   title: Automated card-testing against the public checkout flow
+  short_title: Card-testing attacks
   domain: TR-SECURITY
   owner: payments-lead@company.com
   appetite_threshold: 1500000
@@ -50,6 +55,7 @@ NR-CARD-TESTING:
 
 NR-ABUSE-ESCALATION:
   title: Unmitigated abuse escalating on the platform
+  short_title: Abuse escalation
   domain: TR-SECURITY
   owner: tns-lead@company.com
   appetite_threshold: 1500000
@@ -58,6 +64,7 @@ NR-ABUSE-ESCALATION:
 
 NR-ABUSE-DETECTION:
   title: Gaps in automated detection of policy-violating content
+  short_title: Abuse-detection gaps
   domain: TR-SECURITY
   owner: tns-lead@company.com
   appetite_threshold: 1500000
@@ -66,6 +73,7 @@ NR-ABUSE-DETECTION:
 
 NR-PLATFORM-OUTAGE:
   title: Customer-facing outage of a core platform service
+  short_title: Platform outage
   domain: TR-RESILIENCE
   owner: platform-lead@company.com
   appetite_threshold: 2500000
@@ -74,6 +82,7 @@ NR-PLATFORM-OUTAGE:
 
 NR-DATA-AVAILABILITY:
   title: Loss of availability of a core data platform service
+  short_title: Data-platform outage
   domain: TR-RESILIENCE
   owner: data-platform-lead@company.com
   appetite_threshold: 2000000
@@ -82,6 +91,7 @@ NR-DATA-AVAILABILITY:
 
 NR-DATA-QUALITY:
   title: Corrupted or unvalidated data feeding downstream decisions
+  short_title: Data quality
   domain: TR-DATA-INTEGRITY
   owner: data-platform-lead@company.com
   appetite_threshold: 2000000
@@ -90,6 +100,7 @@ NR-DATA-QUALITY:
 
 NR-PIPELINE-INTEGRITY:
   title: Schema-invalid or corrupted writes entering the data pipeline
+  short_title: Pipeline integrity
   domain: TR-DATA-INTEGRITY
   owner: data-platform-lead@company.com
   appetite_threshold: 2000000
@@ -98,6 +109,7 @@ NR-PIPELINE-INTEGRITY:
 
 NR-DATA-RESIDENCY:
   title: Regulated customer data processed or stored outside its required region
+  short_title: Data residency
   domain: TR-PRIVACY
   owner: privacy-eng-lead@company.com
   appetite_threshold: 650000
@@ -106,6 +118,7 @@ NR-DATA-RESIDENCY:
 
 NR-SUBPROCESSOR-GOV:
   title: Ungoverned subprocessor handling of regulated data
+  short_title: Subprocessor governance
   domain: TR-PRIVACY
   owner: privacy-eng-lead@company.com
   appetite_threshold: 500000
@@ -114,6 +127,7 @@ NR-SUBPROCESSOR-GOV:
 
 NR-DATA-RETENTION:
   title: Personal data retained beyond its lawful retention window
+  short_title: Data over-retention
   domain: TR-PRIVACY
   owner: privacy-eng-lead@company.com
   appetite_threshold: 600000
@@ -122,6 +136,7 @@ NR-DATA-RETENTION:
 
 NR-CONSENT-MGMT:
   title: Tracking or processing without valid, current consent
+  short_title: Consent management
   domain: TR-PRIVACY
   owner: privacy-eng-lead@company.com
   appetite_threshold: 750000
@@ -130,6 +145,7 @@ NR-CONSENT-MGMT:
 
 NR-PII-MINIMIZATION:
   title: Collecting or exposing more personal data than needed
+  short_title: PII minimization
   domain: TR-PRIVACY
   owner: privacy-eng-lead@company.com
   appetite_threshold: 500000
@@ -138,6 +154,7 @@ NR-PII-MINIMIZATION:
 
 NR-MIGRATION-AVAILABILITY:
   title: Availability regressions introduced by the migration
+  short_title: Migration availability
   domain: TR-CHANGE
   owner: platform-lead@company.com
   appetite_threshold: 2000000
@@ -146,6 +163,7 @@ NR-MIGRATION-AVAILABILITY:
 
 NR-MIGRATION-DATAINTEGRITY:
   title: Data integrity loss during monolith-to-microservices cutover
+  short_title: Cutover data integrity
   domain: TR-CHANGE
   owner: platform-lead@company.com
   appetite_threshold: 1500000
@@ -154,6 +172,7 @@ NR-MIGRATION-DATAINTEGRITY:
 
 NR-AI-AGENT-AUTONOMY:
   title: Autonomous agents taking unsafe action in production
+  short_title: Unsafe agent autonomy
   domain: TR-CHANGE
   owner: ai-platform-lead@company.com
   appetite_threshold: 1500000
@@ -162,6 +181,7 @@ NR-AI-AGENT-AUTONOMY:
 
 NR-VENDOR-ACCESS:
   title: Excessive third-party vendor access to internal systems
+  short_title: Vendor access
   domain: TR-THIRDPARTY
   owner: ciso-office@company.com
   appetite_threshold: 2000000
@@ -170,6 +190,7 @@ NR-VENDOR-ACCESS:
 
 NR-SUPPLIER-OUTAGE:
   title: A critical supplier's outage cascades into our service
+  short_title: Supplier outage
   domain: TR-THIRDPARTY
   owner: ciso-office@company.com
   appetite_threshold: 2000000
@@ -178,6 +199,7 @@ NR-SUPPLIER-OUTAGE:
 
 NR-MODEL-SUPPLY:
   title: Concentration on a single external model provider
+  short_title: Model-provider concentration
   domain: TR-THIRDPARTY
   owner: ai-platform-lead@company.com
   appetite_threshold: 1500000
@@ -186,6 +208,7 @@ NR-MODEL-SUPPLY:
 
 NR-PCI-SCOPE:
   title: PCI scope expansion / cardholder data handling gap
+  short_title: PCI scope creep
   domain: TR-COMPLIANCE
   owner: payments-lead@company.com
   appetite_threshold: 1000000
@@ -194,6 +217,7 @@ NR-PCI-SCOPE:
 
 NR-REG-FILINGS:
   title: Missed regulatory filing or lapsed certification
+  short_title: Regulatory filings
   domain: TR-COMPLIANCE
   owner: compliance-lead@company.com
   appetite_threshold: 1000000

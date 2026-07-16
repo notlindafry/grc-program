@@ -369,6 +369,11 @@ class NamedRisk:
     domain: str
     owner: str
     appetite_threshold: Optional[float]
+    # Two-to-four human words for headline use — chart labels, chips, table name
+    # cells (SPEC v2.4 §3 / v2 §6: IDs and foreign keys are drill-down detail,
+    # never the headline). Authored, not a cosmetic filter over the ID. The full
+    # ``title`` stays for drill-down text and tooltips. Falls back to ``title``.
+    short_title: str = ""
     # A one-line record of WHY this appetite was set (SPEC v2.2 §D2). Appetite is
     # an authored, declared tolerance -- never derived from the residual -- and
     # the rationale makes that authorship legible on the record and in drill-down.
@@ -384,10 +389,16 @@ class NamedRisk:
             domain=str(raw.get("domain", "")),
             owner=str(raw.get("owner", "")),
             appetite_threshold=_num(raw.get("appetite_threshold")),
+            short_title=str(raw.get("short_title", "")),
             appetite_rationale=str(raw.get("appetite_rationale", "")),
             threatens_okrs=_str_list(raw.get("threatens_okrs")),
             raw=raw,
         )
+
+    @property
+    def label(self) -> str:
+        """The headline name: ``short_title`` if authored, else the full title."""
+        return self.short_title or self.title
 
 
 @dataclass
