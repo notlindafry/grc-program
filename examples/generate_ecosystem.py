@@ -618,9 +618,8 @@ SCENARIOS = [
      ["ai"], "emerging", "rising"),
 ]
 
-# One scenario carries the offline AI incident->scenario mapping seam (SPEC §8,
-# §5 story 8), stored as data so the dashboard shows an incident-linked scenario
-# as if the pipeline ran.
+# The stored output of the offline AI incident->scenario mapping step, keyed by
+# the scenario it produced. See ``map_incident_to_scenario`` for the seam.
 SCENARIO_INCIDENTS = {
     "SCN-2026-0019": {
         "ticket_id": "INC-2026-0442",
@@ -636,6 +635,32 @@ SCENARIO_INCIDENTS = {
         "note": "Synthetic; produced once offline by the corpus generator seam (SPEC §8).",
     }
 }
+
+
+def map_incident_to_scenario(scenario_id: str) -> dict | None:
+    """SEAM — incident → scenario AI mapping, stubbed as data (SPEC §8, §5 story 8).
+
+    *Automation as data plus a documented extension point* (SPEC §1.4): this is
+    the seam, not the machine. In a real build this step runs **once, offline**,
+    calling the Anthropic API (the newsletter/profiler pattern): given a
+    free-text incident ticket it proposes a domain, named risk, target scenario,
+    the single factor it moves, and a band — which a human confirms before the
+    record is written into the corpus. The output carries ``mapped_by`` /
+    ``mapped_on`` provenance so a reader can see it came from the model, not a
+    person.
+
+    Here no API is called at generation time; the one offline result is stored
+    in ``SCENARIO_INCIDENTS`` and returned verbatim, so the dashboard's worked
+    AI example (SPEC §6) shows an incident-linked scenario with no live
+    dependency and a deterministic corpus.
+
+    **To make it live:** repoint the input at a real incident queue (PagerDuty /
+    Jira / ServiceNow), call the model per new ticket, and keep this return
+    shape — the loader, the ``incident`` block written below, and the dashboard
+    all read it unchanged. The mapping stays advisory: it moves an existing
+    factor, never adds a term, and never auto-writes without confirmation.
+    """
+    return SCENARIO_INCIDENTS.get(scenario_id)
 
 SCENARIO_HEAD = """\
 # Tier 3 -- the quantified loss event the Monte Carlo runs on (SPEC §2.4). The
@@ -664,7 +689,7 @@ def render_scenario(spec) -> str:
         f"lifecycle_state: {lifecycle}",
         f"trajectory: {trajectory}",
     ]
-    incident = SCENARIO_INCIDENTS.get(sid)
+    incident = map_incident_to_scenario(sid)  # SEAM (SPEC §8): offline AI mapping, stubbed as data
     if incident:
         lines.append("incident:")
         for k, v in incident.items():

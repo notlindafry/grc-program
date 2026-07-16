@@ -52,7 +52,10 @@ the harm) and **AI as a causation vector**. Both are tags on a scenario, and the
 portfolio can pivot to either. See **[`docs/schema.md`](docs/schema.md)** for
 every entity shape with a populated example, **[`docs/engine.md`](docs/engine.md)**
 for the aggregation and banding, and **[`docs/corpus-stories.md`](docs/corpus-stories.md)**
-for the designed stories the corpus tells.
+for the designed stories the corpus tells. **[`docs/next-steps.md`](docs/next-steps.md)**
+draws the scope line: what a full build would add (live evidence collection,
+policy-as-code, live incident mapping, intake/triage, KRI ingestion, tier-aware
+dedup) and what is deliberately left out.
 
 **The quant** is a deliberately light, domain-neutral adaptation loosely inspired
 by FAIR's frequency-times-magnitude decomposition, generalized so non-adversarial

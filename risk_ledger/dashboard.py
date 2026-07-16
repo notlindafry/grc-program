@@ -439,67 +439,94 @@ def _card(num: str, title: str, sub: str, inner: str) -> str:
 # Page
 # ---------------------------------------------------------------------------
 
-_CSS = f"""
-:root {{ color-scheme: dark; }}
-* {{ box-sizing: border-box; }}
-body {{ margin:0; background:{BG}; color:{TEXT};
-  font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; line-height:1.5;
-  -webkit-font-smoothing:antialiased; }}
-h1,h2,h3,h4,.hero-num,.tile-v {{ font-family:'Space Grotesk',Inter,sans-serif; font-weight:600; letter-spacing:-0.01em; }}
-a {{ color:{ACCENT}; }}
-.wrap {{ max-width:980px; margin:0 auto; padding:40px 24px 80px; }}
-header .eyebrow {{ color:{ACCENT}; font-size:13px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; }}
-header h1 {{ font-size:30px; margin:6px 0 4px; color:{TEXT_STRONG}; }}
-header .meta {{ color:{MUTED}; font-size:14px; }}
-.summary {{ margin:32px 0; }}
-.summary > h2 {{ font-size:17px; font-weight:500; color:{TEXT}; max-width:640px; margin:0 0 16px; }}
-.hero {{ background:{SURFACE}; border:1px solid {GRID}; border-radius:14px; padding:26px 28px; }}
-.hero-num {{ font-size:40px; line-height:1.1; }}
-.hero-cap {{ color:{TEXT}; font-size:15px; margin-top:8px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }}
-.hero-sub {{ color:{MUTED}; font-size:13.5px; margin-top:12px; max-width:720px; }}
-.tiles {{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:14px; }}
-.tile {{ background:{SURFACE}; border:1px solid {GRID}; border-radius:12px; padding:14px 16px; }}
-.tile-k {{ color:{MUTED}; font-size:11px; text-transform:uppercase; letter-spacing:0.06em; }}
-.tile-v {{ color:{TEXT_STRONG}; font-size:17px; margin:6px 0 4px; }}
-.tile-s {{ color:{MUTED}; font-size:12px; }}
-.strip {{ margin-top:14px; padding:14px 18px; border-left:3px solid {BELOW};
-  background:{SURFACE}; border-radius:0 10px 10px 0; font-size:13.5px; color:{TEXT}; }}
-.grid {{ display:grid; gap:20px; }}
-.card {{ background:{SURFACE}; border:1px solid {GRID}; border-radius:14px; padding:24px 26px; }}
-.vhdr {{ display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }}
-.vnum {{ flex:0 0 auto; width:28px; height:28px; border-radius:8px; background:{BG}; border:1px solid {ACCENT};
-  color:{ACCENT}; font-family:'Space Grotesk'; font-weight:600; display:grid; place-items:center; font-size:14px; }}
-.vhdr h3 {{ font-size:18px; margin:2px 0 2px; color:{TEXT_STRONG}; }}
-.vsub, .vhdr .vsub {{ color:{MUTED}; font-size:13px; margin:0; }}
-.lede {{ color:{TEXT}; font-size:13.5px; margin:0 0 14px; max-width:760px; }}
-.chain {{ color:{MUTED}; font-size:12.5px; margin-top:12px; }}
-.empty {{ color:{MUTED}; }}
-svg {{ display:block; margin:6px 0 16px; border-radius:10px; }}
-table.tbl {{ width:100%; border-collapse:collapse; font-size:13px; }}
-.tbl th {{ text-align:left; color:{MUTED}; font-weight:500; font-size:11px; text-transform:uppercase;
-  letter-spacing:0.04em; padding:6px 10px; border-bottom:1px solid {GRID}; }}
-.tbl td {{ padding:9px 10px; border-bottom:1px solid {GRID}; vertical-align:top; }}
-.tbl tr:last-child td {{ border-bottom:none; }}
-.tbl .num {{ text-align:right; font-family:'Space Grotesk'; white-space:nowrap; }}
-.tbl .nm {{ color:{TEXT_STRONG}; }}
-.tbl .drv {{ color:{MUTED}; }}
-.tbl .pol {{ color:{ACCENT}; font-size:12px; }}
-.tbl .tag {{ color:{BELOW_TINT}; font-size:12px; }}
-h4 {{ font-size:13px; color:{TEXT}; margin:18px 0 8px; }}
-.rag {{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }}
-.rag-l {{ font-size:11px; font-weight:600; letter-spacing:0.03em; }}
-.dot {{ width:9px; height:9px; border-radius:50%; display:inline-block; flex:0 0 auto; }}
-.ai .seam {{ font-size:10px; letter-spacing:0.1em; color:{BG}; background:{ACCENT}; padding:3px 8px;
-  border-radius:5px; font-weight:700; }}
-.ai .vhdr {{ align-items:center; }}
-.ai-flow {{ display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:12px; align-items:center; margin-top:8px; }}
-.ai-col {{ background:{BG}; border:1px solid {GRID}; border-radius:10px; padding:14px; }}
-.ai-k {{ color:{ACCENT}; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px; }}
-.ai-v {{ font-size:12.5px; color:{TEXT}; }}
-.ai-v .mut {{ color:{MUTED}; font-size:11px; }}
-.ai-arrow {{ color:{MUTED}; font-size:20px; text-align:center; }}
-footer {{ margin-top:40px; color:{MUTED}; font-size:12.5px; border-top:1px solid {GRID}; padding-top:18px; }}
-@media (max-width:720px) {{ .tiles {{ grid-template-columns:repeat(2,1fr); }} .ai-flow {{ grid-template-columns:1fr; }} .ai-arrow {{ transform:rotate(90deg); }} }}
+# The :root palette is the vibe-shelf design system, verbatim (SPEC §7 / the
+# shared design-system rules): five colours, every other shade derived with
+# color-mix(), --danger the one reserved warning red. The RAG status triad is the
+# one sanctioned extension — held OUTSIDE the five per SPEC §7, used only on risk
+# indicators (dots, bars, labels), never on chrome; --status-over IS --danger.
+# The Python colour constants above mirror these literals for the baked SVG marks,
+# which need real hex (SVG presentation attributes can't take var()).
+_ROOT = f"""
+:root {{
+  --bg:{BG}; --surface:{SURFACE}; --accent:{ACCENT}; --text:{TEXT}; --text-strong:{TEXT_STRONG};
+  --bg-raised:var(--surface);
+  --surface-hover:color-mix(in srgb, var(--surface) 84%, var(--accent));
+  --text-muted:color-mix(in srgb, var(--text), transparent 40%);
+  --text-faint:color-mix(in srgb, var(--text), transparent 58%);
+  --border:color-mix(in srgb, var(--accent), transparent 80%);
+  --border-strong:color-mix(in srgb, var(--accent), transparent 62%);
+  --accent-dim:color-mix(in srgb, var(--accent), transparent 84%);
+  --accent-ink:var(--bg);
+  --danger:{OVER};
+  --radius:12px; --radius-sm:8px; --maxw:1000px;
+  --font-display:"Space Grotesk", system-ui, sans-serif;
+  --font-body:"Inter", system-ui, sans-serif;
+  --status-over:var(--danger); --status-at:{AT}; --status-below:{BELOW}; --status-below-tint:{BELOW_TINT};
+  color-scheme: dark;
+}}
+"""
+
+_CSS = _ROOT + """
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); border-top:3px solid var(--accent);
+  font-family:var(--font-body); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+h1,h2,h3,h4,.hero-num,.tile-v { font-family:var(--font-display); font-weight:600; letter-spacing:-0.01em; }
+a { color:var(--accent); text-decoration:none; }
+a:hover { text-decoration:underline; }
+:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.wrap { max-width:var(--maxw); margin:0 auto; padding:40px 24px 80px; }
+header .eyebrow { color:var(--accent); font-size:10.5px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; }
+header h1 { font-size:30px; margin:6px 0 4px; color:var(--text-strong); }
+header .meta { color:var(--text-muted); font-size:13.5px; }
+.summary { margin:32px 0; }
+.summary > h2 { font-size:17px; font-weight:500; color:var(--text); max-width:640px; margin:0 0 16px; }
+.hero { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:26px 28px; }
+.hero-num { font-size:40px; line-height:1.1; }
+.hero-cap { color:var(--text); font-size:15px; margin-top:8px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.hero-sub { color:var(--text-muted); font-size:13.5px; margin-top:12px; max-width:720px; }
+.tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:14px; }
+.tile { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
+.tile-k { color:var(--text-muted); font-size:11px; text-transform:uppercase; letter-spacing:0.06em; }
+.tile-v { color:var(--text-strong); font-size:17px; margin:6px 0 4px; }
+.tile-s { color:var(--text-muted); font-size:12px; }
+.strip { margin-top:14px; padding:14px 18px; border-left:3px solid var(--status-below);
+  background:var(--surface); border-radius:0 var(--radius-sm) var(--radius-sm) 0; font-size:13.5px; color:var(--text); }
+.grid { display:grid; gap:20px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:24px 26px; }
+.vhdr { display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }
+.vnum { flex:0 0 auto; width:28px; height:28px; border-radius:var(--radius-sm); background:var(--bg); border:1px solid var(--accent);
+  color:var(--accent); font-family:var(--font-display); font-weight:600; display:grid; place-items:center; font-size:14px; }
+.vhdr h3 { font-size:18px; margin:2px 0 2px; color:var(--text-strong); }
+.vsub, .vhdr .vsub { color:var(--text-muted); font-size:13px; margin:0; }
+.lede { color:var(--text); font-size:13.5px; margin:0 0 14px; max-width:760px; }
+.chain { color:var(--text-muted); font-size:12.5px; margin-top:12px; }
+.empty { color:var(--text-muted); }
+svg { display:block; margin:6px 0 16px; border-radius:var(--radius-sm); }
+table.tbl { width:100%; border-collapse:collapse; font-size:13px; }
+.tbl th { text-align:left; color:var(--text-muted); font-weight:500; font-size:11px; text-transform:uppercase;
+  letter-spacing:0.04em; padding:6px 10px; border-bottom:1px solid var(--border); }
+.tbl td { padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+.tbl tr:last-child td { border-bottom:none; }
+.tbl .num { text-align:right; font-family:var(--font-display); white-space:nowrap; }
+.tbl .nm { color:var(--text-strong); }
+.tbl .drv { color:var(--text-muted); }
+.tbl .pol { color:var(--accent); font-size:12px; }
+.tbl .tag { color:var(--status-below-tint); font-size:12px; }
+h4 { font-size:13px; color:var(--text); margin:18px 0 8px; }
+.rag { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+.rag-l { font-size:11px; font-weight:600; letter-spacing:0.03em; }
+.dot { width:9px; height:9px; border-radius:50%; display:inline-block; flex:0 0 auto; }
+.ai .seam { font-size:10px; letter-spacing:0.1em; color:var(--accent-ink); background:var(--accent); padding:3px 8px;
+  border-radius:5px; font-weight:700; }
+.ai .vhdr { align-items:center; }
+.ai-flow { display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:12px; align-items:center; margin-top:8px; }
+.ai-col { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; }
+.ai-k { color:var(--accent); font-size:11px; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px; }
+.ai-v { font-size:12.5px; color:var(--text); }
+.ai-v .mut { color:var(--text-muted); font-size:11px; }
+.ai-arrow { color:var(--text-muted); font-size:20px; text-align:center; }
+footer { margin-top:40px; color:var(--text-muted); font-size:12.5px; border-top:1px solid var(--border); padding-top:18px; }
+@media (max-width:720px) { .tiles { grid-template-columns:repeat(2,1fr); } .ai-flow { grid-template-columns:1fr; } .ai-arrow { transform:rotate(90deg); } }
 """
 
 
