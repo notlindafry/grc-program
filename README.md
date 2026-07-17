@@ -130,8 +130,8 @@ synthetic corpus with `python examples/generate_ecosystem.py`.
 
 The hero artifact is an executive dashboard rendered from this corpus by
 `risk-ledger dashboard` (a single self-contained dark HTML page — a portfolio
-summary plus a closed set of six views and one worked AI example, with charts
-baked as inline SVG and no JS framework, SPEC §6/§7/§10). It writes to
+summary plus a closed set of seven views and one worked AI example, with charts
+baked as inline SVG and no JS framework, SPEC §6/§7). It writes to
 `docs/dashboard.html`, which the deploy Action publishes to Vercel:
 
 **▶ [Live dashboard](https://grc-report.vercel.app)**

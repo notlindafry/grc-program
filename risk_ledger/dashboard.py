@@ -1,15 +1,18 @@
 """The hero artifact: an executive dashboard for a VP of Engineering (SPEC §6, §7).
 
 Rendered from the derived graph and the engine, as a single self-contained dark
-HTML page: a portfolio summary (the ten-second read) plus a **closed set of six
+HTML page: a portfolio summary (the ten-second read) plus a **closed set of seven
 views** and one worked AI example. No JS framework; charts are baked SVG. The
 brand is the vibe-shelf design system adapted for a read-only report (SPEC §7):
 dark surfaces, sage accent, Inter/Space Grotesk, flat, with the RAG status triad
 held outside the five-colour palette and used only on risk indicators, never on
 chrome, never colour-alone.
 
-Do not add a seventh view (SPEC §10). If something feels like it needs one, that
-is scope creep.
+The set is closed at seven (SPEC v2.7 §8). The six-view ceiling held from Day 4
+covered only the *breach-shaped* problems; view 2 ("Where you're over-investing")
+was the one missing problem class — over-control — not scope creep. A view earns
+its place by mapping to a question a VP actually asks; do not add an eighth unless
+one genuinely does.
 """
 
 from __future__ import annotations
@@ -250,6 +253,36 @@ def _addressed_by_funded(graph: Graph, scenario_ids: list[str]) -> bool:
     return any(r.status in funded for r in graph.remediations if r.id in rem_ids)
 
 
+def _domain_declared(graph: Graph, rollup) -> float:
+    """Sum of the authored appetite thresholds of a domain's named risks — the
+    tolerance the domain is *allowed* to spend (SPEC v2.7 §2)."""
+    return sum(graph.named_risks[nid].appetite_threshold or 0.0 for nid in rollup.named_risk_ids)
+
+
+def _rag_counts_html(rag_counts: dict) -> str:
+    """The domain's RAG mix as counted dots — every count carries its number, so
+    identity is never colour-alone (SPEC §7). Zeros stay, faint, to keep the read."""
+    parts = []
+    for state in ("over", "at", "below"):
+        n = rag_counts.get(state, 0)
+        op = "" if n else ' style="opacity:.3"'
+        parts.append(f'<span class="ragc"{op}><span class="dot" style="background:{RAG[state][1]}"></span>{n}</span>')
+    return '<span class="ragcs">' + "".join(parts) + "</span>"
+
+
+def _pct_bar(used: float) -> str:
+    """A mini bar of tolerance used vs the declared line: a short bar is a domain
+    spending far below what it said it would tolerate — the over-control signal."""
+    return (f'<span class="ubar"><span class="ufill" style="width:{min(used * 100, 100):.0f}%"></span></span>'
+            f'<span class="upct">{round(used * 100)}%</span>')
+
+
+def _over_controlled_domain(graph: Graph, eng: GraphEngine):
+    """The domain using the least of its declared tolerance (SPEC v2.7 §3)."""
+    rollups = [d for d in eng.all_domain_rollups() if _domain_declared(graph, d) > 0]
+    return min(rollups, key=lambda d: d.band.mean / _domain_declared(graph, d), default=None)
+
+
 # ---------------------------------------------------------------------------
 # Sections
 # ---------------------------------------------------------------------------
@@ -267,7 +300,8 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
     drifts = [d for d in drifts if d.true and d.has_undeclared_debt]
     drifts.sort(key=lambda d: (d.true.mean - (d.reported.mean if d.reported else 0)), reverse=True)
     launch = drifts[0] if drifts else None
-    within = [r for r in eng.all_named_risk_residuals() if r.state == "below"]
+    oc = _over_controlled_domain(graph, eng)  # over-investing is a problem too (SPEC v2.7 §3)
+    oc_declared = _domain_declared(graph, oc) if oc else 0.0
 
     pos = RAG[p.appetite_state]
     cards = []
@@ -280,28 +314,30 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
         f'{money(p.capacity)} materiality line this year ({round(p.p_over_appetite * 100)}% over appetite). '
         f'{round(p.band.mean / graph.enterprise.revenue_annual * 1000) / 10}% of revenue.</div></div>'
     )
+    # Five peer tiles. The over-control tile sits *in* the row, not below it: over-
+    # investing is a problem and belongs with the problems (SPEC v2.7 §3). The old
+    # soft "nothing to worry about" strip that filed over-control as an aside is gone.
     tiles = [
         ("Top fixes", ", ".join(r.named_risk.label for r in over[:3]) or "—",
-         f"{len(over)} named risks over appetite"),
+         f"{len(over)} named risks over appetite", False),
         ("Riding a launch", _okr_name(graph, launch.okr) if launch else "—",
-         (f"+{money(launch.true.mean - launch.reported.mean)} undeclared debt on {_okr_name(graph, launch.okr)}" if launch else "no diverted debt")),
+         (f"+{money(launch.true.mean - launch.reported.mean)} undeclared debt on {_okr_name(graph, launch.okr)}" if launch else "no diverted debt"), False),
         ("Falling through cracks", f"{len(orphans)} orphans",
-         "over appetite, no funded plan"),
+         "over appetite, no funded plan", False),
         ("The can you keep kicking", f"{n_renew} renewed · {n_slip} slipped",
-         "temporary-forever + slipped dates"),
+         "temporary-forever + slipped dates", False),
+        ("Over-controlled", oc.domain.title if oc else "—",
+         (f"{round(oc.band.mean / oc_declared * 100)}% of {money(oc_declared)} declared tolerance used" if oc else "—"),
+         True),
     ]
     tile_html = "".join(
-        f'<div class="tile"><div class="tile-k">{_esc(k)}</div>'
+        f'<div class="tile{" warn" if warn else ""}"><div class="tile-k">{_esc(k)}</div>'
         f'<div class="tile-v">{_esc(v)}</div><div class="tile-s">{_esc(s)}</div></div>'
-        for k, v, s in tiles
+        for k, v, s, warn in tiles
     )
-    strip = (f'<div class="strip">{len(within)} of {len(eng.all_named_risk_residuals())} named risks sit '
-             f'<b>below appetite</b> {_dot("below")} — not a green all-clear but unused tolerance: '
-             f'over-controlled, or an appetite set too high. The reassurance strip is mostly an amber '
-             f'“possibly over-controlling” signal.</div>')
     return (f'<section class="summary"><h2>Where are we weakest, what do we fix first, '
             f'and why does it matter to what we\'re shipping?</h2>{cards[0]}'
-            f'<div class="tiles">{tile_html}</div>{strip}</section>')
+            f'<div class="tiles">{tile_html}</div></section>')
 
 
 def _view1(graph: Graph, eng: GraphEngine) -> str:
@@ -331,6 +367,45 @@ def _view1(graph: Graph, eng: GraphEngine) -> str:
         f'<th class="num">Appetite</th><th>Position</th><th>Driven by</th></tr></thead><tbody>{"".join(items)}</tbody></table>')
 
 
+def _view_domains(graph: Graph, eng: GraphEngine) -> str:
+    """View 2 (SPEC v2.7 §4): the over-investment view, and the only place Tier 1
+    (domains) appears in the artifact. One row per domain, ranked ascending by
+    tolerance used, so the over-controlled domain leads. Over-control is a peer of
+    'biggest exposures', not an afterthought — a domain spending far below the line
+    it set is control effort not spent shipping."""
+    data = []
+    for d in eng.all_domain_rollups():
+        declared = _domain_declared(graph, d)
+        data.append((d.band.mean / declared if declared else 0.0, d, declared))
+    data.sort(key=lambda t: t[0])  # ascending by % used — Privacy first
+    rows = []
+    for used, d, declared in data:
+        rc = d.rag_counts
+        all_amber = rc.get("over", 0) == 0 and rc.get("at", 0) == 0  # the standout
+        cls = ' class="row-amber"' if all_amber else ""
+        rows.append(
+            f'<tr{cls}><td class="nm">{_esc(d.domain.title)}</td>'
+            f'<td class="num">{money(d.band.mean)}</td>'
+            f'<td class="num">{money(declared)}</td>'
+            f'<td class="ucell">{_pct_bar(used)}</td>'
+            f'<td>{_rag_counts_html(rc)}</td></tr>')
+    total_thr = sum(nr.appetite_threshold or 0 for nr in graph.named_risks.values())
+    app = eng.portfolio().appetite
+    flag = (f'<p class="chain">Bottom-up appetite totals <b>{money(total_thr)}</b> against a {money(app)} declared '
+            f'enterprise appetite (<b>{total_thr / app:.2f}×</b>). Either the risk-level thresholds are generous, '
+            f'or the enterprise line is not what the business actually tolerates.</p>')
+    inner = (f'<p class="lede">Declared tolerance you are <i>not</i> using. Control effort spent below the line you '
+             f'set is effort not spent shipping. Ranked by share of each domain\'s authored tolerance the residual '
+             f'actually uses — the shortest bar is the most over-controlled. The RAG mix is over / at / below, each '
+             f'with its count.</p>'
+             f'<table class="tbl"><thead><tr><th>Domain (Tier 1)</th><th class="num">Residual</th>'
+             f'<th class="num">Declared tolerance</th><th>Tolerance used</th><th>Risk mix (R/G/A)</th></tr></thead>'
+             f'<tbody>{"".join(rows)}</tbody></table>{flag}')
+    return _card("2", "Where you're over-investing",
+                 "Domains ranked by how little of their declared tolerance they use — over-control is a problem too.",
+                 inner)
+
+
 def _view2(graph: Graph, eng: GraphEngine) -> str:
     over = [r for r in eng.all_named_risk_residuals() if r.state == "over"]
     orphans = [r for r in over if not _addressed_by_funded(graph, r.scenario_ids)]
@@ -348,7 +423,7 @@ def _view2(graph: Graph, eng: GraphEngine) -> str:
                  f'the exposure the exception lens alone would miss.</p>'
                  f'<table class="tbl"><thead><tr><th></th><th>Named risk</th><th class="num">Residual</th>'
                  f'<th>Owner</th><th>Why it matters</th></tr></thead><tbody>{rows}</tbody></table>')
-    return _card("2", "Falling through the cracks", "Orphans: over appetite, not accepted, no funded plan.", inner)
+    return _card("3", "Falling through the cracks", "Orphans: over appetite, not accepted, no funded plan.", inner)
 
 
 def _view3(graph: Graph, eng: GraphEngine) -> str:
@@ -371,7 +446,7 @@ def _view3(graph: Graph, eng: GraphEngine) -> str:
              f'provability signal). Every control traces up to a governing policy.</p>'
              f'<table class="tbl"><thead><tr><th>Health</th><th>Control (ISO 27001:2022)</th><th>Evidence</th>'
              f'<th>Why</th><th>Policy</th></tr></thead><tbody>{"".join(rows)}</tbody></table>')
-    return _card("3", "Where your safeguards are weakest",
+    return _card("4", "Where your safeguards are weakest",
                  "Control health with evidence blind spots and the governing policy per control.", inner)
 
 
@@ -393,7 +468,7 @@ def _view4(graph: Graph, eng: GraphEngine) -> str:
              f'(<code>diverted_to</code>). The amber overhang is undeclared risk debt.</p>'
              + launch_debt_svg(rows, axis_max)
              + (f'<p class="chain">Starvation chain: {chain}</p>' if chain else ""))
-    return _card("4", "Risk riding on your launches and rebuilds",
+    return _card("5", "Risk riding on your launches and rebuilds",
                  "The launch-centric OKR view: risk debt per major launch/rebuild, and the starvation chain.", inner)
 
 
@@ -419,7 +494,7 @@ def _view5(graph: Graph, eng: GraphEngine) -> str:
              + f'<h4>Slipped remediation target dates ({len(slipped_remediations(graph, eng.config))})</h4>'
              f'<table class="tbl"><thead><tr><th>Remediation</th><th>Status</th><th class="num">Target (past)</th>'
              f'<th>Work</th></tr></thead><tbody>{srows}</tbody></table>')
-    return _card("5", "The can you keep kicking",
+    return _card("6", "The can you keep kicking",
                  "Chronic deferrals from renewal counts and slipped remediation target dates.", inner)
 
 
@@ -442,7 +517,7 @@ def _view6(graph: Graph, eng: GraphEngine) -> str:
              f'<table class="tbl"><thead><tr><th>Emerging risk</th><th>Vector</th><th class="num">Wide interval</th>'
              f'<th>Trajectory</th><th>If promoted</th></tr></thead><tbody>{erows}</tbody></table>'
              f'<p class="chain">KRI breaches feeding the horizon ({len(breached)}): {_esc(kris)}…</p>')
-    return _card("6", "On the horizon",
+    return _card("7", "On the horizon",
                  "Emerging risks with wide bands and trajectory, plus the KRI breaches feeding them.", inner)
 
 
@@ -525,13 +600,21 @@ header .meta { color:var(--text-muted); font-size:13.5px; }
 .hero-num { font-size:40px; line-height:1.1; }
 .hero-cap { color:var(--text); font-size:15px; margin-top:8px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .hero-sub { color:var(--text-muted); font-size:13.5px; margin-top:12px; max-width:720px; }
-.tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:14px; }
+.tiles { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-top:14px; }
 .tile { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
+.tile.warn { border-left:3px solid var(--status-below); }
+.tile.warn .tile-k { color:var(--status-below-tint); }
 .tile-k { color:var(--text-muted); font-size:11px; text-transform:uppercase; letter-spacing:0.06em; }
 .tile-v { color:var(--text-strong); font-size:17px; margin:6px 0 4px; }
 .tile-s { color:var(--text-muted); font-size:12px; }
-.strip { margin-top:14px; padding:14px 18px; border-left:3px solid var(--status-below);
-  background:var(--surface); border-radius:0 var(--radius-sm) var(--radius-sm) 0; font-size:13.5px; color:var(--text); }
+.ragcs { display:inline-flex; gap:10px; }
+.ragc { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--text); font-family:var(--font-display); }
+.ucell { min-width:120px; }
+.ubar { display:inline-block; width:78px; height:7px; border-radius:var(--radius-sm); background:var(--border); vertical-align:middle; overflow:hidden; }
+.ufill { display:block; height:100%; background:var(--accent); border-radius:var(--radius-sm); }
+.upct { margin-left:8px; font-family:var(--font-display); font-size:12.5px; color:var(--text); }
+.tbl tr.row-amber td { background:color-mix(in srgb, var(--status-below), transparent 90%); }
+.tbl tr.row-amber td:first-child { box-shadow:inset 3px 0 0 var(--status-below); }
 .grid { display:grid; gap:20px; }
 .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px 26px; }
 .vhdr { display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }
@@ -581,8 +664,9 @@ def build_dashboard(graph: Graph, eng: GraphEngine) -> str:
         f'{eng.config.as_of.isoformat()} · <b>synthetic data</b>, generated from git-native YAML</div></header>'
         + _summary(graph, eng)
         + '<div class="grid">'
-        + _view1(graph, eng) + _view2(graph, eng) + _view3(graph, eng)
-        + _view4(graph, eng) + _view5(graph, eng) + _view6(graph, eng)
+        + _view1(graph, eng) + _view_domains(graph, eng)
+        + _view2(graph, eng) + _view3(graph, eng) + _view4(graph, eng)
+        + _view5(graph, eng) + _view6(graph, eng)
         + _ai_example(graph)
         + '</div>'
         '<footer>Every figure is a 90% confidence interval from a light FAIR-shaped Monte Carlo, measured '
