@@ -289,13 +289,16 @@ def test_control_health_never_touches_residual(corpus_engine):
     assert all(c.issue.type in ("exception", "vuln") for c in res.contributors)
 
 
-def test_emerging_items_are_ai_vectored_and_would_breach(corpus_engine):
+def test_emerging_items_are_ai_vectored_and_not_uniform(corpus_engine):
+    # SPEC v2.8 §5b: emerging is AI-vectored but deliberately NOT 3/3 uniform --
+    # a mix of trajectories, and not every item would breach if promoted.
     _, eng = corpus_engine
     items = eng.emerging_items()
     assert len(items) >= 3
-    assert all(i.trajectory == "rising" for i in items)
     assert all("ai" in i.scenario.vectors for i in items)
-    assert any(i.would_breach for i in items)
+    assert len({i.trajectory for i in items}) > 1          # trajectories vary
+    assert any(i.would_breach for i in items)              # some would breach
+    assert any(not i.would_breach for i in items)          # ...but not all
 
 
 def test_kri_triggers_surface_as_signals(corpus_engine):
@@ -347,12 +350,11 @@ def test_exactly_one_amber_end_to_end_domain(corpus_engine):
 
 def test_exceedance_probabilities(corpus_engine):
     # The capacity read is a tail probability, not a mean test (SPEC v2.2 §E).
-    # After the v2.5 rebalance the portfolio carries more exposure operating AT
-    # appetite, so the capacity probability is elevated but stays sub-crisis --
-    # over the $10M appetite, well under a coin-flip chance of the $15M line.
+    # v2.8 §1 compressed the right tail back into the governance band: over the
+    # $10M appetite, a 5-8% chance of crossing the $15M materiality line.
     _, eng = corpus_engine
     p = eng.portfolio()
-    assert 0.08 <= p.p_over_capacity <= 0.25    # elevated governance moment, not a crisis
+    assert 0.05 <= p.p_over_capacity <= 0.08    # a governance moment, not a crisis
     assert p.p_over_appetite > 0.90             # the breach signal stays unambiguous
     # Every OVER named risk clears the danger gate: P(exceed its appetite) >= p_red.
     overs = [r for r in eng.all_named_risk_residuals() if r.state == RAG_OVER]

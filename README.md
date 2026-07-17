@@ -106,7 +106,7 @@ are.
 
 **Exceedance, not eyeballing.** Against a hard line the tail is the question, not
 the mean. The portfolio states one position and one probability: *"Residual
-$12.3M–$15.7M against a $10M appetite: over. Roughly a 14% chance of crossing the
+$12.6M–$15.1M against a $10M appetite: over. Roughly a 6% chance of crossing the
 $15M materiality line this year."*
 
 ## Install

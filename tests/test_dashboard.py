@@ -132,6 +132,41 @@ def test_bottom_up_appetite_flag_renders(page: str) -> None:
     assert "3.65" in page and "$36.5M" in page
 
 
+def test_view1_is_an_interval_plot(page: str) -> None:
+    # SPEC v2.8 §2: the mark is the p5-p95 interval with the mean as an interior
+    # tick and the beyond-appetite slice in red; the caption says so honestly.
+    assert "interval = 5&#x2013;95%" in page or "interval = 5–95%" in page
+    assert "breach mass" in page
+    assert "bar = mean" not in page  # the old zero-anchored bar caption is gone
+
+
+def test_view2_ranks_by_idle_dollars_with_status(page: str) -> None:
+    # SPEC v2.8 §3: the Simpson's-trap ratio is gone; idle dollars + a status.
+    assert "Idle tolerance" in page
+    assert "OVER-CONTROLLED" in page and "MIS-ALLOCATED" in page
+    assert ">Tolerance used<" not in page  # the aggregate ratio column is gone
+
+
+def test_view4_shows_mitigated_risks_not_policy(page: str) -> None:
+    # SPEC v2.8 §4: the Policy column is replaced by the risks the control mitigates.
+    assert "Mitigates" in page
+    assert ">Policy</th>" not in page
+
+
+def test_no_probability_renders_as_a_certainty(page: str) -> None:
+    # SPEC v2.8 §6: a probability printed as a bare 100% / 0% reads like a bug.
+    # (width:100% on responsive SVGs / tables is layout, not a probability.)
+    prose = re.sub(r"width[:=]\"?100%\"?", "", page)
+    assert "100%" not in prose
+    assert not re.search(r"[^0-9.]0% ", prose)
+
+
+def test_pct_guard_clamps_the_extremes() -> None:
+    assert dashboard._pct(0.9999) == ">99%"
+    assert dashboard._pct(0.001) == "<1%"
+    assert dashboard._pct(0.38) == "38%"
+
+
 def test_render_to_writes_file(tmp_path: Path) -> None:
     out = dashboard.render_to(DATA, Config(as_of=AS_OF), tmp_path / "d.html")
     assert out.exists()

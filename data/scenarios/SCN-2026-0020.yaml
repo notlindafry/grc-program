@@ -8,9 +8,9 @@ id: SCN-2026-0020
 title: A critical supplier outage cascades into our service
 named_risk: NR-SUPPLIER-OUTAGE
 baseline:
-  opportunity_frequency_90ci: [12, 21]
-  probability_of_realization_90ci: [0.03, 0.058]
-  loss_magnitude_90ci: [1520000, 1980000]
+  opportunity_frequency_90ci: [18, 23]
+  probability_of_realization_90ci: [0.03, 0.048]
+  loss_magnitude_90ci: [1720000, 1910000]
 impact: [financial]
 vectors: [third_party]
 lifecycle_state: managed

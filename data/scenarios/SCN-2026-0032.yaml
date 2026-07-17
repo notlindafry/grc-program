@@ -14,4 +14,4 @@ baseline:
 impact: [financial, individual_harm]
 vectors: [ai]
 lifecycle_state: emerging
-trajectory: rising
+trajectory: stable
