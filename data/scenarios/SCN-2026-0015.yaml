@@ -10,7 +10,7 @@ named_risk: NR-CARD-TESTING
 baseline:
   opportunity_frequency_90ci: [20, 55]
   probability_of_realization_90ci: [0.012, 0.033]
-  loss_magnitude_90ci: [110000, 460000]
+  loss_magnitude_90ci: [70000, 300000]
 impact: [financial, individual_harm]
 vectors: [adversarial]
 lifecycle_state: managed

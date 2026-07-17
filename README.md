@@ -85,17 +85,28 @@ Monte Carlo (pure standard library, reproducible) produces every band.
 dollar appetite is set by hand from what the company tolerates for that risk —
 regulatory constraint, strategic upside, reversibility, concentration — with an
 `appetite_rationale` on the record. It is **never** computed from the residual;
-the RAG colour is an outcome of that authored line meeting the exposure:
+the RAG colour is an outcome of that authored line meeting the exposure, decided
+by **two gates** (`rag_band`, SPEC v2.5) where colour is position and probability
+is tail — one never determines the other:
 
-- **Over appetite → red.** A breach.
-- **At appetite → green.** The only green; a residual straddling the line is the
-  truest "at appetite".
-- **Below appetite with headroom → amber.** Unused tolerance — over-controlled,
-  or an appetite set too high. A review signal, not an all-clear.
+- **Over appetite → red.** `P(loss > appetite) ≥ 1/3`: a reasonably probable
+  breach, whatever the mean. A risk whose average looks comfortable but whose tail
+  crosses the line one year in three is still the actionable fact.
+- **At appetite → green.** Breach unlikely *and* the mean is using the tolerance
+  you declared (≥ 75% of appetite). Not "straddles the line" — a wide band that
+  merely grazes appetite from a low mean is amber, not green.
+- **Below appetite → amber.** Breach unlikely and the mean well under the floor:
+  unused tolerance — over-controlled, or an appetite set too high. A review
+  signal, not an all-clear.
+
+Green therefore requires both good positioning *and* controlled uncertainty: a
+mean at 85% with bands wide enough to push the breach probability past a third
+reads red. You cannot claim to operate at appetite if you do not know where you
+are.
 
 **Exceedance, not eyeballing.** Against a hard line the tail is the question, not
 the mean. The portfolio states one position and one probability: *"Residual
-$10.8M–$17.5M against a $10M appetite: over. Roughly a 20% chance of crossing the
+$12.3M–$15.7M against a $10M appetite: over. Roughly a 14% chance of crossing the
 $15M materiality line this year."*
 
 ## Install

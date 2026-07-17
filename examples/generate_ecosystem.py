@@ -44,7 +44,8 @@ ENTERPRISE = """\
 revenue_annual: 2000000000          # $2B; the base for the appetite percentage
 capacity_materiality: 15000000      # $15M hard line (audit materiality)
 appetite_pct_of_revenue: 0.005      # 0.5% -> $10M declared appetite, set beneath capacity
-green_band_floor: 0.75              # residual in the top quarter of tolerance reads green (SPEC §4)
+green_band_floor: 0.75              # mean >= 75% of appetite reads green (SPEC v2.5 §2)
+appetite_red_prob: 0.33             # P(loss > appetite) >= 1/3 reads red, whatever the mean (SPEC v2.5 §2)
 """
 
 
@@ -549,44 +550,58 @@ def render_named_risks() -> str:
 
 SCENARIOS = [
     # --- TR-SECURITY ---
+    # PROD-COMPROMISE trimmed toward its $1.5M appetite (SPEC v2.5 §3 rebalance):
+    # it still reads OVER through gate 1 (a wide right tail keeps P(exceed) well
+    # above 1/3), not because the mean sits far past the line — the canonical
+    # gate-1 case. Accumulation story intact (nine legacy-auth exceptions move
+    # PoR; LM is the trim lever, dominance preserved).
     ("SCN-2026-0001", "Account takeover of an internal admin console", "NR-PROD-COMPROMISE",
-     [10, 40], [0.008, 0.024], [600000, 2000000], ["financial", "individual_harm"],
+     [10, 40], [0.008, 0.024], [370000, 1200000], ["financial", "individual_harm"],
      ["adversarial"], "managed", "rising"),
     ("SCN-2026-0019", "Admin-console takeover via unrotated migrated service accounts", "NR-PROD-COMPROMISE",
-     [8, 24], [0.007, 0.022], [400000, 1500000], ["financial", "individual_harm"],
+     [8, 24], [0.007, 0.022], [270000, 910000], ["financial", "individual_harm"],
      ["adversarial"], "managed", "stable"),
     ("SCN-2026-0002", "Exfiltration of regulated data via an analytics export path", "NR-DATA-EXFIL",
-     [24, 70], [0.009, 0.032], [160000, 1900000], ["financial", "individual_harm", "regulatory"],
+     [20, 58], [0.008, 0.026], [120000, 1150000], ["financial", "individual_harm", "regulatory"],
      ["adversarial"], "managed", "stable"),
     ("SCN-2026-0003", "Fraudulent transactions against the payments platform", "NR-PAYMENT-FRAUD",
-     [15, 45], [0.01, 0.03], [80000, 420000], ["financial", "public_market_harm"],
+     [15, 45], [0.01, 0.03], [60000, 260000], ["financial", "public_market_harm"],
      ["adversarial"], "managed", "stable"),
     ("SCN-2026-0012", "Malware on a corporate endpoint leads to lateral movement", "NR-ENDPOINT-MALWARE",
      [30, 90], [0.008, 0.026], [50000, 190000], ["financial"],
      ["adversarial"], "managed", "stable"),
-    # CARD-TESTING and ABUSE-ESCALATION raised at the CENTRE (LM low bound + PoR),
-    # not the upper tail, so Security reads mixed rather than a wall of amber
-    # (SPEC v2.3 §C) without inflating p95 (§E).
     ("SCN-2026-0015", "Automated card-testing lands fraudulent charges at checkout", "NR-CARD-TESTING",
-     [20, 55], [0.012, 0.033], [110000, 460000], ["financial", "individual_harm"],
+     [20, 55], [0.012, 0.033], [70000, 300000], ["financial", "individual_harm"],
      ["adversarial"], "managed", "stable"),
+    # ABUSE-ESCALATION retuned to sit AT its $1.5M appetite (mean ~78%), the
+    # second Security green so the domain reads mixed (SPEC v2.5 §3). LM lever.
     ("SCN-2026-0007", "Unmitigated abuse escalating on the platform", "NR-ABUSE-ESCALATION",
-     [24, 62], [0.018, 0.05], [170000, 1050000], ["individual_harm", "reputational"],
+     [28, 52], [0.02, 0.048], [660000, 1120000], ["individual_harm", "reputational"],
      ["adversarial"], "managed", "stable"),
+    # ABUSE-DETECTION sits AT its $1.5M appetite (mean ~78%, moderate uncertainty),
+    # the second Security green so the domain reads mixed (SPEC v2.5 §3). No
+    # exception here, so all three factors are tuned to a tight, controlled band.
     ("SCN-2026-0008", "Detection model misses policy-violating content at scale", "NR-ABUSE-DETECTION",
-     [20, 60], [0.01, 0.038], [60000, 240000], ["individual_harm", "public_market_harm"],
+     [28, 48], [0.019, 0.042], [720000, 1120000], ["individual_harm", "public_market_harm"],
      ["adversarial"], "managed", "stable"),
     # --- TR-RESILIENCE ---
+    # PLATFORM-OUTAGE stays the clean OVER: mean above its $2.5M appetite, so the
+    # bar sits past the tick on view 1 (the plain "over the line" case, next to
+    # Prod-compromise's tail-driven one). Trimmed modestly in the v2.5 rebalance.
+    # Mean just over its $2.5M appetite with a wide-enough tail to keep P(exceed)
+    # past 1/3 — the clean OVER on view 1 (bar past the tick), trimmed in the v2.5
+    # rebalance so the portfolio keeps headroom to the $15M capacity.
     ("SCN-2026-0013", "Customer-facing outage of a core platform service", "NR-PLATFORM-OUTAGE",
-     [40, 46], [0.019, 0.024], [1300000, 1480000], ["financial", "public_market_harm"],
+     [38, 48], [0.018, 0.028], [1130000, 1450000], ["financial", "public_market_harm"],
      [], "managed", "rising"),
     ("SCN-2026-0006", "Loss of availability of a core data platform service", "NR-DATA-AVAILABILITY",
-     [10, 35], [0.01, 0.038], [110000, 480000], ["financial"],
+     [10, 35], [0.01, 0.038], [70000, 300000], ["financial"],
      [], "managed", "stable"),
-    # --- TR-DATA-INTEGRITY -- data-quality band is WIDE so it straddles its $2M
-    # threshold (reads AT); the domain is therefore NOT amber end to end (§F). ---
+    # --- TR-DATA-INTEGRITY -- data-quality sits AT its $2M appetite (mean ~78%,
+    # moderate uncertainty) so it reads green under the two-gate rule and the
+    # domain is not amber end to end (SPEC v2.5 §3). LM lever. ---
     ("SCN-2026-0005", "Corrupted or unvalidated data feeds a downstream decision", "NR-DATA-QUALITY",
-     [12, 45], [0.017, 0.058], [140000, 1950000], ["financial", "individual_harm"],
+     [19, 32], [0.02, 0.05], [1180000, 1580000], ["financial", "individual_harm"],
      [], "managed", "stable"),
     ("SCN-2026-0016", "Schema-invalid writes corrupt a downstream pipeline decision", "NR-PIPELINE-INTEGRITY",
      [6, 18], [0.01, 0.035], [100000, 400000], ["financial"],
@@ -608,10 +623,11 @@ SCENARIOS = [
     ("SCN-2026-0023", "A form collects more personal data than the feature needs", "NR-PII-MINIMIZATION",
      [3, 9], [0.02, 0.05], [100000, 450000], ["regulatory"],
      [], "managed", "stable"),
-    # --- TR-CHANGE -- migration-availability band is WIDE (straddles $2M -> AT),
-    # so Change is not amber end to end (§F). ---
+    # --- TR-CHANGE -- migration-availability sits AT its $2M appetite (mean ~80%,
+    # moderate uncertainty) so it reads green and Change is not amber end to end
+    # (SPEC v2.5 §3). No exception here, so all three factors are tuned. ---
     ("SCN-2026-0009", "Availability regression introduced by the migration", "NR-MIGRATION-AVAILABILITY",
-     [12, 42], [0.018, 0.058], [160000, 2250000], ["financial"],
+     [20, 31], [0.032, 0.048], [1250000, 1900000], ["financial"],
      [], "managed", "rising"),
     ("SCN-2026-0010", "Data integrity loss during monolith-to-microservices cutover", "NR-MIGRATION-DATAINTEGRITY",
      [5, 16], [0.01, 0.035], [150000, 650000], ["financial", "individual_harm"],
@@ -620,15 +636,18 @@ SCENARIOS = [
     ("SCN-2026-0011", "Excessive third-party vendor access to internal systems", "NR-VENDOR-ACCESS",
      [5, 18], [0.008, 0.03], [150000, 700000], ["financial", "individual_harm"],
      ["third_party"], "managed", "stable"),
-    # SUPPLIER band is WIDE (straddles $2M -> AT), so Third-party is not amber
-    # end to end (§F).
+    # SUPPLIER sits AT its $2M appetite (mean ~78%, moderate uncertainty) so it
+    # reads green and Third-party is not amber end to end (SPEC v2.5 §3). LM lever
+    # (EXC-0164 moves PoR).
     ("SCN-2026-0020", "A critical supplier outage cascades into our service", "NR-SUPPLIER-OUTAGE",
-     [8, 26], [0.022, 0.07], [160000, 2500000], ["financial"],
+     [12, 21], [0.03, 0.058], [1520000, 1980000], ["financial"],
      ["third_party"], "managed", "stable"),
     # --- TR-COMPLIANCE -- PCI raised so it reads OVER its $1M low tolerance (an
     # orphan: no funded remediation addresses it, §E story 3). ---
+    # PCI-SCOPE trimmed toward its $1M appetite (v2.5 §3 rebalance); still OVER
+    # through gate 1 via a wide tail. Remains an orphan (no funded remediation).
     ("SCN-2026-0004", "Cardholder data handling gap expands PCI scope", "NR-PCI-SCOPE",
-     [9, 13], [0.05, 0.075], [1250000, 1950000], ["financial", "regulatory"],
+     [9, 13], [0.032, 0.062], [640000, 1560000], ["financial", "regulatory"],
      [], "managed", "rising"),
     ("SCN-2026-0017", "Missed quarterly regulatory filing triggers a penalty", "NR-REG-FILINGS",
      [2, 6], [0.03, 0.1], [150000, 700000], ["regulatory", "financial"],
@@ -830,14 +849,14 @@ def build_exceptions():
         diverted_to="gcloud-migration", mechanism="resume_quarterly_dr_tests",
         target_date="2026-09-30", expires_on="2026-09-30", renewals=3))
 
-    # --- DLP cluster on NR-DATA-EXFIL (SCN-0002): moderate LM moves (~2-3x). ---
-    # Both DLP effects must DOMINATE the SCN-0002 baseline LM [220k, 2100k] on
-    # loss_magnitude (SPEC v2.3 §B3): disabling/sampling-down DLP can only raise
-    # the magnitude of an exfiltration. 0140 (fully disabled) is the more severe.
-    # Authored as plausible, dominating, modest effects -- not simply widened.
+    # --- DLP cluster on NR-DATA-EXFIL (SCN-0002): moderate LM moves. Both effects
+    # must DOMINATE the SCN-0002 baseline LM [160k, 1900k] on loss_magnitude (SPEC
+    # v2.3 §B3): disabling/sampling-down DLP can only raise the magnitude of an
+    # exfiltration. 0140 (fully disabled) is the more severe. Data-exfil reads
+    # BELOW under the v2.5 rule (mean ~50% of appetite, breach unlikely).
     dlp = [
-        ("EXC-2026-0140", "DLP disabled on the analytics export path", [400000, 2200000], "cost"),
-        ("EXC-2026-0141", "DLP sampling reduced on warehouse export job", [300000, 2000000], "technical_constraint"),
+        ("EXC-2026-0140", "DLP disabled on the analytics export path", [260000, 1350000], "cost"),
+        ("EXC-2026-0141", "DLP sampling reduced on warehouse export job", [200000, 1200000], "technical_constraint"),
     ]
     for i, (eid, title, ci, reason) in enumerate(dlp):
         out.append(_exc(

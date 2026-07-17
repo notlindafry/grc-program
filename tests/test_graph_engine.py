@@ -39,7 +39,7 @@ AS_OF = dt.date(2026, 6, 18)
 
 
 # ---------------------------------------------------------------------------
-# rag_band: the two-sided appetite target (SPEC §4)
+# rag_band: the two-gate appetite rule (SPEC v2.5 §2)
 # ---------------------------------------------------------------------------
 
 
@@ -47,23 +47,60 @@ def _band(low, high, mean=None):
     return Band(low=low, high=high, mean=mean if mean is not None else (low + high) / 2)
 
 
-def test_rag_over_when_whole_band_above_appetite():
-    assert rag_band(_band(12, 20), threshold=10) == RAG_OVER
+def test_rag_over_when_breach_is_reasonably_probable():
+    # Gate 1: P(exceed) >= p_red is red regardless of the mean.
+    assert rag_band(mean=8.0, threshold=10, p_exceed=0.40, p_red=0.33) == RAG_OVER
 
 
-def test_rag_at_when_band_straddles_the_line():
-    # A straddle is the truest "at appetite" -> green.
-    assert rag_band(_band(8, 14), threshold=10) == RAG_AT
+def test_rag_over_fires_even_when_mean_sits_below_appetite():
+    # The canonical gate-1 case: mean comfortably under appetite, but a fat right
+    # tail puts a >1/3 chance of breaching -> red, not green.
+    assert rag_band(mean=9.0, threshold=10, p_exceed=0.38, p_red=0.33) == RAG_OVER
 
 
-def test_rag_at_in_the_top_quarter_of_tolerance():
-    # Fully within but in the top quarter (>= 75% of appetite) -> green.
-    assert rag_band(_band(7.6, 9.5, mean=8.5), threshold=10, green_floor=0.75) == RAG_AT
+def test_rag_at_when_using_tolerance_and_breach_unlikely():
+    # Gate 2: mean >= floor x appetite and breach improbable -> green.
+    assert rag_band(mean=8.0, threshold=10, p_exceed=0.20, floor=0.75, p_red=0.33) == RAG_AT
 
 
-def test_rag_below_with_headroom_is_amber():
-    # Deep within appetite: unused tolerance -> amber, not a green all-clear.
-    assert rag_band(_band(1, 4, mean=2.5), threshold=10, green_floor=0.75) == RAG_BELOW
+def test_rag_below_when_tolerance_is_unused():
+    # Mean under the floor, breach improbable -> amber (unused tolerance).
+    assert rag_band(mean=2.5, threshold=10, p_exceed=0.02, floor=0.75, p_red=0.33) == RAG_BELOW
+
+
+def test_rag_no_straddle_branch_a_wide_tail_never_forces_green():
+    # SPEC v2.5 §1: a low-mean risk with a wide band that grazes appetite must
+    # read amber (below the floor, breach improbable), never green.
+    assert rag_band(mean=3.7, threshold=10, p_exceed=0.06, floor=0.75, p_red=0.33) == RAG_BELOW
+
+
+def test_rag_green_requires_controlled_uncertainty():
+    # Emergent property (SPEC v2.5 §2): a mean at 85% with bands wide enough to
+    # push P(exceed) past p_red reads red, not green -- you cannot claim to be at
+    # appetite if you do not know where you are.
+    assert rag_band(mean=8.5, threshold=10, p_exceed=0.35, floor=0.75, p_red=0.33) == RAG_OVER
+
+
+def test_mean_past_appetite_is_over_regardless_of_breach_probability():
+    # SPEC v2.6 §1, gate 0 (the ceiling the v2.5 rule was missing): a fat-tailed
+    # risk (median << mean) can carry expected loss past appetite with only a
+    # modest breach probability. Position is the breach -- expected loss at or
+    # past the line is over, full stop.
+    assert rag_band(1.50e6, 1.0e6, 0.20) == RAG_OVER
+    assert rag_band(1.02e6, 1.0e6, 0.15) == RAG_OVER
+
+
+def test_probable_breach_is_over_even_when_mean_is_under():
+    # SPEC v2.6 §1: gate 1 is independent of gate 0 -- a wide-banded risk under
+    # the line in expectation but with a probable breach is still red.
+    assert rag_band(0.80e6, 1.0e6, 0.40) == RAG_OVER
+
+
+def test_green_requires_both_position_and_controlled_uncertainty():
+    # SPEC v2.6 §1: green survives all three gates -- under the line, breach
+    # improbable, and using the declared tolerance.
+    assert rag_band(0.80e6, 1.0e6, 0.15) == RAG_AT
+    assert rag_band(0.40e6, 1.0e6, 0.05) == RAG_BELOW   # unused tolerance
 
 
 # ---------------------------------------------------------------------------
@@ -275,16 +312,27 @@ def test_kri_triggers_surface_as_signals(corpus_engine):
 
 def test_rag_spread_is_a_reasonable_outcome(corpus_engine):
     # The spread is a JUDGED outcome of authored appetite meeting tuned exposure,
-    # NOT a fitted target (SPEC v2.2 §B): a few over, green demonstrably
-    # achievable, a majority below, and no colour the default.
+    # NOT a fitted target (SPEC v2.2 §B, v2.5 §3): a few over, green genuinely
+    # achievable (5-6 risks operating AT appetite), a majority below.
     _, eng = corpus_engine
     from collections import Counter
     spread = Counter(r.state for r in eng.all_named_risk_residuals())
     total = sum(spread.values())
     assert spread[RAG_OVER] >= 2                      # a few breaches
-    assert spread[RAG_AT] >= 2                        # green is demonstrably achievable
+    assert 5 <= spread[RAG_AT] <= 7                   # green is real (SPEC v2.5 §3, check 5)
     assert spread[RAG_BELOW] > total / 2              # over-controlling is the majority (on-thesis)
     assert spread[RAG_BELOW] < total                  # ...but not the only colour
+
+
+def test_green_is_earned_not_a_tail_artifact(corpus_engine):
+    # SPEC v2.5 checks 3 & 4: every AT risk is genuinely operating at appetite --
+    # mean at least 75% of appetite AND a breach probability under p_red. The v2.5
+    # bug (a wide tail turning a low-mean risk green) cannot recur.
+    _, eng = corpus_engine
+    for r in eng.all_named_risk_residuals():
+        if r.state == RAG_AT:
+            assert r.band.mean >= 0.75 * r.threshold, r.named_risk.id
+            assert r.p_over_appetite < eng.p_red, r.named_risk.id
 
 
 def test_exactly_one_amber_end_to_end_domain(corpus_engine):
@@ -298,15 +346,17 @@ def test_exactly_one_amber_end_to_end_domain(corpus_engine):
 
 
 def test_exceedance_probabilities(corpus_engine):
-    # SPEC v2.2 §E / v2.3 §E: the capacity read is the tail probability, and it is
-    # tuned into a governance band -- P(>capacity) in 5-8%, P(>appetite) above 90%.
+    # The capacity read is a tail probability, not a mean test (SPEC v2.2 §E).
+    # After the v2.5 rebalance the portfolio carries more exposure operating AT
+    # appetite, so the capacity probability is elevated but stays sub-crisis --
+    # over the $10M appetite, well under a coin-flip chance of the $15M line.
     _, eng = corpus_engine
     p = eng.portfolio()
-    assert 0.05 <= p.p_over_capacity <= 0.085   # a governance moment, not a crisis
+    assert 0.08 <= p.p_over_capacity <= 0.25    # elevated governance moment, not a crisis
     assert p.p_over_appetite > 0.90             # the breach signal stays unambiguous
-    # An over-appetite named risk exceeds its own threshold on most trials.
-    over = next(r for r in eng.all_named_risk_residuals() if r.state == RAG_OVER)
-    assert over.p_over_threshold > 0.5
+    # Every OVER named risk clears the danger gate: P(exceed its appetite) >= p_red.
+    overs = [r for r in eng.all_named_risk_residuals() if r.state == RAG_OVER]
+    assert overs and all(r.p_over_appetite >= eng.p_red for r in overs)
 
 
 def test_no_negative_residuals(corpus_engine):

@@ -266,5 +266,71 @@ It is another read of the same portfolio samples the residual band is taken from
 
 For a **hard line, the tail is the question, not the mean**. The portfolio
 summary states a single position and a single probability — *"over the $10M
-appetite; roughly a 20% chance of crossing the $15M materiality line this
+appetite; roughly a 14% chance of crossing the $15M materiality line this
 year"* — rather than a mean-based "within" that argues with a band that crosses.
+
+## The appetite RAG rule (three gates)
+
+The dashboard colours each risk against its authored appetite with **three gates,
+evaluated in order** (`rag_band`, SPEC v2.6). The governing principle is that
+**colour is position and probability is tail, and one never decides the other** —
+the same separation the portfolio already uses (one stance plus one probability),
+applied at the risk level.
+
+```python
+def rag_band(mean, threshold, p_exceed, *, floor=0.75, p_red=0.33):
+    if mean >= threshold:            # gate 0 (position, ceiling)
+        return RAG_OVER
+    if p_exceed >= p_red:            # gate 1 (danger)
+        return RAG_OVER
+    if mean >= floor * threshold:    # gate 2 (efficiency)
+        return RAG_AT
+    return RAG_BELOW
+```
+
+- **Gate 0 — position (the ceiling).** `mean ≥ appetite` reads **red**, full
+  stop. This is not a probability question: appetite is a statement about
+  *expected annual loss*, so an expected loss at or past the line **is** the
+  breach. Without it green would be unbounded above — a heavily right-skewed risk
+  (median far below mean) could carry expected loss past appetite while its breach
+  probability stays modest, and fall straight through to green.
+- **Gate 1 — danger.** `P(loss > appetite) ≥ p_red` reads **red**, regardless of
+  where the mean sits. A risk with a one-in-three chance of breaching is the
+  actionable fact even when its average looks comfortable.
+- **Gate 2 — efficiency.** Among risks under the line and unlikely to breach,
+  `mean ≥ floor × appetite` reads **green** (using the tolerance you declared),
+  else **amber** (unused tolerance: over-controlled, or an appetite set too high).
+
+**Gates 0 and 1 are independent; neither subsumes the other.** A fat-tailed risk
+can exceed appetite *in expectation* with only a modest breach probability (gate 0
+catches it); a wide-banded risk can sit under appetite in expectation but breach
+*probably* (gate 1 catches it). Different failures, both red — which is why both
+gates exist rather than one.
+
+**`floor = 0.75`.** Reachable — a floor at 0.90 would demand steering exposure to
+within a tenth of target, which no real programme does, and green would look
+rigged — yet narrow enough to mean something: a floor at 0.50 would make green the
+default and kill the thesis. It states plainly that you are using three quarters
+or more of what you said you would tolerate.
+
+**`p_red = 0.33`.** One in three is where "reasonably probable" honestly lands.
+Its lower bound is **structural, not taste**: a risk sitting exactly at appetite
+has a `P(exceed)` of roughly 40–48%, because roughly half the distribution sits
+above the mean; set `p_red` much below that and green collapses from the opposite
+direction. It is deliberately looser than the ≤ 10% ceiling on capacity, and it
+should be — capacity is a hard line you flee, appetite is a target you are meant
+to spend. The asymmetry is deliberate: there is **no grace band above the line**,
+because a limit you may sit past is not a limit.
+
+Both parameters are configuration (`green_band_floor`, `appetite_red_prob` on the
+enterprise record), not constants — they are decisions and read as such.
+
+**Green requires controlled uncertainty.** Because gate 1 tests the tail, a mean
+at 85% of appetite with bands wide enough to push `P(exceed)` past `p_red` reads
+red, not green: you cannot claim to be operating at appetite if you do not know
+where you are. This is emergent from the two gates, not bolted on. It also
+retires the old "a straddle is the truest at-appetite" branch, which let a wide
+right tail turn a low-mean risk green — the chart drew the mean while the colour
+keyed off the tail, so the two disagreed. Now the bar (mean) and the colour agree,
+and the tail is surfaced separately as `P(loss > appetite)` wherever it is
+material.

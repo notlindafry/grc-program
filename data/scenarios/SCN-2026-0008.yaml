@@ -8,9 +8,9 @@ id: SCN-2026-0008
 title: Detection model misses policy-violating content at scale
 named_risk: NR-ABUSE-DETECTION
 baseline:
-  opportunity_frequency_90ci: [20, 60]
-  probability_of_realization_90ci: [0.01, 0.038]
-  loss_magnitude_90ci: [60000, 240000]
+  opportunity_frequency_90ci: [28, 48]
+  probability_of_realization_90ci: [0.019, 0.042]
+  loss_magnitude_90ci: [720000, 1120000]
 impact: [individual_harm, public_market_harm]
 vectors: [adversarial]
 lifecycle_state: managed

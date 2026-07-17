@@ -10,7 +10,7 @@ named_risk: NR-PROD-COMPROMISE
 baseline:
   opportunity_frequency_90ci: [10, 40]
   probability_of_realization_90ci: [0.008, 0.024]
-  loss_magnitude_90ci: [600000, 2000000]
+  loss_magnitude_90ci: [370000, 1200000]
 impact: [financial, individual_harm]
 vectors: [adversarial]
 lifecycle_state: managed

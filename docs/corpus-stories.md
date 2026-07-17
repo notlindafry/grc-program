@@ -28,28 +28,38 @@ engineer the conclusion the whole artifact argues against.
 
 The spread below is a *judged outcome*, not a pass/fail gate (v2.2 §B).
 
-## Acceptance (v2.3 §F, supersedes v2.2 §I where they overlap)
+## Acceptance (v2.5 §6, supersedes v2.3 §F where they overlap)
+
+The RAG rule is now the **two-gate** rule (v2.5 §2): colour is position, probability
+is tail. Gate 1 — `P(loss > appetite) ≥ 1/3` reads red, whatever the mean. Gate 2 —
+among risks unlikely to breach, `mean ≥ 75% of appetite` reads green, else amber.
+The old "a straddle is the truest at-appetite" branch is gone; a wide tail can no
+longer paint a low-mean risk green.
 
 | Check | Result |
 |---|---|
-| No negative residual anywhere | none; the dominance gate holds ✓ |
-| Dominance holds for all factor-moving issues | 0 hard errors ✓ |
-| The no-op flag fires on nothing | ✓ |
+| No straddle branch; no AT via a band high alone | gone ✓ |
+| `rag_band` takes `p_exceed`; `floor` / `p_red` are config | ✓ |
+| No AT with `mean/appetite < 0.75` | none (all AT 76–82%) ✓ |
+| No AT with `P(exceed) ≥ 0.33` | none (all AT 10–21%) ✓ |
+| Green is real: 5–6 AT, each mean 75–95% of appetite | **5 AT** across Security, Data integrity, Change, Third-party ✓ |
 | Exactly one domain amber end to end, and it is Privacy; Security mixed | Privacy 5/5 BELOW; Security 1 OVER / 2 AT / 4 BELOW ✓ |
-| Green achievable: ~5–7 AT in more than one domain | **5 AT** across Security, Data integrity, Change, Third-party ✓ |
-| P(>capacity) 5–8%, P(>appetite) > 90% | **7.7%** and **97.2%** ✓ |
-| No threshold, rationale, or enterprise figure changed this pass | `git diff data/named_risks.yaml data/enterprise.yaml` empty ✓ |
-| v2.1 §D1 invariants pass; ten stories still ID-traceable | ✓ |
-| Portfolio well under 1% of revenue, over appetite | mean **$12.5M** = 0.62%, over the $10M line ✓ |
+| `P(exceed)` surfaced on every AT/BELOW row ≥ 10% | view 1 ✓ |
+| No threshold or rationale changed this pass | `git diff data/named_risks.yaml` empty ✓ |
+| Dominance holds; no negative residual | 0 hard errors ✓ |
+| Portfolio well under 1% of revenue, over appetite | mean **$13.8M** = 0.69%, over the $10M line ✓ |
 
-Portfolio residual **$10.3M–$15.6M** (mean $12.5M). One position: **over the $10M
-appetite** (P > appetite 97%). One probability: **a ~8% chance of crossing the
-$15M materiality line this year** — a governance moment, not a crisis. The RAG
-spread is **3 OVER / 5 AT / 14 BELOW**, judged not fitted (v2.2 §B): a few
-breaches, green demonstrably achievable across four domains, a majority
-over-controlled. Sum of authored thresholds ≈ $37M (3.7× the declared appetite —
-the "bottom-up appetite has drifted above the top-down line" flag fires, which is
-on-thesis).
+Portfolio residual **$12.1M–$15.7M** (mean $13.8M). One position: **over the $10M
+appetite** (P > appetite ~100%). One probability: **a ~14% chance of crossing the
+$15M materiality line this year** — elevated, a genuine governance moment, but well
+short of a coin-flip. The v2.5 rebalance deliberately moved exposure **into** the
+appetite band (five risks now operate at appetite), so the portfolio carries more
+than the pre-v2.5 book and sits closer to capacity; that is the honest consequence
+of real green, not a regression. The RAG spread is **3 OVER / 5 AT / 14 BELOW**,
+judged not fitted (v2.2 §B): a few breaches, green demonstrably achievable across
+four domains, a majority over-controlled. Sum of authored thresholds ≈ $36M (3.6×
+the declared appetite — the "bottom-up appetite has drifted above the top-down
+line" flag fires, which is on-thesis).
 
 **Appetite was never the lever.** Every fix in this pass is a story-shaping change
 made on the *exposure* side only — scenario baselines and exception effects.
@@ -114,14 +124,25 @@ Three emerging scenarios with wide, rising, `ai`-vector intervals
 (`SCN-2026-0031/0032/0033`), held out of the appetite math. Four horizon items
 (`HZN-*`); ten KRIs breached, feeding the horizon view.
 
-**Enough green to contrast (v2.3 §C, §D).** Five named risks read AT (green) —
-`NR-DATA-QUALITY`, `NR-MIGRATION-AVAILABILITY`, `NR-SUPPLIER-OUTAGE`,
-`NR-DATA-EXFIL`, and `NR-ABUSE-ESCALATION` — spread across four domains, so green
-is demonstrably achievable rather than a rigged impossibility. **Security reads
-mixed** (1 OVER / 2 AT / 4 BELOW), not a wall of amber, so Privacy is the
-conspicuous reveal and not merely the second-most-amber domain. Those AT risks
-also keep Data integrity, Change, and Third-party from reading amber end to end,
-leaving Privacy the sole standout.
+**Enough green to contrast, and it is real green now (v2.5 §3).** Five named risks
+read AT — `NR-ABUSE-ESCALATION` and `NR-ABUSE-DETECTION` (Security),
+`NR-DATA-QUALITY` (Data integrity), `NR-MIGRATION-AVAILABILITY` (Change), and
+`NR-SUPPLIER-OUTAGE` (Third-party) — each with a residual **mean of 76–82% of its
+authored appetite** and a breach probability under a third, so it is green because
+it is *operating at appetite*, not because a wide tail grazed the line. Spread
+across four domains, green is demonstrably achievable rather than a rigged
+impossibility. **Security reads mixed** (1 OVER / 2 AT / 4 BELOW), not a wall of
+amber, so Privacy is the conspicuous reveal and not merely the second-most-amber
+domain. Those AT risks also keep Data integrity, Change, and Third-party from
+reading amber end to end, leaving Privacy the sole standout.
+
+The three OVER risks show both danger paths (v2.5 §2, gate 1). `NR-PLATFORM-OUTAGE`
+and `NR-PCI-SCOPE` breach on the **mean** — the bar sits past the appetite tick.
+`NR-PROD-COMPROMISE` breaches on the **tail**: its mean sits just *under* appetite
+(~96%) yet it reads red because a ~38% chance of crossing the line is the
+actionable fact. On view 1 its bar ends left of the tick while its whisker crosses
+it — the clearest teaching case for why colour is position and probability is
+tail, and one never decides the other.
 
 ## Can-kicking inputs (view 5)
 

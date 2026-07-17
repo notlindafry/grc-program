@@ -88,9 +88,9 @@ def test_labels_are_short_titles_not_ids(page: str) -> None:
     # SPEC v2.4 §3: headline cells use the authored short_title, never an ID or a
     # .title()-cased ID. The old cosmetic outputs must not appear.
     assert not hasattr(dashboard, "_short")
-    for cosmetic in ("Pci Scope", "Data Exfil", "Prod Compromise"):
+    for cosmetic in ("Pci Scope", "Data Exfil", "Prod Compromise", "Platform Outage"):
         assert cosmetic not in page
-    for short in ("PCI scope creep", "Regulated data exfiltration", "Production compromise"):
+    for short in ("PCI scope creep", "Production compromise", "Platform outage"):
         assert short in page
 
 
