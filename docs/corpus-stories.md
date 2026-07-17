@@ -28,20 +28,24 @@ engineer the conclusion the whole artifact argues against.
 
 The spread below is a *judged outcome*, not a pass/fail gate (v2.2 §B).
 
-## Acceptance (v2.5 §6, supersedes v2.3 §F where they overlap)
+## Acceptance (v2.6 §1, supersedes v2.5 §6 and v2.3 §F where they overlap)
 
-The RAG rule is now the **two-gate** rule (v2.5 §2): colour is position, probability
-is tail. Gate 1 — `P(loss > appetite) ≥ 1/3` reads red, whatever the mean. Gate 2 —
-among risks unlikely to breach, `mean ≥ 75% of appetite` reads green, else amber.
-The old "a straddle is the truest at-appetite" branch is gone; a wide tail can no
-longer paint a low-mean risk green.
+The RAG rule is the **three-gate** rule (v2.6 §1): colour is position, probability
+is tail. Gate 0 — `mean ≥ appetite` reads red, full stop, because appetite is a
+statement about expected annual loss and no tail argument rescues a mean past the
+line. Gate 1 — `P(loss > appetite) ≥ 1/3` reads red, whatever the mean. Gate 2 —
+among risks under the line and unlikely to breach, `mean ≥ 75% of appetite` reads
+green, else amber. Gates 0 and 1 are independent; neither subsumes the other. The
+old "a straddle is the truest at-appetite" branch is gone (v2.5 §1); a wide tail
+can no longer paint a low-mean risk green.
 
 | Check | Result |
 |---|---|
 | No straddle branch; no AT via a band high alone | gone ✓ |
 | `rag_band` takes `p_exceed`; `floor` / `p_red` are config | ✓ |
-| No AT with `mean/appetite < 0.75` | none (all AT 76–82%) ✓ |
-| No AT with `P(exceed) ≥ 0.33` | none (all AT 10–21%) ✓ |
+| No AT with `mean/appetite ≥ 1.0` (gate 0) | none (all AT 76–78%) ✓ |
+| No AT with `mean/appetite < 0.75` | none (all AT 76–78%) ✓ |
+| No AT with `P(exceed) ≥ 0.33` | none (all AT 1–7%) ✓ |
 | Green is real: 5–6 AT, each mean 75–95% of appetite | **5 AT** across Security, Data integrity, Change, Third-party ✓ |
 | Exactly one domain amber end to end, and it is Privacy; Security mixed | Privacy 5/5 BELOW; Security 1 OVER / 2 AT / 4 BELOW ✓ |
 | `P(exceed)` surfaced on every AT/BELOW row ≥ 10% | view 1 ✓ |
@@ -138,13 +142,15 @@ amber, so Privacy is the conspicuous reveal and not merely the second-most-amber
 domain. Those AT risks also keep Data integrity, Change, and Third-party from
 reading amber end to end, leaving Privacy the sole standout.
 
-The three OVER risks show both danger paths (v2.5 §2, gate 1). `NR-PLATFORM-OUTAGE`
-and `NR-PCI-SCOPE` breach on the **mean** — the bar sits past the appetite tick.
-`NR-PROD-COMPROMISE` breaches on the **tail**: its mean sits just *under* appetite
-(~96%) yet it reads red because a ~38% chance of crossing the line is the
-actionable fact. On view 1 its bar ends left of the tick while its whisker crosses
-it — the clearest teaching case for why colour is position and probability is
-tail, and one never decides the other.
+The three OVER risks show both danger paths (v2.6 §1). `NR-PLATFORM-OUTAGE` (103%
+mean, 65% breach) and `NR-PCI-SCOPE` (103% mean, 49% breach) breach on the
+**mean** — the mean tick sits past the 100% appetite line. `NR-PROD-COMPROMISE`
+breaches on the **tail**: its mean sits just *under* appetite (~96%) yet it reads
+red because a ~38% chance of crossing the line is the actionable fact. On view 1
+(read as percent of each risk's own appetite, v2.9 §2) its mean tick sits left of
+the appetite line while its interval crosses it into the red breach mass — the
+clearest teaching case for why colour is position and probability is tail, and one
+never decides the other.
 
 ## Can-kicking inputs (view 5)
 

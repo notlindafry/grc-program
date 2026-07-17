@@ -11,9 +11,12 @@ Four rules from SPEC §4 govern the whole module:
 1. **One path into residual.** Only ``exception`` and ``vuln`` issues move a
    factor and enter the bands. ``finding`` severity, control health, evidence
    freshness, and KRIs inform the estimate/narrative but never add a term.
-2. **Appetite is a two-sided target.** Over -> red, at -> green (the only green;
-   a straddle is the truest "at"), below-with-headroom -> amber. The green band
-   is the top quarter of tolerance by default (configurable per enterprise).
+2. **Appetite is a two-sided target.** Three gates in order (SPEC v2.6 §1, see
+   ``rag_band``): mean at/past appetite -> red; a breach probability at/past
+   ``p_red`` -> red; otherwise a mean in the top quarter of tolerance -> green
+   (the only green), below that -> amber. Both parameters are configurable per
+   enterprise. The old straddle branch is gone (v2.5 §1): a wide tail can no
+   longer paint a low-mean risk green.
 3. **Honest uncertainty, surfaced separately.** Emerging scenarios (wide, moving
    intervals) are computed but held OUT of the appetite-tested aggregate.
 4. **Capacity vs appetite.** The rolled-up portfolio aggregate is compared to the
@@ -67,8 +70,8 @@ _GAP_WEIGHT = 2
 _HEALTH_RED_AT = 6   # burden at/above this -> red (e.g. two highs, or critical+high)
 _HEALTH_AMBER_AT = 2  # burden at/above this (but below red) -> amber
 
-DEFAULT_GREEN_FLOOR = 0.75  # mean >= 75% of appetite reads green (SPEC v2.5 §2)
-DEFAULT_P_RED = 0.33        # P(loss > appetite) >= 1/3 reads red, whatever the mean
+DEFAULT_GREEN_FLOOR = 0.75  # gate 2: mean >= 75% of appetite reads green (SPEC v2.6 §1)
+DEFAULT_P_RED = 0.33        # gate 1: P(loss > appetite) >= 1/3 reads red, whatever the mean (SPEC v2.6 §1)
 
 
 def rag_band(
@@ -459,7 +462,7 @@ class GraphEngine:
         appetite = ent.declared_appetite if ent else None
         capacity = ent.capacity_materiality if ent else None
         p_over_appetite = _p_exceed(samples, appetite) if appetite else 0.0
-        # Same two-gate rule and parameters as the risk level (SPEC v2.5 §2c).
+        # Same three-gate rule and parameters as the risk level (SPEC v2.6 §1).
         state = (rag_band(band.mean, appetite, p_over_appetite,
                           floor=self.green_floor, p_red=self.p_red)
                  if appetite else RAG_AT)

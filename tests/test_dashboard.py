@@ -140,6 +140,97 @@ def test_view1_is_an_interval_plot(page: str) -> None:
     assert "bar = mean" not in page  # the old zero-anchored bar caption is gone
 
 
+def test_view1_reads_against_appetite_not_dollars(page: str) -> None:
+    # SPEC v2.9 §2/§6: the axis is percent of each row's own appetite, so one static
+    # appetite line at 100% is shared by every row (per-row ticks gone) and that
+    # line is labelled "appetite", never a bare "100%". The caption says the mean
+    # tick now carries a dollar figure; the subtitle names the new frame.
+    assert ">appetite</text>" in page
+    assert ">40%</text>" in page and ">60%</text>" in page
+    assert "tick = mean ($)" in page
+    assert "Named risks by position against their own appetite" in page
+    # the old dollar-axis / per-row-tick subtitle is gone
+    assert "Top named risks by residual" not in page
+
+
+def test_pct_axis_bounds_pad_then_round() -> None:
+    # SPEC v2.9 §2: pad by 5 points, THEN round outward to 10. The pad is the
+    # guaranteed clearance; rounding alone leaves data at 50.1% on a 50% edge.
+    assert dashboard._pct_axis_bounds([53.3, 156.2]) == (40.0, 170.0)  # today's corpus
+    assert dashboard._pct_axis_bounds([50.1, 99.0]) == (40.0, 110.0)   # pad rescues 50.1
+    assert dashboard._pct_axis_bounds([80.0, 80.0]) == (70.0, 90.0)
+
+
+def test_view1_every_interval_falls_inside_the_derived_axis() -> None:
+    # SPEC v2.9 §8: assert, do not eyeball — every rendered p5/p95 (percent of its
+    # own appetite) sits strictly inside the derived bounds, which today are 40-170.
+    g = load_graph(DATA)
+    cfg = Config(as_of=AS_OF)
+    validate_graph(g, cfg)
+    eng = GraphEngine(g, cfg)
+    ranked = sorted(eng.all_named_risk_residuals(), key=dashboard._view1_key)[:8]
+    pcts = [100 * v / r.threshold for r in ranked for v in (r.band.low, r.band.high)]
+    lo, hi = dashboard._pct_axis_bounds(pcts)
+    assert (lo, hi) == (40.0, 170.0)
+    assert all(lo < p < hi for p in pcts)
+
+
+def test_view1_selection_by_ratio_matches_v28_dollar_selection() -> None:
+    # SPEC v2.9 §4: selection is by the ratio key, not residual dollars — above
+    # appetite is unacceptable regardless of the dollar amount. Today it picks the
+    # same 8 risks (a regression check; expected to stop holding after phase 2).
+    g = load_graph(DATA)
+    cfg = Config(as_of=AS_OF)
+    validate_graph(g, cfg)
+    eng = GraphEngine(g, cfg)
+    residuals = eng.all_named_risk_residuals()
+    by_ratio = {r.named_risk.id for r in sorted(residuals, key=dashboard._view1_key)[:8]}
+    by_dollars = {r.named_risk.id for r in sorted(residuals, key=lambda r: r.band.mean, reverse=True)[:8]}
+    assert by_ratio == by_dollars
+
+
+def test_view1_top3_order_is_seed_stable() -> None:
+    # SPEC v2.9 §3: rounding the ratio to display precision BEFORE comparing locks
+    # the three OVER risks to Platform > PCI > Production across seeds. The raw gap
+    # (103.2% vs 102.9%) is inside the Monte Carlo's own noise, so a raw key lets
+    # the seed decide row 1. The AT block below still shuffles across seeds, which
+    # is correct and deliberately not stabilised (§3).
+    g = load_graph(DATA)
+    orders = set()
+    for seed in (20260617, 1, 42, 999, 7777):
+        cfg = Config(as_of=AS_OF, seed=seed)
+        validate_graph(g, cfg)
+        eng = GraphEngine(g, cfg)
+        top3 = sorted(eng.all_named_risk_residuals(), key=dashboard._view1_key)[:3]
+        orders.add(tuple(r.named_risk.label for r in top3))
+    assert orders == {("Platform outage", "PCI scope creep", "Production compromise")}
+
+
+def test_view1_mean_tick_carries_the_residual_mean_in_dollars() -> None:
+    # SPEC v2.9 §2/§8: the mean tick's dollar label is the row's residual mean (the
+    # only absolute magnitude in the chart) and matches the table for that row.
+    g = load_graph(DATA)
+    cfg = Config(as_of=AS_OF)
+    validate_graph(g, cfg)
+    eng = GraphEngine(g, cfg)
+    page = dashboard.build_dashboard(g, eng)
+    for r in sorted(eng.all_named_risk_residuals(), key=dashboard._view1_key)[:8]:
+        assert f">{dashboard.money(r.band.mean)}</text>" in page
+
+
+def test_tile_row_is_four_asks_led_by_mis_allocation(page: str) -> None:
+    # SPEC v2.9 §5: four tiles, four different asks. "Top fixes" (a table of contents
+    # for the chart below it) and "Falling through cracks" (its orphans are already
+    # mis-allocation drivers) are dropped; mis-allocation leads; Privacy
+    # over-controlled keeps its own slot because there is no breach to reallocate
+    # toward in a domain with nothing at or above appetite.
+    assert "grid-template-columns:repeat(4,1fr)" in page
+    assert page.count('class="tile-k"') == 4
+    assert "Top fixes" not in page
+    assert "Falling through cracks" not in page
+    assert "Mis-allocated" in page and "Over-controlled" in page
+
+
 def test_view2_ranks_by_idle_dollars_with_status(page: str) -> None:
     # SPEC v2.8 §3: the Simpson's-trap ratio is gone; idle dollars + a status.
     assert "Idle tolerance" in page

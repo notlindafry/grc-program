@@ -44,19 +44,41 @@ visibility but held **out** of the band (`counts_in_bands`).
 
 ## 3. Two-sided appetite banding (RAG)
 
-Appetite is a target, not a ceiling. `rag_band(residual, threshold, green_floor)`
-returns one of three states, applied to the **managed, calibrated set only**:
+Appetite is a target, not a ceiling.
+`rag_band(mean, threshold, p_exceed, *, floor, p_red)` returns one of three
+states, applied to the **managed, calibrated set only**. Three gates, evaluated
+in order (SPEC v2.6 §1); the first that fires decides the colour:
 
-| State | Token | Meaning |
+| Gate | Test | Result |
 |---|---|---|
-| `over` | `--status-over` (red) | the whole band sits above appetite — a breach |
-| `at` | `--status-at` (green) | the band **straddles** the line (the truest "at appetite"), or sits in the top quarter of tolerance. The only green condition. |
-| `below` | `--status-below` (amber) | unused tolerance below the green band — over-controlled, or an appetite set too high / estimate understated. A review signal, not an all-clear. |
+| **0 — position (ceiling)** | `mean >= threshold` | `over` (red). Expected loss at or past declared tolerance **is** the breach; appetite is a statement about expected annual loss, so this is not a probability question. |
+| **1 — danger** | `p_exceed >= p_red` (default 0.33) | `over` (red). A reasonably probable breach is the actionable fact regardless of the mean. |
+| **2 — efficiency** | `mean >= floor × threshold` (default 0.75) | `at` (green) — using the declared tolerance. Otherwise `below` (amber) — unused tolerance: over-controlled, or an appetite set too high / estimate understated. A review signal, not an all-clear. |
 
-The green band's floor defaults to **0.75** (a residual between ~75% and 100% of
-appetite reads green), configurable via `green_band_floor` on `enterprise.yaml`.
-Consequence: the "within appetite" set is mostly amber *possibly over-controlling*
-signals, not a green all-clear.
+**Gates 0 and 1 are independent and neither subsumes the other.** A fat-tailed
+risk (median ≪ mean) can exceed appetite in expectation while its breach
+probability stays modest; a wide-banded risk can sit under appetite in
+expectation with a probable breach. Different failures; both red.
+
+Colour is position, probability is tail, and one never decides the other. Green
+is bounded **below** by the mean floor ("are you using it?") and **above** by
+both the appetite line and the breach probability ("are you about to blow through
+it?"). Green therefore requires controlled uncertainty as an emergent property: a
+mean at 85% of appetite with bands wide enough to push `p_exceed` past `p_red`
+reads red.
+
+Both parameters are configuration (`green_band_floor`, `appetite_red_prob` on
+`enterprise.yaml`), not constants — they are decisions and read as such.
+
+> **Retired (v2.5 §1): the straddle branch.** An earlier rule read a band that
+> *straddled* appetite as the truest "at appetite" and painted it green. It
+> evaluated before the mean check and overrode it, so any risk with a wide enough
+> right tail turned green regardless of where its centre sat — the chart drew the
+> mean while the colour keyed off the tail. It is gone. A wide band grazing
+> appetite from a low mean is amber.
+
+Consequence: the "within appetite" set is mostly amber *possibly
+over-controlling* signals, not a green all-clear.
 
 ### Capacity vs appetite, read as exceedance
 
