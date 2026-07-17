@@ -8,9 +8,9 @@ id: SCN-2026-0013
 title: Customer-facing outage of a core platform service
 named_risk: NR-PLATFORM-OUTAGE
 baseline:
-  opportunity_frequency_90ci: [38, 48]
-  probability_of_realization_90ci: [0.018, 0.028]
-  loss_magnitude_90ci: [1130000, 1450000]
+  opportunity_frequency_90ci: [41, 46]
+  probability_of_realization_90ci: [0.021, 0.026]
+  loss_magnitude_90ci: [1240000, 1360000]
 impact: [financial, public_market_harm]
 vectors: []
 lifecycle_state: managed

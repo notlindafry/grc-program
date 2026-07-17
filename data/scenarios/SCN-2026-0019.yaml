@@ -21,7 +21,7 @@ incident:
   suggested_domain: TR-SECURITY
   suggested_named_risk: NR-PROD-COMPROMISE
   suggested_factor: probability_of_realization
-  suggested_band: at appetite
+  suggested_band: [0.03, 0.09]
   mapped_by: offline-ai-incident-mapper
   mapped_on: 2026-06-10
   note: "Synthetic; produced once offline by the corpus generator seam (SPEC §8)."

@@ -266,7 +266,7 @@ It is another read of the same portfolio samples the residual band is taken from
 
 For a **hard line, the tail is the question, not the mean**. The portfolio
 summary states a single position and a single probability — *"over the $10M
-appetite; roughly a 14% chance of crossing the $15M materiality line this
+appetite; roughly a 6% chance of crossing the $15M materiality line this
 year"* — rather than a mean-based "within" that argues with a band that crosses.
 
 ## The appetite RAG rule (three gates)

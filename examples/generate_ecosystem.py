@@ -576,13 +576,13 @@ SCENARIOS = [
     # ABUSE-ESCALATION retuned to sit AT its $1.5M appetite (mean ~78%), the
     # second Security green so the domain reads mixed (SPEC v2.5 §3). LM lever.
     ("SCN-2026-0007", "Unmitigated abuse escalating on the platform", "NR-ABUSE-ESCALATION",
-     [28, 52], [0.02, 0.048], [660000, 1120000], ["individual_harm", "reputational"],
+     [34, 44], [0.024, 0.044], [740000, 940000], ["individual_harm", "reputational"],
      ["adversarial"], "managed", "stable"),
     # ABUSE-DETECTION sits AT its $1.5M appetite (mean ~78%, moderate uncertainty),
     # the second Security green so the domain reads mixed (SPEC v2.5 §3). No
     # exception here, so all three factors are tuned to a tight, controlled band.
     ("SCN-2026-0008", "Detection model misses policy-violating content at scale", "NR-ABUSE-DETECTION",
-     [28, 48], [0.019, 0.042], [720000, 1120000], ["individual_harm", "public_market_harm"],
+     [35, 42], [0.022, 0.04], [810000, 960000], ["individual_harm", "public_market_harm"],
      ["adversarial"], "managed", "stable"),
     # --- TR-RESILIENCE ---
     # PLATFORM-OUTAGE stays the clean OVER: mean above its $2.5M appetite, so the
@@ -591,8 +591,11 @@ SCENARIOS = [
     # Mean just over its $2.5M appetite with a wide-enough tail to keep P(exceed)
     # past 1/3 — the clean OVER on view 1 (bar past the tick), trimmed in the v2.5
     # rebalance so the portfolio keeps headroom to the $15M capacity.
+    # OVER via gate 0 (mean above its $2.5M appetite) with a deliberately TIGHT
+    # tail, so it reads red on position without inflating the portfolio's
+    # materiality tail (SPEC v2.8 §1). The clean "bar past the tick" case.
     ("SCN-2026-0013", "Customer-facing outage of a core platform service", "NR-PLATFORM-OUTAGE",
-     [38, 48], [0.018, 0.028], [1130000, 1450000], ["financial", "public_market_harm"],
+     [41, 46], [0.021, 0.026], [1240000, 1360000], ["financial", "public_market_harm"],
      [], "managed", "rising"),
     ("SCN-2026-0006", "Loss of availability of a core data platform service", "NR-DATA-AVAILABILITY",
      [10, 35], [0.01, 0.038], [70000, 300000], ["financial"],
@@ -601,7 +604,7 @@ SCENARIOS = [
     # moderate uncertainty) so it reads green under the two-gate rule and the
     # domain is not amber end to end (SPEC v2.5 §3). LM lever. ---
     ("SCN-2026-0005", "Corrupted or unvalidated data feeds a downstream decision", "NR-DATA-QUALITY",
-     [19, 32], [0.02, 0.05], [1180000, 1580000], ["financial", "individual_harm"],
+     [23, 26], [0.025, 0.043], [1580000, 1740000], ["financial", "individual_harm"],
      [], "managed", "stable"),
     ("SCN-2026-0016", "Schema-invalid writes corrupt a downstream pipeline decision", "NR-PIPELINE-INTEGRITY",
      [6, 18], [0.01, 0.035], [100000, 400000], ["financial"],
@@ -627,7 +630,7 @@ SCENARIOS = [
     # moderate uncertainty) so it reads green and Change is not amber end to end
     # (SPEC v2.5 §3). No exception here, so all three factors are tuned. ---
     ("SCN-2026-0009", "Availability regression introduced by the migration", "NR-MIGRATION-AVAILABILITY",
-     [20, 31], [0.032, 0.048], [1250000, 1900000], ["financial"],
+     [24, 28], [0.033, 0.045], [1360000, 1650000], ["financial"],
      [], "managed", "rising"),
     ("SCN-2026-0010", "Data integrity loss during monolith-to-microservices cutover", "NR-MIGRATION-DATAINTEGRITY",
      [5, 16], [0.01, 0.035], [150000, 650000], ["financial", "individual_harm"],
@@ -640,7 +643,7 @@ SCENARIOS = [
     # reads green and Third-party is not amber end to end (SPEC v2.5 §3). LM lever
     # (EXC-0164 moves PoR).
     ("SCN-2026-0020", "A critical supplier outage cascades into our service", "NR-SUPPLIER-OUTAGE",
-     [12, 21], [0.03, 0.058], [1520000, 1980000], ["financial"],
+     [18, 23], [0.03, 0.048], [1720000, 1910000], ["financial"],
      ["third_party"], "managed", "stable"),
     # --- TR-COMPLIANCE -- PCI raised so it reads OVER its $1M low tolerance (an
     # orphan: no funded remediation addresses it, §E story 3). ---
@@ -652,16 +655,21 @@ SCENARIOS = [
     ("SCN-2026-0017", "Missed quarterly regulatory filing triggers a penalty", "NR-REG-FILINGS",
      [2, 6], [0.03, 0.1], [150000, 700000], ["regulatory", "financial"],
      [], "managed", "stable"),
-    # --- Emerging: wide, moving intervals, AI vector (held out of appetite math) ---
+    # --- Emerging: wide, moving intervals, AI vector (held out of appetite math).
+    # Deliberately NOT uniform (SPEC v2.8 §5b): one rising and breach-if-promoted,
+    # one stable, one receding that would stay within appetite if it firmed up. ---
     ("SCN-2026-0031", "Confidently-wrong automated decisioning at scale on a single model provider", "NR-MODEL-SUPPLY",
      [5, 60], [0.02, 0.30], [400000, 9000000], ["financial", "individual_harm", "public_market_harm"],
      ["ai", "third_party"], "emerging", "rising"),
     ("SCN-2026-0032", "Autonomous agent triggers an unsafe production action", "NR-AI-AGENT-AUTONOMY",
      [3, 40], [0.01, 0.25], [300000, 7000000], ["financial", "individual_harm"],
-     ["ai"], "emerging", "rising"),
+     ["ai"], "emerging", "stable"),
+    # Receding and modest: mitigations are landing, and even if promoted its band
+    # stays under the $1.5M abuse-detection appetite — an emerging item that is NOT
+    # a foregone breach.
     ("SCN-2026-0033", "Silent training-data drift degrades the abuse-detection model", "NR-ABUSE-DETECTION",
-     [10, 90], [0.02, 0.28], [200000, 4000000], ["individual_harm", "public_market_harm"],
-     ["ai"], "emerging", "rising"),
+     [8, 40], [0.01, 0.05], [120000, 700000], ["individual_harm", "public_market_harm"],
+     ["ai"], "emerging", "receding"),
 ]
 
 # The stored output of the offline AI incident->scenario mapping step, keyed by
@@ -675,7 +683,7 @@ SCENARIO_INCIDENTS = {
         "suggested_domain": "TR-SECURITY",
         "suggested_named_risk": "NR-PROD-COMPROMISE",
         "suggested_factor": "probability_of_realization",
-        "suggested_band": "at appetite",
+        "suggested_band": [0.03, 0.09],
         "mapped_by": "offline-ai-incident-mapper",
         "mapped_on": "2026-06-10",
         "note": "Synthetic; produced once offline by the corpus generator seam (SPEC §8).",
@@ -875,10 +883,10 @@ def build_exceptions():
          "payments-lead@company.com", "SCN-2026-0004", "A.8.22", [0.06, 0.13],
          "payments-launch", "complete_network_segmentation"),
         ("EXC-2026-0152", "Delayed detection-model retrain -- ML team pulled to migration",
-         "tns-lead@company.com", "SCN-2026-0008", "A.8.16", [0.02, 0.06],
+         "tns-lead@company.com", "SCN-2026-0008", "A.8.16", [0.026, 0.044],
          "trust-and-safety", "retrain_detection_model"),
         ("EXC-2026-0153", "Deferred data-validation checks -- engineers on migration",
-         "data-platform-lead@company.com", "SCN-2026-0005", "A.8.33", [0.025, 0.07],
+         "data-platform-lead@company.com", "SCN-2026-0005", "A.8.33", [0.028, 0.05],
          "data-platform", "restore_validation_suite"),
         ("EXC-2026-0154", "Deferred HA failover testing -- on-call pulled to migration",
          "data-platform-lead@company.com", "SCN-2026-0006", "A.8.14", [0.02, 0.06],
@@ -906,10 +914,10 @@ def build_exceptions():
          [0.010, 0.03], "p.nguyen@company.com", "mobile-app", "cost", 5, None, False),  # renewed 5x
         ("EXC-2026-0163", "Defer secondary reviewer on low-severity abuse queue",
          "tns-lead@company.com", "SCN-2026-0007", "A.8.16", "probability_of_realization",
-         [0.02, 0.055], "a.silva@company.com", "trust-and-safety", "timeline", 0, None, True),  # non-plan
+         [0.026, 0.046], "a.silva@company.com", "trust-and-safety", "timeline", 0, None, True),  # non-plan
         ("EXC-2026-0164", "Accept legacy TLS on an internal supplier gateway",
          "it-lead@company.com", "SCN-2026-0020", "A.8.24", "probability_of_realization",
-         [0.03, 0.09], "m.haddad@company.com", "internal-tools", "technical_constraint", 3, None, False),
+         [0.034, 0.052], "m.haddad@company.com", "internal-tools", "technical_constraint", 3, None, False),
         ("EXC-2026-0165", "Deferred residency tagging on a new export connector",
          "data-platform-lead@company.com", "SCN-2026-0014", "A.8.11", "probability_of_realization",
          [0.04, 0.10], "r.chen@company.com", "data-platform", "timeline", 0, None, False),

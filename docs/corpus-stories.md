@@ -47,15 +47,17 @@ longer paint a low-mean risk green.
 | `P(exceed)` surfaced on every AT/BELOW row ≥ 10% | view 1 ✓ |
 | No threshold or rationale changed this pass | `git diff data/named_risks.yaml` empty ✓ |
 | Dominance holds; no negative residual | 0 hard errors ✓ |
+| P(>capacity) 5–8%, P(>appetite) > 90% | **6%** and **>99%** (v2.8 §1 compressed the tail) ✓ |
 | Portfolio well under 1% of revenue, over appetite | mean **$13.8M** = 0.69%, over the $10M line ✓ |
 
-Portfolio residual **$12.1M–$15.7M** (mean $13.8M). One position: **over the $10M
-appetite** (P > appetite ~100%). One probability: **a ~14% chance of crossing the
-$15M materiality line this year** — elevated, a genuine governance moment, but well
-short of a coin-flip. The v2.5 rebalance deliberately moved exposure **into** the
-appetite band (five risks now operate at appetite), so the portfolio carries more
-than the pre-v2.5 book and sits closer to capacity; that is the honest consequence
-of real green, not a regression. The RAG spread is **3 OVER / 5 AT / 14 BELOW**,
+Portfolio residual **$12.6M–$15.1M** (mean $13.8M). One position: **over the $10M
+appetite** (the entire range sits above the line). One probability: **a ~6% chance
+of crossing the $15M materiality line this year** — a governance moment, not a
+crisis. Five risks operate *at* appetite, so the portfolio carries more than the
+pre-v2.5 book; v2.8 §1 then compressed the right tail (the mean held at $13.8M while
+p95 fell from ~$15.7M to ~$15.1M) to bring the materiality probability back into the
+5–8% governance band without scaling exposure uniformly. The RAG spread is
+**3 OVER / 5 AT / 14 BELOW**,
 judged not fitted (v2.2 §B): a few breaches, green demonstrably achievable across
 four domains, a majority over-controlled. Sum of authored thresholds ≈ $36M (3.6×
 the declared appetite — the "bottom-up appetite has drifted above the top-down

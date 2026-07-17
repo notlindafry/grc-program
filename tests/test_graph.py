@@ -113,11 +113,12 @@ def test_derived_adjacency(graph):
     assert graph.remediations_of_issue["VULN-2026-0001"]
 
 
-def test_emerging_scenarios_carry_wide_ai_bands(graph):
+def test_emerging_scenarios_carry_ai_bands_with_varied_trajectory(graph):
+    # SPEC v2.8 §5b: emerging is AI-vectored, but the trajectories are not uniform.
     emerging = [s for s in graph.scenarios.values() if s.is_emerging]
     assert len(emerging) >= 2
-    assert all(s.trajectory == "rising" for s in emerging)
     assert any("ai" in s.vectors for s in emerging)
+    assert len({s.trajectory for s in emerging}) > 1
 
 
 def test_derived_evidence_status(graph):

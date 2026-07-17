@@ -9,7 +9,7 @@ control: [A.8.16]
 okr: trust-and-safety
 exception_effect:
   moves: probability_of_realization
-  with_exception_90ci: [0.02, 0.06]
+  with_exception_90ci: [0.026, 0.044]
   estimated_by: p.nguyen@company.com
   estimated_on: 2026-05-18
 reason: resource_reallocation

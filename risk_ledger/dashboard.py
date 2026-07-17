@@ -67,6 +67,17 @@ def _article(n: int) -> str:
     return "an" if n in (8, 11, 18) or (str(n).startswith("8") and n >= 80) else "a"
 
 
+def _pct(p: float) -> str:
+    """A probability as a percentage, guarded at the extremes (SPEC v2.8 §6): a
+    near-certainty printed as a bare ``100%`` (or a near-impossibility as ``0%``)
+    reads like a broken number, so clamp to ``>99%`` / ``<1%`` instead."""
+    if p >= 0.995:
+        return ">99%"
+    if p <= 0.005:
+        return "<1%"
+    return f"{round(p * 100)}%"
+
+
 def _dot(state: str, label: bool = True) -> str:
     """A status dot beside a text label — never colour alone (SPEC §7)."""
     name, colour = RAG[state]
@@ -98,15 +109,17 @@ def _rect(x, y, w, h, fill, *, rx=None, extra="") -> str:
     return f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}"{r} style="fill:{fill}"{extra}/>'
 
 
-def exposure_bar_svg(rows: list[tuple], axis_max: float) -> str:
-    """View 1: ranked residual bars taught to explain the two-gate rule (SPEC v2.5
-    §4). The bar is the mean and the tick is appetite, so their relationship *is*
-    the colour: the shaded gap from bar-end to the tick is unused tolerance
-    (amber), the shaded overshoot past the tick is the breach (red). The whisker
-    is receded — it now carries uncertainty only and must not imply the colour.
-    rows = [(name, low, mean, high, threshold, state, p_exceed)]."""
+def exposure_interval_svg(rows: list[tuple], axis_max: float) -> str:
+    """View 1 as an interval plot (SPEC v2.8 §2): a distribution mark for a
+    distribution model. Each row draws its **p5–p95 interval** tinted by RAG
+    state; the **mean is an interior tick** (it drives the colour, so it must be
+    visible); the **appetite line is a dashed rule**; and the slice of the
+    interval **beyond appetite is a stronger red** — that red slice IS the breach
+    mass, so a gate-1 red (mean left of the line, fat right tail) shows a visible
+    cause. No mark starts at $0. rows = [(name, low, mean, high, threshold, state,
+    p_exceed)]."""
     left, right, top = 172, 104, 8
-    row_h, gap = 26, 10
+    row_h, gap = 28, 10
     axis_h, caption_h = 16, 18
     plot_w = 640 - left - right
     plot_bottom = top + len(rows) * (row_h + gap)
@@ -122,43 +135,40 @@ def exposure_bar_svg(rows: list[tuple], axis_max: float) -> str:
         body.append(f'<line x1="{x(v):.1f}" y1="{top}" x2="{x(v):.1f}" y2="{plot_bottom}" style="stroke:var(--border)" stroke-width="1"/>')
         body.append(_t(x(v), plot_bottom + 12, money(v), size=10, fill="var(--text-muted)", anchor="middle"))
         v += step
+    ivh = 12
     for i, (name, low, mean, high, thr, state, p_exc) in enumerate(rows):
         y = top + i * (row_h + gap)
         cy = y + row_h / 2
         colour = RAG[state][1]
-        bar_top, bar_h = y + 5, row_h - 10
+        ivy = cy - ivh / 2
+        x0, x1 = x(low), x(high)
         body.append(_t(left - 10, cy + 4, name, size=12, anchor="end"))
-        # receded whisker (uncertainty only — no longer implies the colour)
-        body.append(f'<line x1="{x(low):.1f}" y1="{cy:.1f}" x2="{x(high):.1f}" y2="{cy:.1f}" '
-                    f'style="stroke:var(--text-muted)" stroke-width="1" opacity="0.45"/>')
-        # unused-tolerance gap (bar-end -> tick), amber, only when not breaching
-        if state != "over" and mean < thr and thr <= axis_max:
-            body.append(_rect(x(mean), bar_top, max(x(thr) - x(mean), 0), bar_h,
-                              "var(--status-below)", rx=0, extra=' opacity="0.20"'))
-        # mean bar from 0 in the RAG colour
-        body.append(_rect(left, bar_top, max(x(mean) - left, 2), bar_h, colour, rx=4))
-        # breach overshoot (tick -> bar-end), emphasised in red
-        if mean > thr:
-            body.append(_rect(x(thr), bar_top, max(x(mean) - x(thr), 1), bar_h,
-                              "var(--status-over)", rx=0, extra=' opacity="0.55"'))
-        # appetite tick
+        # the p5–p95 interval is the mark, RAG-tinted, with a defining outline
+        body.append(f'<rect x="{x0:.1f}" y="{ivy:.1f}" width="{max(x1 - x0, 3):.1f}" height="{ivh}" rx="5" '
+                    f'style="fill:{colour};stroke:{colour}" fill-opacity="0.32" stroke-opacity="0.9" stroke-width="1"/>')
+        # the slice beyond appetite is the breach mass — stronger red
+        if high > thr and thr <= axis_max:
+            xs = max(x(thr), x0)
+            body.append(f'<rect x="{xs:.1f}" y="{ivy:.1f}" width="{max(x1 - xs, 1):.1f}" height="{ivh}" rx="0" '
+                        f'style="fill:var(--status-over)" fill-opacity="0.58"/>')
+        # the mean tick — the value the colour keys off, so it is prominent
+        body.append(f'<line x1="{x(mean):.1f}" y1="{cy - 9:.1f}" x2="{x(mean):.1f}" y2="{cy + 9:.1f}" '
+                    f'style="stroke:var(--text-strong)" stroke-width="2"/>')
+        # appetite as a dashed vertical rule
         if thr <= axis_max:
             body.append(f'<line x1="{x(thr):.1f}" y1="{y + 1:.1f}" x2="{x(thr):.1f}" y2="{y + row_h - 1:.1f}" '
-                        f'style="stroke:var(--text-strong)" stroke-width="1.5" stroke-dasharray="2 2"/>')
+                        f'style="stroke:var(--text-strong)" stroke-width="1.25" stroke-dasharray="2 2" opacity="0.75"/>')
         body.append(_t(636, cy + 1, RAG[state][0], size=10, fill=colour, anchor="end", weight=600))
-        # surface the breach probability where material (>= 10%, SPEC v2.5 §2a).
-        # It is a tail probability, kept distinct from the position — labelled as
-        # a chance so it never reads as "how far over".
         if p_exc >= 0.10:
             body.append(_t(636, cy + 12, f"{round(p_exc * 100)}% breach", size=9,
                            fill="var(--text-muted)", anchor="end"))
     cap_y = h - 5
     body.append(f'<line x1="{left}" y1="{cap_y - 4}" x2="{left}" y2="{cap_y + 2}" '
-                f'style="stroke:var(--text-strong)" stroke-width="1.5" stroke-dasharray="2 2"/>')
+                f'style="stroke:var(--text-strong)" stroke-width="1.25" stroke-dasharray="2 2" opacity="0.75"/>')
     body.append(_t(left + 8, cap_y, "appetite line", size=10, fill="var(--text-muted)"))
-    body.append(_t(636, cap_y, "bar = mean · line = 5–95% · shading = unused / breach",
+    body.append(_t(636, cap_y, "interval = 5–95% · tick = mean · red = breach mass",
                    size=10, fill="var(--text-muted)", anchor="end"))
-    return _svg(640, h, "".join(body), "Ranked residual exposure by named risk")
+    return _svg(640, h, "".join(body), "Residual interval (5–95%) by named risk")
 
 
 def launch_debt_svg(rows: list[tuple], axis_max: float) -> str:
@@ -253,12 +263,6 @@ def _addressed_by_funded(graph: Graph, scenario_ids: list[str]) -> bool:
     return any(r.status in funded for r in graph.remediations if r.id in rem_ids)
 
 
-def _domain_declared(graph: Graph, rollup) -> float:
-    """Sum of the authored appetite thresholds of a domain's named risks — the
-    tolerance the domain is *allowed* to spend (SPEC v2.7 §2)."""
-    return sum(graph.named_risks[nid].appetite_threshold or 0.0 for nid in rollup.named_risk_ids)
-
-
 def _rag_counts_html(rag_counts: dict) -> str:
     """The domain's RAG mix as counted dots — every count carries its number, so
     identity is never colour-alone (SPEC §7). Zeros stay, faint, to keep the read."""
@@ -270,17 +274,29 @@ def _rag_counts_html(rag_counts: dict) -> str:
     return '<span class="ragcs">' + "".join(parts) + "</span>"
 
 
-def _pct_bar(used: float) -> str:
-    """A mini bar of tolerance used vs the declared line: a short bar is a domain
-    spending far below what it said it would tolerate — the over-control signal."""
-    return (f'<span class="ubar"><span class="ufill" style="width:{min(used * 100, 100):.0f}%"></span></span>'
-            f'<span class="upct">{round(used * 100)}%</span>')
+def _domain_idle(rollup, residuals: dict):
+    """Idle tolerance and allocation status for a domain (SPEC v2.8 §3). Idle is a
+    real quantity — `Σ (appetite − residual)` over the domain's BELOW-state risks
+    only — that averages nothing, unlike the residual/appetite ratio it replaces
+    (a Simpson's trap: Resilience's 59% blended a 102% breach with a 6% idle risk).
 
-
-def _over_controlled_domain(graph: Graph, eng: GraphEngine):
-    """The domain using the least of its declared tolerance (SPEC v2.7 §3)."""
-    rollups = [d for d in eng.all_domain_rollups() if _domain_declared(graph, d) > 0]
-    return min(rollups, key=lambda d: d.band.mean / _domain_declared(graph, d), default=None)
+    Status is the sharper, actionable finding:
+      * ``over-controlled`` — nothing at or above appetite anywhere (pure idle).
+      * ``mis-allocated``   — a breach AND idle tolerance in the same domain.
+      * ``balanced``        — a risk operating at appetite, no breach.
+    """
+    belows = [residuals[n] for n in rollup.named_risk_ids if residuals[n].state == "below"]
+    overs = [residuals[n] for n in rollup.named_risk_ids if residuals[n].state == "over"]
+    idle = sum(r.threshold - r.band.mean for r in belows)
+    biggest = max(belows, key=lambda r: r.threshold - r.band.mean, default=None)
+    rc = rollup.rag_counts
+    if rc.get("over", 0) >= 1 and rc.get("below", 0) >= 1:
+        status = "mis-allocated"
+    elif rc.get("over", 0) == 0 and rc.get("at", 0) == 0:
+        status = "over-controlled"
+    else:
+        status = "balanced"
+    return idle, overs, biggest, status
 
 
 # ---------------------------------------------------------------------------
@@ -300,8 +316,15 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
     drifts = [d for d in drifts if d.true and d.has_undeclared_debt]
     drifts.sort(key=lambda d: (d.true.mean - (d.reported.mean if d.reported else 0)), reverse=True)
     launch = drifts[0] if drifts else None
-    oc = _over_controlled_domain(graph, eng)  # over-investing is a problem too (SPEC v2.7 §3)
-    oc_declared = _domain_declared(graph, oc) if oc else 0.0
+    # over-investing is a problem too (SPEC v2.7 §3): the over-controlled domain is
+    # the one with nothing at or above appetite, reported by its idle dollars (a
+    # real quantity, not the Simpson's-trap ratio, SPEC v2.8 §3).
+    residuals = {r.named_risk.id: r for r in eng.all_named_risk_residuals()}
+    oc, oc_idle = None, 0.0
+    for d in eng.all_domain_rollups():
+        idle, _overs, _big, status = _domain_idle(d, residuals)
+        if status == "over-controlled" and idle > oc_idle:
+            oc, oc_idle = d, idle
 
     pos = RAG[p.appetite_state]
     cards = []
@@ -309,9 +332,11 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
         f'<div class="hero"><div class="hero-num" style="color:{pos[1]}">{band_str(p.band.low, p.band.high)}</div>'
         f'<div class="hero-cap">residual exposure this year, against a {money(p.appetite)} appetite'
         f' &nbsp;{_dot(p.appetite_state)}</div>'
-        f'<div class="hero-sub">Over appetite — the signal. Roughly {_article(round(p.p_over_capacity * 100))} '
-        f'<b style="color:var(--status-below-tint)">{round(p.p_over_capacity * 100)}% chance</b> of crossing the '
-        f'{money(p.capacity)} materiality line this year ({round(p.p_over_appetite * 100)}% over appetite). '
+        f'<div class="hero-sub">Over appetite — the signal: '
+        f'{"the entire residual range sits above the " + money(p.appetite) + " line" if p.p_over_appetite >= 0.99 else _pct(p.p_over_appetite) + " of the range is over the line"}. '
+        f'Roughly {_article(round(p.p_over_capacity * 100))} '
+        f'<b style="color:var(--status-below-tint)">{_pct(p.p_over_capacity)} chance</b> of crossing the '
+        f'{money(p.capacity)} materiality line this year. '
         f'{round(p.band.mean / graph.enterprise.revenue_annual * 1000) / 10}% of revenue.</div></div>'
     )
     # Five peer tiles. The over-control tile sits *in* the row, not below it: over-
@@ -327,7 +352,7 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
         ("The can you keep kicking", f"{n_renew} renewed · {n_slip} slipped",
          "temporary-forever + slipped dates", False),
         ("Over-controlled", oc.domain.title if oc else "—",
-         (f"{round(oc.band.mean / oc_declared * 100)}% of {money(oc_declared)} declared tolerance used" if oc else "—"),
+         (f"{money(oc_idle)} idle — nothing at or above appetite" if oc else "—"),
          True),
     ]
     tile_html = "".join(
@@ -352,7 +377,7 @@ def _view1(graph: Graph, eng: GraphEngine) -> str:
         # Position and probability, side by side but never conflated (SPEC v2.5 §2b/§2a):
         # mean/appetite distinguishes a mild amber from the standout; P(exceed) is the tail.
         ratio = f"{round(r.band.mean / r.threshold * 100)}% of appetite"
-        pexc = f" · {round(r.p_over_appetite * 100)}% chance of breach" if r.p_over_appetite >= 0.10 else ""
+        pexc = f" · {_pct(r.p_over_appetite)} chance of breach" if r.p_over_appetite >= 0.10 else ""
         items.append(
             f'<tr><td>{_dot(r.state)}</td><td class="nm" title="{_esc(r.named_risk.title)}">{_esc(r.named_risk.label)}</td>'
             f'<td class="num">{band_str(r.band.low, r.band.high)}</td>'
@@ -361,48 +386,68 @@ def _view1(graph: Graph, eng: GraphEngine) -> str:
             f'<td class="drv">{_esc(drivers)} · {funded}</td></tr>')
     return _card(
         "1", "Your biggest exposures now",
-        "Top named risks by residual, banded against each risk's appetite: position (bar vs line) and breach probability, kept separate.",
-        exposure_bar_svg(rows, axis_max)
+        "Top named risks by residual: the 5–95% interval tinted by state, the mean as an interior tick, and the slice beyond appetite (red) as the breach mass.",
+        exposure_interval_svg(rows, axis_max)
         + f'<table class="tbl"><thead><tr><th></th><th>Named risk</th><th class="num">Residual (90% CI)</th>'
         f'<th class="num">Appetite</th><th>Position</th><th>Driven by</th></tr></thead><tbody>{"".join(items)}</tbody></table>')
 
 
+_DOM_STATUS = {  # (label, RAG-token colour, row-highlight class)
+    "over-controlled": ("OVER-CONTROLLED", "var(--status-below)", " class=\"row-amber\""),
+    "mis-allocated": ("MIS-ALLOCATED", "var(--status-over)", ""),
+    "balanced": ("Balanced", "var(--status-at)", ""),
+}
+_DOM_ORDER = {"over-controlled": 0, "mis-allocated": 1, "balanced": 2}
+
+
 def _view_domains(graph: Graph, eng: GraphEngine) -> str:
-    """View 2 (SPEC v2.7 §4): the over-investment view, and the only place Tier 1
-    (domains) appears in the artifact. One row per domain, ranked ascending by
-    tolerance used, so the over-controlled domain leads. Over-control is a peer of
-    'biggest exposures', not an afterthought — a domain spending far below the line
-    it set is control effort not spent shipping."""
+    """View 2 (SPEC v2.8 §3): the over-investment / mis-allocation view, and the
+    only place Tier 1 (domains) appears. The v2.7 residual/appetite ratio is gone
+    — it was a Simpson's trap that averaged a breach and idle headroom into a
+    number matching no risk in the domain. Rows rank by **idle tolerance in
+    dollars** (`Σ (appetite − residual)` over BELOW-state risks) and carry a status:
+    over-controlled (Privacy, nothing near the line) leads; mis-allocated (a breach
+    beside idle headroom, the same owner) is the sharper second act."""
+    residuals = {r.named_risk.id: r for r in eng.all_named_risk_residuals()}
     data = []
     for d in eng.all_domain_rollups():
-        declared = _domain_declared(graph, d)
-        data.append((d.band.mean / declared if declared else 0.0, d, declared))
-    data.sort(key=lambda t: t[0])  # ascending by % used — Privacy first
+        idle, overs, biggest, status = _domain_idle(d, residuals)
+        data.append((_DOM_ORDER[status], -idle, d, idle, overs, biggest, status))
+    data.sort(key=lambda t: (t[0], t[1]))  # over-controlled first; then by idle desc
     rows = []
-    for used, d, declared in data:
-        rc = d.rag_counts
-        all_amber = rc.get("over", 0) == 0 and rc.get("at", 0) == 0  # the standout
-        cls = ' class="row-amber"' if all_amber else ""
+    for _, _, d, idle, overs, biggest, status in data:
+        label, colour, rowcls = _DOM_STATUS[status]
+        if status == "mis-allocated":
+            ov = ", ".join(o.named_risk.label for o in overs)
+            detail = (f"<b>{_esc(ov)}</b> breached, yet <b>{money(idle)}</b> sits idle"
+                      + (f" on {_esc(biggest.named_risk.label)}" if biggest else ""))
+        elif status == "over-controlled":
+            detail = f"nothing at or above appetite anywhere — <b>{money(idle)}</b> idle across {d.rag_counts['below']} risks"
+        else:
+            detail = "a risk operating at appetite, no breach"
+        pill = (f'<span class="rag"><span class="dot" style="background:{colour}"></span>'
+                f'<span class="rag-l" style="color:{colour}">{label}</span></span>')
         rows.append(
-            f'<tr{cls}><td class="nm">{_esc(d.domain.title)}</td>'
-            f'<td class="num">{money(d.band.mean)}</td>'
-            f'<td class="num">{money(declared)}</td>'
-            f'<td class="ucell">{_pct_bar(used)}</td>'
-            f'<td>{_rag_counts_html(rc)}</td></tr>')
+            f'<tr{rowcls}><td class="nm">{_esc(d.domain.title)}</td>'
+            f'<td class="num">{money(idle)}</td>'
+            f'<td>{pill}</td>'
+            f'<td class="drv">{detail}</td>'
+            f'<td>{_rag_counts_html(d.rag_counts)}</td></tr>')
     total_thr = sum(nr.appetite_threshold or 0 for nr in graph.named_risks.values())
     app = eng.portfolio().appetite
     flag = (f'<p class="chain">Bottom-up appetite totals <b>{money(total_thr)}</b> against a {money(app)} declared '
             f'enterprise appetite (<b>{total_thr / app:.2f}×</b>). Either the risk-level thresholds are generous, '
             f'or the enterprise line is not what the business actually tolerates.</p>')
-    inner = (f'<p class="lede">Declared tolerance you are <i>not</i> using. Control effort spent below the line you '
-             f'set is effort not spent shipping. Ranked by share of each domain\'s authored tolerance the residual '
-             f'actually uses — the shortest bar is the most over-controlled. The RAG mix is over / at / below, each '
-             f'with its count.</p>'
-             f'<table class="tbl"><thead><tr><th>Domain (Tier 1)</th><th class="num">Residual</th>'
-             f'<th class="num">Declared tolerance</th><th>Tolerance used</th><th>Risk mix (R/G/A)</th></tr></thead>'
+    inner = (f'<p class="lede">Declared tolerance sitting <i>idle</i> — control effort spent below the line you set '
+             f'is effort not spent shipping. <b>Over-controlled</b> is a domain with nothing at or above appetite; '
+             f'<b>mis-allocated</b> is a breach and idle headroom in the same domain, under the same owner — a '
+             f'reallocation, not a ratio. Ranked by idle dollars on below-appetite risks. RAG mix is over / at / '
+             f'below, each with its count.</p>'
+             f'<table class="tbl"><thead><tr><th>Domain (Tier 1)</th><th class="num">Idle tolerance</th>'
+             f'<th>Status</th><th>What it means</th><th>Risk mix (R/G/A)</th></tr></thead>'
              f'<tbody>{"".join(rows)}</tbody></table>{flag}')
     return _card("2", "Where you're over-investing",
-                 "Domains ranked by how little of their declared tolerance they use — over-control is a problem too.",
+                 "Domains ranked by idle tolerance: over-controlled where nothing is near the line, mis-allocated where a breach sits beside idle headroom.",
                  inner)
 
 
@@ -417,7 +462,7 @@ def _view2(graph: Graph, eng: GraphEngine) -> str:
             f'<tr><td>{_dot(r.state)}</td><td class="nm" title="{_esc(r.named_risk.title)}">{_esc(r.named_risk.label)}</td>'
             f'<td class="num">{band_str(r.band.low, r.band.high)}</td>'
             f'<td>{_esc(r.named_risk.owner)}</td>'
-            f'<td class="drv">{round(r.p_over_threshold * 100)}% chance over its {money(r.threshold)} appetite</td></tr>'
+            f'<td class="drv">{_pct(r.p_over_threshold)} chance over its {money(r.threshold)} appetite</td></tr>'
             for r in orphans)
         inner = (f'<p class="lede">Real exposure over appetite with <b>no funded remediation</b> behind it — '
                  f'the exposure the exception lens alone would miss.</p>'
@@ -426,28 +471,51 @@ def _view2(graph: Graph, eng: GraphEngine) -> str:
     return _card("3", "Falling through the cracks", "Orphans: over appetite, not accepted, no funded plan.", inner)
 
 
+_STATE_RANK = {"over": 0, "at": 1, "below": 2}
+_HEALTH_RANK = {"red": 0, "amber": 1, "green": 2}
+
+
 def _view3(graph: Graph, eng: GraphEngine) -> str:
-    unhealthy = eng.unhealthy_controls()[:10]
+    """View 4 (SPEC v2.8 §4): where safeguards are weakest, answered for the VP.
+    The Policy column (the auditor's traceability question, wrong reader) is
+    replaced by the **named risks each control mitigates and their RAG state** —
+    a red control sitting on an over-appetite risk is the entire point. Sorted by
+    health AND the worst mapped risk state, so a red control on a breach outranks
+    a red control on an idle risk. Policy stays in the model and validation, and
+    the traceability claim stays in the prose below."""
+    residuals = {r.named_risk.id: r for r in eng.all_named_risk_residuals()}
+
+    def worst_state(control):
+        states = [residuals[n].state for n in control.mapped_named_risks if n in residuals]
+        return min((_STATE_RANK[s] for s in states), default=3)
+
+    unhealthy = sorted(eng.unhealthy_controls(),
+                       key=lambda h: (_HEALTH_RANK[h.health], worst_state(h.control)))[:10]
     rows = []
     for h in unhealthy:
         colour = "var(--status-over)" if h.health == "red" else "var(--status-below)"
         ev = h.evidence_status
         note = "clean on findings — but unproven" if h.clean_but_unproven else (
             f"{sum(h.findings_by_severity.values())} finding(s), {h.open_gap_count} accepted gap(s)")
-        policy = graph.controls[h.control.id].policy or "—"
+        mapped = sorted((residuals[n] for n in h.control.mapped_named_risks if n in residuals),
+                        key=lambda r: _STATE_RANK[r.state])[:2]
+        miti = ("; ".join(f'{_esc(r.named_risk.label)} {_dot(r.state)}' for r in mapped)
+                or '<span class="mut">—</span>')
         rows.append(
             f'<tr><td><span class="dot" style="background:{colour}"></span> '
             f'<b style="color:{colour}">{h.health.upper()}</b></td>'
             f'<td class="nm">{_esc(h.control.id)} {_esc(h.control.title)}</td>'
             f'<td>evidence: <b>{ev}</b></td><td class="drv">{_esc(note)}</td>'
-            f'<td class="pol">{_esc(policy)}</td></tr>')
+            f'<td class="drv">{miti}</td></tr>')
     inner = (f'<p class="lede">Control health is derived from open issues <i>and</i> evidence freshness — a '
              f'control can be green on findings but amber because its evidence is stale or missing (the '
-             f'provability signal). Every control traces up to a governing policy.</p>'
+             f'provability signal). Each row shows the named risk the control <b>mitigates</b> and its state, so '
+             f'a red control on an over-appetite risk is legible at a glance; the two lead for exactly that reason. '
+             f'Every control still traces up to a governing policy (kept in the model, not this table).</p>'
              f'<table class="tbl"><thead><tr><th>Health</th><th>Control (ISO 27001:2022)</th><th>Evidence</th>'
-             f'<th>Why</th><th>Policy</th></tr></thead><tbody>{"".join(rows)}</tbody></table>')
+             f'<th>Why</th><th>&rarr; Mitigates</th></tr></thead><tbody>{"".join(rows)}</tbody></table>')
     return _card("4", "Where your safeguards are weakest",
-                 "Control health with evidence blind spots and the governing policy per control.", inner)
+                 "Control health with evidence blind spots and the over-appetite risks the weak controls are supposed to hold.", inner)
 
 
 def _view4(graph: Graph, eng: GraphEngine) -> str:
@@ -498,13 +566,16 @@ def _view5(graph: Graph, eng: GraphEngine) -> str:
                  "Chronic deferrals from renewal counts and slipped remediation target dates.", inner)
 
 
+_TRAJ_ARROW = {"rising": "▲", "receding": "▼", "stable": "▬"}
+
+
 def _view6(graph: Graph, eng: GraphEngine) -> str:
     emerging = eng.emerging_items()
     erows = "".join(
         f'<tr><td class="nm">{_esc(e.scenario.title)}</td>'
         f'<td class="tag">{"/".join(e.scenario.vectors) or "—"}</td>'
         f'<td class="num">{band_str(e.band.low, e.band.high)}</td>'
-        f'<td>▲ {_esc(e.trajectory)}</td>'
+        f'<td>{_TRAJ_ARROW.get(e.trajectory, "▬")} {_esc(e.trajectory)}</td>'
         f'<td class="drv">{"would breach appetite" if e.would_breach else "within if promoted"}</td></tr>'
         for e in emerging)
     breached = eng.breached_kris()
@@ -512,8 +583,9 @@ def _view6(graph: Graph, eng: GraphEngine) -> str:
     p = eng.portfolio()
     inner = (f'<p class="lede">The forward-looking line: current managed residual is '
              f'<b style="color:{RAG[p.appetite_state][1]}">over the {money(p.appetite)} appetite</b> while the '
-             f'emerging column holds items — wide, moving, AI-vectored — that are not yet appetite-tested but '
-             f'would breach it if they firmed up. Kept apart from the appetite math (honest uncertainty).</p>'
+             f'emerging column holds items — wide, moving, AI-vectored — that are not yet appetite-tested. Some '
+             f'would breach it if they firmed up; others are receding or would stay within. Kept apart from the '
+             f'appetite math (honest uncertainty).</p>'
              f'<table class="tbl"><thead><tr><th>Emerging risk</th><th>Vector</th><th class="num">Wide interval</th>'
              f'<th>Trajectory</th><th>If promoted</th></tr></thead><tbody>{erows}</tbody></table>'
              f'<p class="chain">KRI breaches feeding the horizon ({len(breached)}): {_esc(kris)}…</p>')
@@ -611,10 +683,6 @@ header .meta { color:var(--text-muted); font-size:13.5px; }
 .tile-s { color:var(--text-muted); font-size:12px; }
 .ragcs { display:inline-flex; gap:10px; }
 .ragc { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--text); font-family:var(--font-display); }
-.ucell { min-width:120px; }
-.ubar { display:inline-block; width:78px; height:7px; border-radius:var(--radius-sm); background:var(--border); vertical-align:middle; overflow:hidden; }
-.ufill { display:block; height:100%; background:var(--accent); border-radius:var(--radius-sm); }
-.upct { margin-left:8px; font-family:var(--font-display); font-size:12.5px; color:var(--text); }
 .tbl tr.row-amber td { background:color-mix(in srgb, var(--status-below), transparent 90%); }
 .tbl tr.row-amber td:first-child { box-shadow:inset 3px 0 0 var(--status-below); }
 .grid { display:grid; gap:20px; }
