@@ -328,7 +328,7 @@ enterprise record), not constants — they are decisions and read as such.
 **Green requires controlled uncertainty.** Because gate 1 tests the tail, a mean
 at 85% of appetite with bands wide enough to push `P(exceed)` past `p_red` reads
 red, not green: you cannot claim to be operating at appetite if you do not know
-where you are. This is emergent from the two gates, not bolted on. It also
+where you are. This is emergent from the gates, not bolted on. It also
 retires the old "a straddle is the truest at-appetite" branch, which let a wide
 right tail turn a low-mean risk green — the chart drew the mean while the colour
 keyed off the tail, so the two disagreed. Now the bar (mean) and the colour agree,

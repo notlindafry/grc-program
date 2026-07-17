@@ -8,12 +8,17 @@ bounds Risk. Every quantity is a calibrated 90% confidence interval measured
 against an **authored** appetite, and the corpus is read as a whole to surface
 three things most organizations cannot see:
 
+- **Mis-allocation**: a breached risk and idle, unused tolerance in the *same
+  domain, under the same owner* — the budget to cover the breach already exists
+  and is merely pointed at the wrong risk, so one person can move it. It asks for
+  no new money, which is what makes it the sharpest read in the book — a
+  reallocation, not a ratio (view 2). Over-control is its weaker parent: unused
+  tolerance says a domain is gold-plated, but not that the fix is already funded
+  next door.
 - **Drift**: an OKR quietly carrying risk debt reallocated from other goals.
 - **Appetite breach**: a risk pushed past its tolerance, often by accumulation
   rather than any single decision — and the aggregate pushed past the enterprise
   line, which is itself the signal.
-- **Over-control**: unused tolerance — the amber that says a domain is
-  gold-plated while attention is elsewhere.
 
 There is no server and no database. Records are YAML under version control,
 changed by pull request, so a risk decision and its approval are reviewable the
@@ -86,18 +91,28 @@ dollar appetite is set by hand from what the company tolerates for that risk —
 regulatory constraint, strategic upside, reversibility, concentration — with an
 `appetite_rationale` on the record. It is **never** computed from the residual;
 the RAG colour is an outcome of that authored line meeting the exposure, decided
-by **two gates** (`rag_band`, SPEC v2.5) where colour is position and probability
-is tail — one never determines the other:
+by **three gates** (`rag_band`, SPEC v2.6) evaluated in order, where colour is
+position and probability is tail — one never determines the other:
 
-- **Over appetite → red.** `P(loss > appetite) ≥ 1/3`: a reasonably probable
+- **Gate 0, position → red.** `mean ≥ appetite`: expected loss at or past the
+  declared line **is** the breach, full stop. Appetite is a statement about
+  expected annual loss, so this is not a probability question and no tail
+  argument rescues it.
+- **Gate 1, danger → red.** `P(loss > appetite) ≥ 1/3`: a reasonably probable
   breach, whatever the mean. A risk whose average looks comfortable but whose tail
   crosses the line one year in three is still the actionable fact.
-- **At appetite → green.** Breach unlikely *and* the mean is using the tolerance
-  you declared (≥ 75% of appetite). Not "straddles the line" — a wide band that
-  merely grazes appetite from a low mean is amber, not green.
-- **Below appetite → amber.** Breach unlikely and the mean well under the floor:
-  unused tolerance — over-controlled, or an appetite set too high. A review
-  signal, not an all-clear.
+- **Gate 2, efficiency.** Among risks under the line and unlikely to breach, a
+  mean **using the tolerance you declared** (≥ 75% of appetite) reads **green —
+  at appetite**; anything lower reads **amber — below appetite**: unused
+  tolerance, over-controlled, or an appetite set too high. A review signal, not
+  an all-clear. Not "straddles the line" — a wide band that merely grazes
+  appetite from a low mean is amber, not green.
+
+**Gates 0 and 1 are independent; neither subsumes the other.** A fat-tailed risk
+can sit past appetite in expectation while its breach probability stays modest
+(gate 0 catches it); a wide-banded risk can sit under appetite in expectation yet
+breach probably (gate 1 catches it). Different failures, both red, which is why
+both gates exist rather than one.
 
 Green therefore requires both good positioning *and* controlled uncertainty: a
 mean at 85% with bands wide enough to push the breach probability past a third

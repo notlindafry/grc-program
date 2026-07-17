@@ -39,7 +39,7 @@ AS_OF = dt.date(2026, 6, 18)
 
 
 # ---------------------------------------------------------------------------
-# rag_band: the two-gate appetite rule (SPEC v2.5 §2)
+# rag_band: the three-gate appetite rule (SPEC v2.6 §1)
 # ---------------------------------------------------------------------------
 
 
@@ -75,7 +75,7 @@ def test_rag_no_straddle_branch_a_wide_tail_never_forces_green():
 
 
 def test_rag_green_requires_controlled_uncertainty():
-    # Emergent property (SPEC v2.5 §2): a mean at 85% with bands wide enough to
+    # Emergent property (SPEC v2.6 §1): a mean at 85% with bands wide enough to
     # push P(exceed) past p_red reads red, not green -- you cannot claim to be at
     # appetite if you do not know where you are.
     assert rag_band(mean=8.5, threshold=10, p_exceed=0.35, floor=0.75, p_red=0.33) == RAG_OVER
