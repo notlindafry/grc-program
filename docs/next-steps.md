@@ -111,9 +111,10 @@ runtime.
 ## Explicitly out of scope (and why)
 
 This artifact is a **model of the operating model**, not a platform — a closed set of
-six dashboard views plus a portfolio summary, rendered from synthetic git-native YAML.
-There is deliberately **no workflow engine, no live collectors, no database, and no
-seventh view** (`SPEC §10`). The security posture follows from that shape: a static,
+seven dashboard views plus a portfolio summary, rendered from synthetic git-native YAML.
+There is deliberately **no workflow engine, no live collectors, and no database**; the
+view set is closed and each view earns its place by mapping to a question a VP actually
+asks (`SPEC v2.7 §8`). The security posture follows from that shape: a static,
 read-only, public HTML page with no login, no user input, and no backend has the same
 near-zero surface as the repo it extends, so the standard auth / RBAC / rate-limiting /
 input-sanitization requirements are **not applicable and intentionally omitted**

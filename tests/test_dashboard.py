@@ -39,19 +39,24 @@ def test_page_is_self_contained_html(page: str) -> None:
     assert "fetch(" not in page
 
 
-def test_exactly_six_views_plus_summary_and_ai_example(page: str) -> None:
-    # the six numbered view cards carry a .vnum badge 1..6; the AI example does not
-    for n in range(1, 7):
+def test_seven_views_plus_summary_and_ai_example(page: str) -> None:
+    # v2.7 lifts the six-view ceiling: over-investing is a missing problem class,
+    # not scope creep. Seven numbered view cards carry a .vnum badge 1..7; the AI
+    # example does not; there is no eighth.
+    for n in range(1, 8):
         assert f'class="vnum">{n}</span>' in page
-    assert 'class="vnum">7</span>' not in page  # no seventh view (SPEC §10)
+    assert 'class="vnum">8</span>' not in page
     assert page.count('class="summary"') == 1
     assert page.count('class="card ai"') == 1
 
 
 def test_status_is_never_colour_alone(page: str) -> None:
-    # every RAG indicator ships a text label beside the dot (SPEC §7 accessibility)
-    assert page.count('class="dot"') >= page.count('class="rag-l"') >= 1
-    for label in ("OVER", "AT", "BELOW"):
+    # Identity never rides on colour alone (SPEC §7): RAG dots ship a text label
+    # (view 1) or a count (view 2's domain mix). Every dot pairs with a label or
+    # a number, and the RAG words are present where states are labelled.
+    assert page.count('class="dot"') >= 1
+    assert page.count('class="rag-l"') >= 1 or page.count('class="ragc"') >= 1
+    for label in ("OVER", "AT"):
         assert label in page
 
 
@@ -101,6 +106,30 @@ def test_named_risk_label_falls_back_to_title() -> None:
     without = NamedRisk("NR-Y", "Only a title", "D", "o", 1.0)
     assert with_short.label == "Short X"
     assert without.label == "Only a title"
+
+
+def test_over_control_is_a_peer_tile_never_reassurance(page: str) -> None:
+    # SPEC v2.7 §3: over-investing is a problem and sits IN the tile row as a peer;
+    # the old "reassurance" framing is gone from the DOM entirely.
+    assert "Over-controlled" in page
+    assert 'class="tile warn"' in page
+    assert "reassurance" not in page.lower()
+
+
+def test_over_investing_is_view_two_and_names_tier_one_domains(page: str) -> None:
+    # SPEC v2.7 §4/§1: the over-investment view is second, and it is the only place
+    # Tier 1 (domains) appears -- all seven domain names must render.
+    titles = re.findall(r"<h3>([^<]+)</h3>", page)
+    assert "over-investing" in titles[1].lower()  # the second card
+    for domain in ("Privacy", "Security", "Data integrity", "Third-party",
+                   "Change", "Compliance", "Resilience"):
+        assert domain in page, domain
+
+
+def test_bottom_up_appetite_flag_renders(page: str) -> None:
+    # SPEC v2.7 §5: the 3.65x bottom-up-vs-declared appetite flag is surfaced to
+    # the reader, not left as a validation-only signal.
+    assert "3.65" in page and "$36.5M" in page
 
 
 def test_render_to_writes_file(tmp_path: Path) -> None:

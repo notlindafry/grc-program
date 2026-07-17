@@ -154,6 +154,6 @@ graph because they drive dashboard views the engine did not already cover
 
 ## What is next (Day 4)
 
-The dashboard: the brand HTML/CSS shell and the six views plus the portfolio
+The dashboard: the brand HTML/CSS shell and the seven views plus the portfolio
 summary — carrying the one-position/one-probability read and the drift wiring —
 built on these engine outputs with baked SVG charts.
