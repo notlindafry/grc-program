@@ -593,6 +593,8 @@ a:hover { text-decoration:underline; }
 .wrap { max-width:var(--maxw); margin:0 auto; padding:40px 24px 80px; }
 header .eyebrow { color:var(--accent); font-size:10.5px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; }
 header h1 { font-size:30px; margin:6px 0 4px; color:var(--text-strong); }
+.wip { color:var(--status-over); font-weight:700; letter-spacing:0.06em; vertical-align:middle;
+  border:1.5px solid var(--status-over); border-radius:var(--radius-sm); padding:1px 7px; font-size:15px; }
 header .meta { color:var(--text-muted); font-size:13.5px; }
 .summary { margin:32px 0; }
 .summary > h2 { font-size:17px; font-weight:500; color:var(--text); max-width:640px; margin:0 0 16px; }
@@ -659,7 +661,8 @@ def build_dashboard(graph: Graph, eng: GraphEngine) -> str:
     body = (
         '<div class="wrap">'
         '<header><div class="eyebrow">Company Corp · Technology risk</div>'
-        '<h1>GRC portfolio — the ten-second read</h1>'
+        '<h1>GRC portfolio — the ten-second read'
+        ' <span class="wip">WIP</span></h1>'
         f'<div class="meta">Executive view for engineering leadership · reference date '
         f'{eng.config.as_of.isoformat()} · <b>synthetic data</b>, generated from git-native YAML</div></header>'
         + _summary(graph, eng)
