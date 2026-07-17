@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import datetime as dt
 import html as _html
+import math
 from pathlib import Path
 
 from .config import Config
@@ -109,34 +110,64 @@ def _rect(x, y, w, h, fill, *, rx=None, extra="") -> str:
     return f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}"{r} style="fill:{fill}"{extra}/>'
 
 
-def exposure_interval_svg(rows: list[tuple], axis_max: float) -> str:
-    """View 1 as an interval plot (SPEC v2.8 §2): a distribution mark for a
-    distribution model. Each row draws its **p5–p95 interval** tinted by RAG
-    state; the **mean is an interior tick** (it drives the colour, so it must be
-    visible); the **appetite line is a dashed rule**; and the slice of the
-    interval **beyond appetite is a stronger red** — that red slice IS the breach
-    mass, so a gate-1 red (mean left of the line, fat right tail) shows a visible
-    cause. No mark starts at $0. rows = [(name, low, mean, high, threshold, state,
-    p_exceed)]."""
+def _pct_grid_step(span: float) -> float:
+    """A nice gridline step (in appetite-percent points) for an axis of ``span``
+    points: the smallest of 10/20/25/50/100 that keeps the line count at most 8."""
+    for s in (10.0, 20.0, 25.0, 50.0, 100.0):
+        if span / s <= 8:
+            return s
+    return 100.0
+
+
+def _pct_axis_bounds(pcts: list[float]) -> tuple[float, float]:
+    """View-1 axis bounds, derived from the rendered data, never hard-coded (SPEC
+    v2.9 §2): pad the min/max by 5 points, then round outward to the nearest 10.
+    The pad is the guaranteed clearance — rounding to 10 alone leaves data at 50.1%
+    sitting on a 50% edge. Today this yields 40%–170% (data spans ~53%–156%)."""
+    lo = math.floor((min(pcts) - 5.0) / 10.0) * 10.0
+    hi = math.ceil((max(pcts) + 5.0) / 10.0) * 10.0
+    return lo, hi
+
+
+def exposure_interval_svg(rows: list[tuple], lo_b: float, hi_b: float) -> str:
+    """View 1 as an interval plot, read against appetite (SPEC v2.9 §2). The x-axis
+    is **percent of each row's own appetite**, so a single static appetite line at
+    100% is shared by every row and the breach mass — the slice past 100% — is
+    comparable across rows for the first time. Each row draws its **p5–p95
+    interval** tinted by RAG state; the **mean is an interior tick carrying a dollar
+    label** (the only absolute magnitude in the chart, and it matches the table's
+    residual mean); the slice **beyond 100% is a stronger red** and IS the breach
+    mass. The axis does not anchor at 0% — no risk has zero exposure, and the plot
+    has no zero-originating marks. rows = [(name, low_pct, mean_pct, high_pct,
+    state, p_exceed, mean_usd)]; bounds ``lo_b``/``hi_b`` are appetite-percent."""
     left, right, top = 172, 104, 8
-    row_h, gap = 28, 10
+    row_h, gap = 34, 10
     axis_h, caption_h = 16, 18
     plot_w = 640 - left - right
     plot_bottom = top + len(rows) * (row_h + gap)
     h = plot_bottom + axis_h + caption_h
+    span = hi_b - lo_b
 
     def x(v):
-        return left + plot_w * min(v / axis_max, 1.0)
+        return left + plot_w * (v - lo_b) / span
 
     body = [_rect(0, 0, 640, h, "var(--surface)")]
-    step = nice_ceiling(axis_max / 4)
-    v = 0.0
-    while v <= axis_max + 1e-6:
-        body.append(f'<line x1="{x(v):.1f}" y1="{top}" x2="{x(v):.1f}" y2="{plot_bottom}" style="stroke:var(--border)" stroke-width="1"/>')
-        body.append(_t(x(v), plot_bottom + 12, money(v), size=10, fill="var(--text-muted)", anchor="middle"))
+    # Percent gridlines; 100 is handled separately as the appetite line so it is
+    # never drawn (or labelled) as a bare "100%".
+    step = _pct_grid_step(span)
+    v = math.ceil(lo_b / step) * step
+    while v <= hi_b + 1e-6:
+        if abs(v - 100.0) > 1e-6:
+            body.append(f'<line x1="{x(v):.1f}" y1="{top}" x2="{x(v):.1f}" y2="{plot_bottom}" style="stroke:var(--border)" stroke-width="1"/>')
+            body.append(_t(x(v), plot_bottom + 12, f"{int(round(v))}%", size=10, fill="var(--text-muted)", anchor="middle"))
         v += step
+    # The one appetite line, at 100% of every row's own appetite (SPEC v2.9 §2).
+    xa = x(100.0)
+    body.append(f'<line x1="{xa:.1f}" y1="{top}" x2="{xa:.1f}" y2="{plot_bottom}" '
+                f'style="stroke:var(--text-strong)" stroke-width="1.25" stroke-dasharray="3 2" opacity="0.85"/>')
+    body.append(_t(xa, plot_bottom + 12, "appetite", size=10, fill="var(--text-muted)", anchor="middle"))
     ivh = 12
-    for i, (name, low, mean, high, thr, state, p_exc) in enumerate(rows):
+    for i, (name, low, mean, high, state, p_exc, mean_usd) in enumerate(rows):
         y = top + i * (row_h + gap)
         cy = y + row_h / 2
         colour = RAG[state][1]
@@ -146,29 +177,25 @@ def exposure_interval_svg(rows: list[tuple], axis_max: float) -> str:
         # the p5–p95 interval is the mark, RAG-tinted, with a defining outline
         body.append(f'<rect x="{x0:.1f}" y="{ivy:.1f}" width="{max(x1 - x0, 3):.1f}" height="{ivh}" rx="5" '
                     f'style="fill:{colour};stroke:{colour}" fill-opacity="0.32" stroke-opacity="0.9" stroke-width="1"/>')
-        # the slice beyond appetite is the breach mass — stronger red
-        if high > thr and thr <= axis_max:
-            xs = max(x(thr), x0)
+        # the slice beyond the appetite line (100%) is the breach mass — stronger red
+        if high > 100.0:
+            xs = max(xa, x0)
             body.append(f'<rect x="{xs:.1f}" y="{ivy:.1f}" width="{max(x1 - xs, 1):.1f}" height="{ivh}" rx="0" '
                         f'style="fill:var(--status-over)" fill-opacity="0.58"/>')
-        # the mean tick — the value the colour keys off, so it is prominent
+        # the mean tick, carrying its dollar figure — the only absolute magnitude
+        # in the chart, and the number the colour keys off
         body.append(f'<line x1="{x(mean):.1f}" y1="{cy - 9:.1f}" x2="{x(mean):.1f}" y2="{cy + 9:.1f}" '
                     f'style="stroke:var(--text-strong)" stroke-width="2"/>')
-        # appetite as a dashed vertical rule
-        if thr <= axis_max:
-            body.append(f'<line x1="{x(thr):.1f}" y1="{y + 1:.1f}" x2="{x(thr):.1f}" y2="{y + row_h - 1:.1f}" '
-                        f'style="stroke:var(--text-strong)" stroke-width="1.25" stroke-dasharray="2 2" opacity="0.75"/>')
+        body.append(_t(x(mean), cy - 12, money(mean_usd), size=9, anchor="middle",
+                       fill="var(--text-strong)", weight=600))
         body.append(_t(636, cy + 1, RAG[state][0], size=10, fill=colour, anchor="end", weight=600))
         if p_exc >= 0.10:
             body.append(_t(636, cy + 12, f"{round(p_exc * 100)}% breach", size=9,
                            fill="var(--text-muted)", anchor="end"))
     cap_y = h - 5
-    body.append(f'<line x1="{left}" y1="{cap_y - 4}" x2="{left}" y2="{cap_y + 2}" '
-                f'style="stroke:var(--text-strong)" stroke-width="1.25" stroke-dasharray="2 2" opacity="0.75"/>')
-    body.append(_t(left + 8, cap_y, "appetite line", size=10, fill="var(--text-muted)"))
-    body.append(_t(636, cap_y, "interval = 5–95% · tick = mean · red = breach mass",
+    body.append(_t(636, cap_y, "interval = 5–95% · tick = mean ($) · red = breach mass",
                    size=10, fill="var(--text-muted)", anchor="end"))
-    return _svg(640, h, "".join(body), "Residual interval (5–95%) by named risk")
+    return _svg(640, h, "".join(body), "Residual interval (5–95%) as a percent of appetite, by named risk")
 
 
 def launch_debt_svg(rows: list[tuple], axis_max: float) -> str:
@@ -321,10 +348,13 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
     # real quantity, not the Simpson's-trap ratio, SPEC v2.8 §3).
     residuals = {r.named_risk.id: r for r in eng.all_named_risk_residuals()}
     oc, oc_idle = None, 0.0
+    ma, ma_idle, ma_overs = None, -1.0, []
     for d in eng.all_domain_rollups():
-        idle, _overs, _big, status = _domain_idle(d, residuals)
+        idle, overs, _big, status = _domain_idle(d, residuals)
         if status == "over-controlled" and idle > oc_idle:
             oc, oc_idle = d, idle
+        elif status == "mis-allocated" and idle > ma_idle:
+            ma, ma_idle, ma_overs = d, idle, overs
 
     pos = RAG[p.appetite_state]
     cards = []
@@ -339,21 +369,24 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
         f'{money(p.capacity)} materiality line this year. '
         f'{round(p.band.mean / graph.enterprise.revenue_annual * 1000) / 10}% of revenue.</div></div>'
     )
-    # Five peer tiles. The over-control tile sits *in* the row, not below it: over-
-    # investing is a problem and belongs with the problems (SPEC v2.7 §3). The old
-    # soft "nothing to worry about" strip that filed over-control as an aside is gone.
+    # Four peer tiles, four genuinely different asks (SPEC v2.9 §5). "Top fixes"
+    # (over[:3], a table of contents for the chart six inches below) and "Falling
+    # through cracks" (both orphans are already mis-allocation drivers) are gone;
+    # mis-allocation leads because it is the sharpest read — the money to cover a
+    # breach is already sitting idle in the same domain, under the same owner.
+    # Over-control does NOT fold in: Privacy has nothing at or above appetite, so
+    # there is no breach to reallocate toward — it keeps its own slot.
+    ma_over = ", ".join(o.named_risk.label for o in ma_overs) if ma_overs else "—"
     tiles = [
-        ("Top fixes", ", ".join(r.named_risk.label for r in over[:3]) or "—",
-         f"{len(over)} named risks over appetite", False),
+        ("Mis-allocated", ma.domain.title if ma else "—",
+         (f"{money(ma_idle)} idle beside a breach ({ma_over}) — same owner can reallocate it"
+          if ma else "—"), True),
+        ("Over-controlled", oc.domain.title if oc else "—",
+         (f"{money(oc_idle)} idle — nothing at or above appetite" if oc else "—"), True),
         ("Riding a launch", _okr_name(graph, launch.okr) if launch else "—",
          (f"+{money(launch.true.mean - launch.reported.mean)} undeclared debt on {_okr_name(graph, launch.okr)}" if launch else "no diverted debt"), False),
-        ("Falling through cracks", f"{len(orphans)} orphans",
-         "over appetite, no funded plan", False),
         ("The can you keep kicking", f"{n_renew} renewed · {n_slip} slipped",
          "temporary-forever + slipped dates", False),
-        ("Over-controlled", oc.domain.title if oc else "—",
-         (f"{money(oc_idle)} idle — nothing at or above appetite" if oc else "—"),
-         True),
     ]
     tile_html = "".join(
         f'<div class="tile{" warn" if warn else ""}"><div class="tile-k">{_esc(k)}</div>'
@@ -365,11 +398,24 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
             f'<div class="tiles">{tile_html}</div></section>')
 
 
+def _view1_key(r) -> tuple:
+    """Rank/select by position against appetite, not by absolute dollars (SPEC v2.9
+    §3/§4): ``(-round(100·mean/appetite), -p_exceed)``. Rounding to the displayed
+    precision **before** comparing is not cosmetic — the raw top-two ratio gap
+    (103.2% vs 102.9%) is inside the Monte Carlo's own noise, so a raw key lets the
+    seed decide row 1. Rounded, the three OVER risks lock to Platform > PCI >
+    Production across seeds; the AT block still shuffles, which is correct — the
+    model cannot tell risks 2.8 points apart, and asserting an order would describe
+    nothing."""
+    return (-round(100 * r.band.mean / r.threshold), -r.p_over_appetite)
+
+
 def _view1(graph: Graph, eng: GraphEngine) -> str:
-    ranked = sorted(eng.all_named_risk_residuals(), key=lambda r: r.band.mean, reverse=True)[:8]
-    axis_max = nice_ceiling(max(r.band.high for r in ranked))
-    rows = [(r.named_risk.label, r.band.low, r.band.mean, r.band.high, r.threshold, r.state, r.p_over_appetite)
+    ranked = sorted(eng.all_named_risk_residuals(), key=_view1_key)[:8]
+    rows = [(r.named_risk.label, 100 * r.band.low / r.threshold, 100 * r.band.mean / r.threshold,
+             100 * r.band.high / r.threshold, r.state, r.p_over_appetite, r.band.mean)
             for r in ranked]
+    lo_b, hi_b = _pct_axis_bounds([p for row in rows for p in (row[1], row[3])])
     items = []
     for r in ranked:
         drivers = ", ".join(c.issue.id for c in r.drivers[:2]) or "baseline exposure"
@@ -386,8 +432,8 @@ def _view1(graph: Graph, eng: GraphEngine) -> str:
             f'<td class="drv">{_esc(drivers)} · {funded}</td></tr>')
     return _card(
         "1", "Your biggest exposures now",
-        "Top named risks by residual: the 5–95% interval tinted by state, the mean as an interior tick, and the slice beyond appetite (red) as the breach mass.",
-        exposure_interval_svg(rows, axis_max)
+        "Named risks by position against their own appetite: the 5–95% interval tinted by state, the mean as an interior tick with its dollar figure, and the slice past the appetite line (red) as the breach mass.",
+        exposure_interval_svg(rows, lo_b, hi_b)
         + f'<table class="tbl"><thead><tr><th></th><th>Named risk</th><th class="num">Residual (90% CI)</th>'
         f'<th class="num">Appetite</th><th>Position</th><th>Driven by</th></tr></thead><tbody>{"".join(items)}</tbody></table>')
 
@@ -446,7 +492,7 @@ def _view_domains(graph: Graph, eng: GraphEngine) -> str:
              f'<table class="tbl"><thead><tr><th>Domain (Tier 1)</th><th class="num">Idle tolerance</th>'
              f'<th>Status</th><th>What it means</th><th>Risk mix (R/G/A)</th></tr></thead>'
              f'<tbody>{"".join(rows)}</tbody></table>{flag}')
-    return _card("2", "Where you're over-investing",
+    return _card("2", "Where you're over-investing — and mis-allocating",
                  "Domains ranked by idle tolerance: over-controlled where nothing is near the line, mis-allocated where a breach sits beside idle headroom.",
                  inner)
 
@@ -672,7 +718,7 @@ header .meta { color:var(--text-muted); font-size:13.5px; }
 .hero-num { font-size:40px; line-height:1.1; }
 .hero-cap { color:var(--text); font-size:15px; margin-top:8px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .hero-sub { color:var(--text-muted); font-size:13.5px; margin-top:12px; max-width:720px; }
-.tiles { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-top:14px; }
+.tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:14px; }
 .tile { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
 .tile.warn { border-left:3px solid var(--status-below); }
 .tile.warn .tile-k { color:var(--status-below-tint); }

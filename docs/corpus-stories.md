@@ -144,11 +144,13 @@ reading amber end to end, leaving Privacy the sole standout.
 
 The three OVER risks show both danger paths (v2.6 §1). `NR-PLATFORM-OUTAGE` (103%
 mean, 65% breach) and `NR-PCI-SCOPE` (103% mean, 49% breach) breach on the
-**mean** — the bar sits past the appetite tick. `NR-PROD-COMPROMISE` breaches on
-the **tail**: its mean sits just *under* appetite (~96%) yet it reads red because
-a ~38% chance of crossing the line is the actionable fact. On view 1 its bar ends
-left of the tick while its whisker crosses it — the clearest teaching case for why
-colour is position and probability is tail, and one never decides the other.
+**mean** — the mean tick sits past the 100% appetite line. `NR-PROD-COMPROMISE`
+breaches on the **tail**: its mean sits just *under* appetite (~96%) yet it reads
+red because a ~38% chance of crossing the line is the actionable fact. On view 1
+(read as percent of each risk's own appetite, v2.9 §2) its mean tick sits left of
+the appetite line while its interval crosses it into the red breach mass — the
+clearest teaching case for why colour is position and probability is tail, and one
+never decides the other.
 
 ## Can-kicking inputs (view 5)
 
