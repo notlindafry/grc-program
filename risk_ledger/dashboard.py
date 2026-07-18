@@ -418,18 +418,27 @@ def _view1(graph: Graph, eng: GraphEngine) -> str:
     lo_b, hi_b = _pct_axis_bounds([p for row in rows for p in (row[1], row[3])])
     items = []
     for r in ranked:
-        drivers = ", ".join(c.issue.id for c in r.drivers[:2]) or "baseline exposure"
-        funded = "funded plan" if _addressed_by_funded(graph, r.scenario_ids) else "no funded plan"
+        # Each atom (an issue id, the position phrase, the probability phrase, the
+        # plan status) is kept whole with nowrap, so a cell only ever wraps at a
+        # " · " or ", " separator — never mid-phrase or mid-id.
+        driver_ids = [c.issue.id for c in r.drivers[:2]] or ["baseline exposure"]
+        drivers = ", ".join(f'<span class="nb">{_esc(d)}</span>' for d in driver_ids)
+        if _addressed_by_funded(graph, r.scenario_ids):
+            funded = '<span class="nb">funded plan</span>'
+        else:
+            funded = '<span class="nb" style="color:var(--status-over)">no funded plan</span>'
         # Position and probability, side by side but never conflated (SPEC v2.5 §2b/§2a):
         # mean/appetite distinguishes a mild amber from the standout; P(exceed) is the tail.
         ratio = f"{round(r.band.mean / r.threshold * 100)}% of appetite"
-        pexc = f" · {_pct(r.p_over_appetite)} chance of breach" if r.p_over_appetite >= 0.10 else ""
+        pos = f'<span class="nb">{_esc(ratio)}</span>'
+        if r.p_over_appetite >= 0.10:
+            pos += f' · <span class="nb">{_pct(r.p_over_appetite)} chance of appetite breach</span>'
         items.append(
             f'<tr><td>{_dot(r.state)}</td><td class="nm" title="{_esc(r.named_risk.title)}">{_esc(r.named_risk.label)}</td>'
             f'<td class="num">{band_str(r.band.low, r.band.high)}</td>'
             f'<td class="num">{money(r.threshold)}</td>'
-            f'<td class="drv">{_esc(ratio)}{pexc}</td>'
-            f'<td class="drv">{_esc(drivers)} · {funded}</td></tr>')
+            f'<td class="drv">{pos}</td>'
+            f'<td class="drv">{drivers} · {funded}</td></tr>')
     return _card(
         "1", "Your biggest exposures now",
         "Named risks by position against their own appetite: the 5–95% interval tinted by state, the mean as an interior tick with its dollar figure, and the slice past the appetite line (red) as the breach mass.",
@@ -748,6 +757,7 @@ table.tbl { width:100%; border-collapse:collapse; font-size:13px; }
 .tbl .num { text-align:right; font-family:var(--font-display); white-space:nowrap; }
 .tbl .nm { color:var(--text-strong); }
 .tbl .drv { color:var(--text-muted); }
+.nb { white-space:nowrap; }
 .tbl .pol { color:var(--accent); font-size:12px; }
 .tbl .tag { color:var(--status-below-tint); font-size:12px; }
 h4 { font-size:13px; color:var(--text); margin:18px 0 8px; }
