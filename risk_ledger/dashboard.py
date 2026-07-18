@@ -394,7 +394,7 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
         for k, v, s, warn in tiles
     )
     return (f'<section class="summary"><h2>Where are we weakest, what do we fix first, '
-            f'and why does it matter to what we\'re shipping?</h2>{cards[0]}'
+            f'and why does it matter to what&nbsp;we\'re&nbsp;shipping?</h2>{cards[0]}'
             f'<div class="tiles">{tile_html}</div></section>')
 
 
