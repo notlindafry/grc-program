@@ -773,7 +773,7 @@ def build_dashboard(graph: Graph, eng: GraphEngine) -> str:
     body = (
         '<div class="wrap">'
         '<header><div class="eyebrow">Company Corp · Technology risk</div>'
-        '<h1>GRC portfolio — the ten-second read</h1>'
+        '<h1>GRC portfolio — the ten-second read for VP of Engineering</h1>'
         f'<div class="meta">Executive view for engineering leadership · reference date '
         f'{eng.config.as_of.isoformat()} · <b>synthetic data</b>, generated from git-native YAML</div></header>'
         + _summary(graph, eng)
