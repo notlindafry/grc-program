@@ -222,16 +222,15 @@ def validate_graph(graph, config: Config) -> list[Issue]:
         problems.extend(issue.problems)
 
     # -- Control -> Named risk (m2m) + Control -> Policy (tree) -------------
+    # The unmapped-control "why do we do this?" flag is retired (SPEC v3.1 §2):
+    # after the mapping prune ~38 controls map to no risk, and "not every framework
+    # control is exercised" is the expected state of an illustration, not a finding.
+    # We still validate that any mapping named points at a real risk.
     for cid, ctrl in graph.controls.items():
-        if not ctrl.mapped_named_risks:
-            # A control mapping to no risk is flagged "why do we do this?" (SPEC §2.6).
-            problems.append(Issue("control_maps_no_risk", FLAG, ACTION,
-                                  f"{cid}: control maps to no named risk — why do we do this?"))
-        else:
-            for nid in ctrl.mapped_named_risks:
-                if nid not in graph.named_risks:
-                    problems.append(Issue("control_named_risk_unknown", FLAG, ACTION,
-                                          f"{cid}: mapped_named_risks names {nid!r}, not in named_risks.yaml"))
+        for nid in ctrl.mapped_named_risks:
+            if nid not in graph.named_risks:
+                problems.append(Issue("control_named_risk_unknown", FLAG, ACTION,
+                                      f"{cid}: mapped_named_risks names {nid!r}, not in named_risks.yaml"))
         if not ctrl.policy:
             problems.append(Issue("control_no_policy", FLAG, ACTION,
                                   f"{cid}: control traces up to no governing policy (SPEC §2.7)"))

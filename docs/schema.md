@@ -49,7 +49,7 @@ freshness, and KRIs *inform the estimate*; none adds its own term.
 | scenario → named risk | many-to-one (tree) | `Scenario.named_risk` must resolve (error) |
 | issue → scenario | many-to-many; **first is primary** for rollup | ≥1 scenario must resolve (error) |
 | issue → control | many-to-many | `control` may be a scalar or a list |
-| control → named risk | many-to-many | 0 mapped → "why do we do this?" (flag) |
+| control → named risk | many-to-many | 0 mapped is fine (unexercised control); a named risk that doesn't exist is a flag |
 | control → policy | many-to-one (governing policy) | missing/unknown policy (flag) |
 | evidence → control | many-to-many | unknown control (flag) |
 | KRI → scenario / named risk | many-to-many (informs) | unknown target (flag) |
@@ -72,8 +72,9 @@ control    → named_risk (m2m):  90/93 controls mapped   (3 deliberate orphans)
 orphan_scenarios: 0 · issues_without_scenario: 0 · unmapped_controls: 3
 ```
 
-No hard errors. Six flags, all intended: three controls deliberately left
-unmapped so the "why do we do this?" signal is a rare, meaningful flag; two trust
+No hard errors. Three flags, all intended (the unmapped-control "why do we do
+this?" flag is retired, v3.1 §2: after the mapping prune ~38 of 93 controls map to
+no risk, the expected state of an illustration, not a finding): two trust
 flags (1 uncalibrated + 1 stale estimator); and the threshold-sum flag (the
 authored per-risk appetites sum above 3× the declared enterprise appetite — the
 bottom-up-vs-top-down tension the model is built to surface, on-thesis per
@@ -391,7 +392,7 @@ Errors reject; flags keep the record but surface a diagnostic.
   weakens a control, so it cannot improve the factor it degrades); a
   non-negative-residual backstop (`GraphEngine.negative_residuals`) confirms no
   residual band goes below zero.
-- **Flag** — a control mapping to no named risk ("why do we do this?"); a control
+- **Flag** — a control mapping to a *named risk that doesn't exist*; a control
   with no/unknown governing policy; evidence/KRI/horizon pointing at an unknown
   target; declared appetite above capacity; a named-risk threshold over a quarter
   of capacity, or the threshold sum over 3× appetite; a finding with an unknown

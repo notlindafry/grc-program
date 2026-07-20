@@ -251,10 +251,31 @@ def test_view2_misallocated_detail_does_not_conflate_two_risks(page: str) -> Non
     assert "sits idle" not in view2              # the old dollar-idle phrasing is gone
 
 
-def test_view4_shows_mitigated_risks_not_policy(page: str) -> None:
-    # SPEC v2.8 §4: the Policy column is replaced by the risks the control mitigates.
-    assert "Mitigates" in page
+def test_view4_is_a_control_inventory_scoped_to_breaches(page: str) -> None:
+    # SPEC v3.1 §3: per over-appetite risk, a mapped-control count and only the
+    # weak controls named with health + evidence; not a re-ranking of risks. PCI
+    # reads as a scope problem (controls healthy), not a safeguard to fix.
     assert ">Policy</th>" not in page
+    assert "Mitigates" not in page                       # the old re-ranking column is gone
+    for count in ("15 controls mapped", "7 controls mapped", "3 controls mapped"):
+        assert count in page
+    assert "can't currently do the job" in page
+    assert "scope creep to contain" in page              # PCI: controls healthy
+    # a weak control named with health + evidence, never colour alone
+    assert "A.8.5 Secure authentication" in page and "RED" in page and "evidence stale" in page
+
+
+def test_view6_cankicking_is_one_dataset_with_type_and_key(page: str) -> None:
+    # SPEC v3.1 §4/§5/§6/§7: one deferral space — renewed exceptions and slipped
+    # remediations on shared axes, a Type column, a shape key, the exposure
+    # semantic caveat, slip exposure from the what-if, and no reused amber.
+    view6 = re.search(r'class="vnum">6</span>.*?</section>', page, re.S).group(0)
+    assert ">Type</th>" in view6                       # unified table, one type column
+    assert "Renewal" in view6 and "Slip" in view6
+    assert "renewed exception" in view6 and "slipped remediation" in view6  # the shape key
+    assert "you'd retire" in view6                      # the mandatory semantic caveat (§4c)
+    assert "residual_if_funded" in view6                # slip exposure is the v3.0 what-if (§7)
+    assert "fill:var(--status-below)" not in view6      # the unkeyed amber marks are gone (§4d)
 
 
 def test_view5_is_predation_not_a_summed_footprint(page: str) -> None:

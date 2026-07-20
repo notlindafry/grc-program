@@ -133,14 +133,14 @@ def test_derived_kri_status(graph):
 
 
 def test_only_expected_flags(problems):
-    # All intended: 3 deliberate orphan controls, 2 trust flags (1 stale + 1
-    # uncalibrated estimator), and the threshold-sum flag (bottom-up authored
-    # appetite summing above 3x the top-down line -- the model telling on itself,
-    # on-thesis per SPEC v2.1 §D1). Nothing else.
+    # All intended: 2 trust flags (1 stale + 1 uncalibrated estimator) and the
+    # threshold-sum flag (bottom-up authored appetite summing above 3x the top-down
+    # line -- the model telling on itself, on-thesis per SPEC v2.1 §D1). The
+    # unmapped-control flag is retired (SPEC v3.1 §2): ~38 controls now map to no
+    # risk and that is the expected state of an illustration, not a finding.
     from collections import Counter
     codes = Counter(p.code for p in problems if p.severity == "flag")
     assert codes == Counter({
-        "control_maps_no_risk": 3,
         "estimator_stale": 1,
         "estimator_uncalibrated": 1,
         "threshold_sum_far_over_appetite": 1,
@@ -231,12 +231,25 @@ def test_horizon_needs_both_domain_and_kri():
     assert "horizon_incomplete" in _codes(problems, "error")
 
 
-def test_unmapped_control_is_flagged_not_rejected():
-    ctrl = Control.parse("A.5.6", {"title": "x", "theme": "Organizational", "policy": ""})
+def test_unmapped_control_is_not_flagged():
+    # SPEC v3.1 §2: the unmapped-control "why do we do this?" flag is retired. A
+    # control mapping to no risk is the expected state of an illustration (~38 of
+    # 93 after the prune), not a finding — nothing flags it.
+    ctrl = Control.parse("A.5.6", {"title": "x", "theme": "Organizational", "policy": "POL-INFOSEC"})
     g = _minimal_graph(controls={"A.5.6": ctrl})
     problems = validate_graph(g, Config(as_of=AS_OF))
-    assert "control_maps_no_risk" in _codes(problems, "flag")
-    assert "control_maps_no_risk" not in _codes(problems, "error")  # a flag, never a hard error
+    assert "control_maps_no_risk" not in _codes(problems, "flag")
+    assert "control_maps_no_risk" not in _codes(problems, "error")
+
+
+def test_control_mapping_an_unknown_risk_is_still_flagged():
+    # The mapping-integrity check survives the prune: a control pointing at a risk
+    # that does not exist is flagged.
+    ctrl = Control.parse("A.5.6", {"title": "x", "theme": "Organizational",
+                                   "policy": "POL-INFOSEC", "mapped_named_risks": ["NR-GHOST"]})
+    g = _minimal_graph(controls={"A.5.6": ctrl})
+    problems = validate_graph(g, Config(as_of=AS_OF))
+    assert "control_named_risk_unknown" in _codes(problems, "flag")
 
 
 def test_scenario_needs_a_known_named_risk():
