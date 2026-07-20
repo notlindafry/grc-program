@@ -391,16 +391,13 @@ def _top5_recs(graph: Graph, eng: GraphEngine) -> list[str]:
             names = " + ".join(f"{rm.id} (restore {rm.restores_control})" for rm in rems)
             verb = "Fund" if len(rems) == 1 else "Fund together"
             cleared = ", ".join(plan.result.cleared)
-            line = (f'<b>{verb} {_esc(names)}</b> — clears {_esc(cleared)} and brings '
-                    f'<b>{_esc(r.named_risk.label)}</b> {_funding_effect(r, plan.result, r.threshold)}')
-            # When the fix over-corrects to below the line, the headroom it opens is
-            # unused tolerance the business can spend elsewhere: freed risk budget.
-            if plan.result.state == "below":
-                freed = r.threshold - plan.result.band.mean
-                line += (f'; the <b>{money(freed)}</b> it opens below the line is risk capacity — '
-                         f'appetite headroom the business can put behind a bolder strategic bet '
-                         f'without crossing its line')
-            recs.append((1, -r.band.mean, nid, line + "."))
+            # The row states where the residual lands and that it is under appetite
+            # (via _funding_effect). It deliberately does NOT report the headroom it
+            # opens: unused appetite is not a spendable figure, and the arithmetic
+            # read like freed cash.
+            recs.append((1, -r.band.mean, nid,
+                         f'<b>{verb} {_esc(names)}</b> — clears {_esc(cleared)} and brings '
+                         f'<b>{_esc(r.named_risk.label)}</b> {_funding_effect(r, plan.result, r.threshold)}.'))
         else:
             inflight = eng.plan_to_appetite(nid, _IN_PROGRESS)
             if inflight and inflight.sufficient:  # steady-state — the sufficient fix is actively underway

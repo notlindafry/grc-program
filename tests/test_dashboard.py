@@ -334,22 +334,21 @@ def test_top5_within_appetite_is_computed_not_asserted(page: str) -> None:
         assert dashboard.money(res.band.mean) in page    # the printed figure is the computed one
 
 
-def test_top5_over_correction_reports_freed_risk_capacity(page: str) -> None:
-    # When a fund-row over-corrects to below the line, the headroom it opens
-    # (appetite - residual) is surfaced as risk CAPACITY — appetite headroom for a
-    # bolder bet, not a spendable "budget" (risk is measured in dollars, it is not
-    # literal money). Computed from the what-if, not asserted.
+def test_top5_fund_row_states_the_landing_not_freed_money(page: str) -> None:
+    # A fund-row states where the residual lands and that it is under appetite — not
+    # the arithmetic of freed headroom, which read like spendable cash. Risk is a
+    # dollar-denominated measure, not a pot of money to redeploy.
+    top5 = re.search(r'<section class="top5".*?</section>', page, re.S).group(0)
+    for banned in ("risk capacity", "risk budget", "redeploy", "it opens below the line", "strategic bet"):
+        assert banned not in top5
+    assert "within its" in top5                           # the landing is still stated
+    # and the computed post-funding figure is still on the page
     g = load_graph(DATA)
     cfg = Config(as_of=AS_OF)
     validate_graph(g, cfg)
     eng = GraphEngine(g, cfg)
-    top5 = re.search(r'<section class="top5".*?</section>', page, re.S).group(0)
-    assert "risk capacity" in top5 and "bolder strategic bet" in top5
-    assert "risk budget" not in top5 and "redeploy" not in top5
     res = eng.residual_if_funded("NR-PLATFORM-OUTAGE", ["REM-2026-0114"])
-    assert res.state == "below"                           # it genuinely over-corrects
-    freed = eng.named_risk_residual("NR-PLATFORM-OUTAGE").threshold - res.band.mean
-    assert dashboard.money(freed) in top5                 # the freed figure is computed
+    assert dashboard.money(res.band.mean) in top5
 
 
 def test_top5_is_deduped_by_risk_and_type_c_names_the_lever(page: str) -> None:
