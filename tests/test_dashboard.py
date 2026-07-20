@@ -231,13 +231,15 @@ def test_tile_row_is_four_asks_led_by_mis_allocation(page: str) -> None:
     assert "Mis-allocated" in page and "Over-controlled" in page
 
 
-def test_view2_shows_pct_of_appetite_with_status(page: str) -> None:
-    # The domain metric is "% of appetite" (a ratio, not idle dollars — risk is a
-    # measure, not spendable cash); the status still carries the finding.
-    assert ">% of appetite</th>" in page
-    assert "Idle tolerance" not in page          # the idle-dollars column is gone
+def test_view2_has_no_domain_metric_column(page: str) -> None:
+    # No domain-level number: neither idle dollars (risk is not spendable cash) nor
+    # a residual/appetite ratio (a Simpson's blend on a mis-allocated domain). The
+    # status carries the finding; the detail names the risks. Only these columns.
+    view2 = re.search(r'class="vnum">2</span>.*?</table>', page, re.S).group(0)
+    headers = re.findall(r"<th(?:\s[^>]*)?>(.*?)</th>", view2)  # not <thead>
+    assert headers == ["Domain (Tier 1)", "Status", "What it means", "Risk mix (R/G/A)"]
+    assert "Idle tolerance" not in page and "% of appetite</th>" not in page
     assert "OVER-CONTROLLED" in page and "MIS-ALLOCATED" in page
-    assert ">Tolerance used<" not in page        # the old aggregate ratio column stays gone
 
 
 def test_view2_misallocated_detail_does_not_conflate_two_risks(page: str) -> None:
