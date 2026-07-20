@@ -310,13 +310,19 @@ def test_top5_renders_above_the_summary_exactly_five(page: str) -> None:
     assert 'class="vnum"' not in top5
 
 
-def test_top5_fund_rows_name_a_remediation_and_a_computed_effect(page: str) -> None:
-    # SPEC v3.0 §3a / acceptance 4: every fund-row names a specific remediation ID
-    # and its computed effect; no row reads "do something about X" or is finding-only.
+def test_top5_fund_rows_name_the_plan_by_title_and_a_computed_effect(page: str) -> None:
+    # SPEC v3.0 §3a / acceptance 4: every fund-row names a specific remediation and
+    # its computed effect. The plan is named by its short TITLE (the exec read wants
+    # the fix, not the ledger code), and no row reads "do something about X".
+    g = load_graph(DATA)
+    cfg = Config(as_of=AS_OF)
+    validate_graph(g, cfg)
     top5 = re.search(r'<section class="top5".*?</section>', page, re.S).group(0)
-    assert "Fund REM-2026-0114 (restore A.8.14)" in top5
-    assert "Fund REM-2026-0112 (restore A.8.22)" in top5
-    assert "within its" in top5 and "&rarr;" in top5  # the computed effect arrow
+    for rid, ctrl in (("REM-2026-0114", "A.8.14"), ("REM-2026-0112", "A.8.22")):
+        rem = next(x for x in g.remediations if x.id == rid)
+        assert f"Fund {rem.title} (restore {ctrl})" in top5   # title, not the id
+        assert rid not in top5                                # the code is gone
+    assert "within its" in top5 and "&rarr;" in top5          # the computed effect arrow
     assert "do something about" not in top5.lower()
 
 
@@ -359,8 +365,12 @@ def test_top5_is_deduped_by_risk_and_type_c_names_the_lever(page: str) -> None:
     assert text.count("Production compromise") == 1      # deduped, appears once
     assert "Reprioritize gcloud-migration" in text       # predation, a lever
     assert "Hold Privacy investment flat" in text        # reallocation, a lever
-    # the in-progress steady-state row, not a false "fund" of an already-funded plan
-    assert "Keep REM-2026-0102 on track (in progress)" in text
+    # the in-progress steady-state row, named by title, not a false "fund" of it
+    g = load_graph(DATA)
+    validate_graph(g, Config(as_of=AS_OF))
+    rem = next(x for x in g.remediations if x.id == "REM-2026-0102")
+    assert f"Keep {rem.title} on track (in progress)" in text
+    assert "REM-2026-0102" not in text
 
 
 def test_no_probability_renders_as_a_certainty(page: str) -> None:

@@ -388,7 +388,9 @@ def _top5_recs(graph: Graph, eng: GraphEngine) -> list[str]:
         if plan and plan.sufficient:  # Type A / B — fund a sufficient unfunded plan
             n_unfunded_over += 1
             rems = [next(x for x in graph.remediations if x.id == rid) for rid in plan.remediation_ids]
-            names = " + ".join(f"{rm.id} (restore {rm.restores_control})" for rm in rems)
+            # Name the plan by its short title, not its record id — the exec read
+            # wants the fix, not the ledger code (the id lives in view 4 / the data).
+            names = " + ".join(f"{rm.title} (restore {rm.restores_control})" for rm in rems)
             verb = "Fund" if len(rems) == 1 else "Fund together"
             cleared = ", ".join(plan.result.cleared)
             # The row states where the residual lands and that it is under appetite
@@ -401,7 +403,8 @@ def _top5_recs(graph: Graph, eng: GraphEngine) -> list[str]:
         else:
             inflight = eng.plan_to_appetite(nid, _IN_PROGRESS)
             if inflight and inflight.sufficient:  # steady-state — the sufficient fix is actively underway
-                names = " & ".join(inflight.remediation_ids)
+                ip = [next(x for x in graph.remediations if x.id == rid) for rid in inflight.remediation_ids]
+                names = " & ".join(rm.title for rm in ip)
                 recs.append((5, -r.band.mean, nid,
                              f'<b>Keep {_esc(names)} on track</b> (in progress) — it brings '
                              f'<b>{_esc(r.named_risk.label)}</b> {_funding_effect(r, inflight.result, r.threshold)}; '
