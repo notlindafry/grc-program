@@ -244,6 +244,61 @@ def test_view4_shows_mitigated_risks_not_policy(page: str) -> None:
     assert ">Policy</th>" not in page
 
 
+def test_view5_is_predation_not_a_summed_footprint(page: str) -> None:
+    # SPEC v2.9 predation view: the "true footprint" bar was a manufactured sum —
+    # one project's risk plus the harm it caused to four others, stacked on one
+    # axis. Retire the vocabulary and the visual entirely.
+    for retired in ("true footprint", "reported vs true", "undeclared debt", " hidden"):
+        assert retired not in page, retired
+    assert "Which project is eating the others" in page
+    assert "Black holes" in page and "Eaten alive" in page
+    assert "starving 4 projects · 6 exceptions" in page  # blast radius, not a sum
+
+
+def test_view5_casualties_name_predator_and_over_reads_red(page: str) -> None:
+    # SPEC v2.9 predation acceptance 4/5: each eaten project names its predator and
+    # shows its forced exceptions with the correct RAG state; the two over-appetite
+    # casualties read red (--status-over), and amber is never used for caused-harm.
+    assert 'color:var(--status-over)">EXC-2026-0131 · OVER' in page  # core-platform
+    assert 'color:var(--status-over)">EXC-2026-0151 · OVER' in page  # payments-launch
+    assert page.count(">gcloud-migration<") >= 4  # named as the cause on each victim row
+
+
+def test_exc_tag_reds_the_over_casualty_and_never_ambers_harm() -> None:
+    # SPEC v2.9 predation acceptance 5: over appetite is the escalation and reads
+    # red; at/below stay muted, because amber is unused-tolerance elsewhere and must
+    # never stand in for harm caused to another team.
+    over = dashboard._exc_tag("EXC-2026-0131", "over")
+    assert "var(--status-over)" in over and "OVER" in over
+    for st in ("below", "at", None):
+        tag = dashboard._exc_tag("EXC-X", st)
+        assert "var(--status-below)" not in tag and "var(--status-over)" not in tag
+        assert "var(--text-muted)" in tag
+
+
+def test_predation_reads_the_diverted_to_graph() -> None:
+    # SPEC v2.9 predation §2/§3: gcloud-migration is the one black hole, ranked by
+    # blast radius; the two over-appetite casualties are EXC-0131 and EXC-0151.
+    g = load_graph(DATA)
+    cfg = Config(as_of=AS_OF)
+    validate_graph(g, cfg)
+    holes = dashboard._predation(g, GraphEngine(g, cfg))
+    assert len(holes) == 1
+    h = holes[0]
+    assert h["sink"] == "gcloud-migration"
+    assert (h["n_victims"], h["n_exc"], h["n_over"]) == (4, 6, 2)
+    assert h["victims"][0]["has_over"] and h["victims"][1]["has_over"]  # sharp end first
+    over_ids = {eid for v in h["victims"] for eid, s in v["forced"] if s == "over"}
+    assert over_ids == {"EXC-2026-0131", "EXC-2026-0151"}
+
+
+def test_riding_tile_shows_predation_not_summed_debt(page: str) -> None:
+    # SPEC v2.9 predation §3c: the summary tile surfaces the predation finding, not
+    # the manufactured "+$1.7M undeclared debt" number.
+    assert "Eating other teams" in page
+    assert "starving 4 projects · 2 over appetite" in page
+
+
 def test_no_probability_renders_as_a_certainty(page: str) -> None:
     # SPEC v2.8 §6: a probability printed as a bare 100% / 0% reads like a bug.
     # (width:100% on responsive SVGs / tables is layout, not a probability.)
