@@ -89,7 +89,9 @@ exception breaches alone, together they clear the line. The drift thesis.
 
 **3. At least two orphan risks** (OVER, no funded remediation).
 `NR-PLATFORM-OUTAGE` (no remediation at all) and `NR-PCI-SCOPE` (only a
-*proposed* segmentation fix, `REM-2026-0112` — proposed ≠ funded).
+*proposed* segmentation fix, `REM-2026-0112` — proposed ≠ funded). Since the v3.3
+prune these are surfaced as a computed callout in view 1 (they are already flagged
+"no funded plan" there), not a separate "Falling through the cracks" card.
 
 **4. A control with poor health from clustered findings.**
 `A.8.5` (Secure authentication) → **RED**: `FND-2026-0001`/`0002` (high) +
@@ -128,7 +130,9 @@ no longer the hero. Surfaced via the domain `rag_counts` / `amber_end_to_end`.
 **10. Emerging risks + horizon + KRI breaches.**
 Three emerging scenarios with wide, rising, `ai`-vector intervals
 (`SCN-2026-0031/0032/0033`), held out of the appetite math. Four horizon items
-(`HZN-*`); ten KRIs breached, feeding the horizon view.
+(`HZN-*`); ten KRIs breached. The engine still computes these (`emerging_items`,
+`breached_kris`), but the standalone horizon view was cut in the v3.3 dashboard
+prune — trajectory is monitoring, not a decision a VP acts on in the ten-second read.
 
 **Enough green to contrast, and it is real green now (v2.5 §3).** Five named risks
 read AT — `NR-ABUSE-ESCALATION` and `NR-ABUSE-DETECTION` (Security),
