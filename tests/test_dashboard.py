@@ -231,11 +231,24 @@ def test_tile_row_is_four_asks_led_by_mis_allocation(page: str) -> None:
     assert "Mis-allocated" in page and "Over-controlled" in page
 
 
-def test_view2_ranks_by_idle_dollars_with_status(page: str) -> None:
-    # SPEC v2.8 §3: the Simpson's-trap ratio is gone; idle dollars + a status.
-    assert "Idle tolerance" in page
+def test_view2_has_no_domain_metric_column(page: str) -> None:
+    # No domain-level number: neither idle dollars (risk is not spendable cash) nor
+    # a residual/appetite ratio (a Simpson's blend on a mis-allocated domain). The
+    # status carries the finding; the detail names the risks. Only these columns.
+    view2 = re.search(r'class="vnum">2</span>.*?</table>', page, re.S).group(0)
+    headers = re.findall(r"<th(?:\s[^>]*)?>(.*?)</th>", view2)  # not <thead>
+    assert headers == ["Domain (Tier 1)", "Status", "What it means", "Risk mix (R/G/A)"]
+    assert "Idle tolerance" not in page and "% of appetite</th>" not in page
     assert "OVER-CONTROLLED" in page and "MIS-ALLOCATED" in page
-    assert ">Tolerance used<" not in page  # the aggregate ratio column is gone
+
+
+def test_view2_misallocated_detail_does_not_conflate_two_risks(page: str) -> None:
+    # A mis-allocated row must not read like one self-contradicting risk ("Platform
+    # outage … idle on Data-platform outage"): the idle risk is named as a separate
+    # risk and given its own % of appetite, not the domain's idle dollars.
+    view2 = re.search(r'class="vnum">2</span>.*?</section>', page, re.S).group(0)
+    assert "a separate risk here" in view2
+    assert "sits idle" not in view2              # the old dollar-idle phrasing is gone
 
 
 def test_view4_shows_mitigated_risks_not_policy(page: str) -> None:
