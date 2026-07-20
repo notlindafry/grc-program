@@ -436,7 +436,7 @@ def _top5_recs(graph: Graph, eng: GraphEngine) -> list[str]:
         used = sum(resid[n].band.mean for n in nids if n in resid)
         util = round(used / tol * 100) if tol else 0
         recs.append((3, -oc_idle, oc.domain.id,
-                     f'<b>Hold {_esc(oc.domain.title)} spend flat and redirect the next headcount</b> — it runs at '
+                     f'<b>Hold {_esc(oc.domain.title)} spend flat and redirect the surplus</b> — it runs at '
                      f'{util}% of its {money(tol)} declared tolerance while {n_unfunded_over} '
                      f'{"breach sits" if n_unfunded_over == 1 else "breaches sit"} unfunded over appetite.'))
 
