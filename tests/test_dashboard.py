@@ -357,7 +357,7 @@ def test_top5_is_deduped_by_risk_and_type_c_names_the_lever(page: str) -> None:
     text = re.sub(r"<[^>]+>", "", top5)                  # strip tags for prose checks
     assert text.count("Production compromise") == 1      # deduped, appears once
     assert "Reprioritize gcloud-migration" in text       # predation, a lever
-    assert "Hold Privacy spend flat and redirect" in text  # reallocation, a lever
+    assert "Hold Privacy investment flat and redirect" in text  # reallocation, a lever
     # the in-progress steady-state row, not a false "fund" of an already-funded plan
     assert "Keep REM-2026-0102 on track (in progress)" in text
 
