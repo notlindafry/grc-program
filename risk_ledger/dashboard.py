@@ -596,35 +596,46 @@ _DOM_ORDER = {"over-controlled": 0, "mis-allocated": 1, "balanced": 2}
 
 
 def _view_domains(graph: Graph, eng: GraphEngine) -> str:
-    """View 2 (SPEC v2.8 §3): the over-investment / mis-allocation view, and the
-    only place Tier 1 (domains) appears. The v2.7 residual/appetite ratio is gone
-    — it was a Simpson's trap that averaged a breach and idle headroom into a
-    number matching no risk in the domain. Rows rank by **idle tolerance in
-    dollars** (`Σ (appetite − residual)` over BELOW-state risks) and carry a status:
-    over-controlled (Privacy, nothing near the line) leads; mis-allocated (a breach
-    beside idle headroom, the same owner) is the sharper second act."""
+    """View 2 (SPEC v2.8 §3, refined): the over-investment / mis-allocation view,
+    and the only place Tier 1 (domains) appears. The headline metric is **% of
+    appetite** — how much of its declared tolerance the domain uses — expressed as
+    a ratio rather than idle dollars, because risk is a dollar-denominated measure,
+    not a spendable pot. The STATUS carries the finding (the % alone would be a
+    Simpson's blend on a mis-allocated domain), and the detail names the specific
+    risks so a breach and an idle risk are never conflated. Over-controlled leads;
+    mis-allocated (a breach beside idle headroom, the same owner) is the sharper
+    second act."""
     residuals = {r.named_risk.id: r for r in eng.all_named_risk_residuals()}
     data = []
     for d in eng.all_domain_rollups():
-        idle, overs, biggest, status = _domain_idle(d, residuals)
-        data.append((_DOM_ORDER[status], -idle, d, idle, overs, biggest, status))
-    data.sort(key=lambda t: (t[0], t[1]))  # over-controlled first; then by idle desc
+        _idle, overs, biggest, status = _domain_idle(d, residuals)
+        rs = [residuals[n] for n in d.named_risk_ids if n in residuals]
+        tol = sum(r.threshold for r in rs)
+        util = (sum(r.band.mean for r in rs) / tol) if tol else 0.0
+        data.append((_DOM_ORDER[status], util, d, overs, biggest, status, util))
+    data.sort(key=lambda t: (t[0], t[1]))  # status group, then % of appetite ascending
     rows = []
-    for _, _, d, idle, overs, biggest, status in data:
+    for _, _, d, overs, biggest, status, util in data:
         label, colour, rowcls = _DOM_STATUS[status]
+        pct = f"{round(util * 100)}%"
         if status == "mis-allocated":
             ov = ", ".join(o.named_risk.label for o in overs)
-            detail = (f"<b>{_esc(ov)}</b> breached, yet <b>{money(idle)}</b> sits idle"
-                      + (f" on {_esc(biggest.named_risk.label)}" if biggest else ""))
+            if biggest and biggest.threshold:
+                bu = round(biggest.band.mean / biggest.threshold * 100)
+                detail = (f"<b>{_esc(ov)}</b> is breached, while <b>{_esc(biggest.named_risk.label)}</b> "
+                          f"— a separate risk here — runs at just <b>{bu}%</b> of its appetite")
+            else:
+                detail = f"<b>{_esc(ov)}</b> is breached, while another risk here sits well under appetite"
         elif status == "over-controlled":
-            detail = f"nothing at or above appetite anywhere — <b>{money(idle)}</b> idle across {d.rag_counts['below']} risks"
+            detail = (f"nothing at or above appetite anywhere — <b>{pct}</b> of its declared tolerance "
+                      f"used across {d.rag_counts['below']} risks")
         else:
             detail = "a risk operating at appetite, no breach"
         pill = (f'<span class="rag"><span class="dot" style="background:{colour}"></span>'
                 f'<span class="rag-l" style="color:{colour}">{label}</span></span>')
         rows.append(
             f'<tr{rowcls}><td class="nm">{_esc(d.domain.title)}</td>'
-            f'<td class="num">{money(idle)}</td>'
+            f'<td class="num">{pct}</td>'
             f'<td>{pill}</td>'
             f'<td class="drv">{detail}</td>'
             f'<td>{_rag_counts_html(d.rag_counts)}</td></tr>')
@@ -633,16 +644,16 @@ def _view_domains(graph: Graph, eng: GraphEngine) -> str:
     flag = (f'<p class="chain">Bottom-up appetite totals <b>{money(total_thr)}</b> against a {money(app)} declared '
             f'enterprise appetite (<b>{total_thr / app:.2f}×</b>). Either the risk-level thresholds are generous, '
             f'or the enterprise line is not what the business actually tolerates.</p>')
-    inner = (f'<p class="lede">Declared tolerance sitting <i>idle</i> — control effort spent below the line you set '
-             f'is effort not spent shipping. <b>Over-controlled</b> is a domain with nothing at or above appetite; '
-             f'<b>mis-allocated</b> is a breach and idle headroom in the same domain, under the same owner — a '
-             f'reallocation, not a ratio. Ranked by idle tolerance on below-appetite risks. RAG mix is over / at / '
-             f'below, each with its count.</p>'
-             f'<table class="tbl"><thead><tr><th>Domain (Tier 1)</th><th class="num">Idle tolerance</th>'
+    inner = (f'<p class="lede">How much of each domain\'s declared tolerance it is actually using. '
+             f'<b>Over-controlled</b> is a domain with nothing at or above appetite; <b>mis-allocated</b> is a '
+             f'breach and idle headroom in the same domain, under the same owner. The <b>% of appetite</b> is the '
+             f'domain read; the status names the finding and the detail names the risks, so a breach and an idle '
+             f'risk are never blended into one number. RAG mix is over / at / below, each with its count.</p>'
+             f'<table class="tbl"><thead><tr><th>Domain (Tier 1)</th><th class="num">% of appetite</th>'
              f'<th>Status</th><th>What it means</th><th>Risk mix (R/G/A)</th></tr></thead>'
              f'<tbody>{"".join(rows)}</tbody></table>{flag}')
     return _card("2", "Where you're over-investing — and mis-allocating",
-                 "Domains ranked by idle tolerance: over-controlled where nothing is near the line, mis-allocated where a breach sits beside idle headroom.",
+                 "Domains by how much of their declared appetite they use: over-controlled where nothing is near the line, mis-allocated where a breach sits beside idle headroom.",
                  inner)
 
 
