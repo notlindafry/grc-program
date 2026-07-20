@@ -397,8 +397,9 @@ def _top5_recs(graph: Graph, eng: GraphEngine) -> list[str]:
             # unused tolerance the business can spend elsewhere: freed risk budget.
             if plan.result.state == "below":
                 freed = r.threshold - plan.result.band.mean
-                line += (f'; the <b>{money(freed)}</b> it opens below the line is risk budget '
-                         f'the business can redeploy to a future strategic initiative')
+                line += (f'; the <b>{money(freed)}</b> it opens below the line is risk capacity — '
+                         f'appetite headroom the business can put behind a bolder strategic bet '
+                         f'without crossing its line')
             recs.append((1, -r.band.mean, nid, line + "."))
         else:
             inflight = eng.plan_to_appetite(nid, _IN_PROGRESS)
@@ -436,7 +437,7 @@ def _top5_recs(graph: Graph, eng: GraphEngine) -> list[str]:
         used = sum(resid[n].band.mean for n in nids if n in resid)
         util = round(used / tol * 100) if tol else 0
         recs.append((3, -oc_idle, oc.domain.id,
-                     f'<b>Hold {_esc(oc.domain.title)} investment flat and redirect the surplus</b> — it runs at '
+                     f'<b>Hold {_esc(oc.domain.title)} investment flat</b> — it runs at '
                      f'{util}% of its {money(tol)} declared tolerance while {n_unfunded_over} '
                      f'{"breach sits" if n_unfunded_over == 1 else "breaches sit"} unfunded over appetite.'))
 
@@ -483,7 +484,7 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
     holes = _predation(graph, eng)
     hole = holes[0] if holes else None
     # over-investing is a problem too (SPEC v2.7 §3): the over-controlled domain is
-    # the one with nothing at or above appetite, reported by its idle dollars (a
+    # the one with nothing at or above appetite, reported by its idle tolerance (a
     # real quantity, not the Simpson's-trap ratio, SPEC v2.8 §3).
     residuals = {r.named_risk.id: r for r in eng.all_named_risk_residuals()}
     oc, oc_idle = None, 0.0
@@ -518,7 +519,7 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
     ma_over = ", ".join(o.named_risk.label for o in ma_overs) if ma_overs else "—"
     tiles = [
         ("Mis-allocated", ma.domain.title if ma else "—",
-         (f"{money(ma_idle)} idle beside a breach ({ma_over}) — same owner can reallocate it"
+         (f"{money(ma_idle)} idle beside a breach ({ma_over}) — the same owner can shift the control effort to it"
           if ma else "—"), True),
         ("Over-controlled", oc.domain.title if oc else "—",
          (f"{money(oc_idle)} idle — nothing at or above appetite" if oc else "—"), True),
@@ -635,7 +636,7 @@ def _view_domains(graph: Graph, eng: GraphEngine) -> str:
     inner = (f'<p class="lede">Declared tolerance sitting <i>idle</i> — control effort spent below the line you set '
              f'is effort not spent shipping. <b>Over-controlled</b> is a domain with nothing at or above appetite; '
              f'<b>mis-allocated</b> is a breach and idle headroom in the same domain, under the same owner — a '
-             f'reallocation, not a ratio. Ranked by idle dollars on below-appetite risks. RAG mix is over / at / '
+             f'reallocation, not a ratio. Ranked by idle tolerance on below-appetite risks. RAG mix is over / at / '
              f'below, each with its count.</p>'
              f'<table class="tbl"><thead><tr><th>Domain (Tier 1)</th><th class="num">Idle tolerance</th>'
              f'<th>Status</th><th>What it means</th><th>Risk mix (R/G/A)</th></tr></thead>'
