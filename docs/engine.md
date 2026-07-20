@@ -176,6 +176,8 @@ graph because they drive dashboard views the engine did not already cover
 
 ## What is next (Day 4)
 
-The dashboard: the brand HTML/CSS shell and the seven views plus the portfolio
+The dashboard: the brand HTML/CSS shell and the views plus the portfolio
 summary — carrying the one-position/one-probability read and the drift wiring —
-built on these engine outputs with baked SVG charts.
+built on these engine outputs with baked SVG charts. (The view set shipped at seven
+and was pruned to five in v3.3; `emerging_items` and `breached_kris` remain engine
+outputs even though the horizon view that rendered them was cut.)

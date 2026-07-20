@@ -39,15 +39,40 @@ def test_page_is_self_contained_html(page: str) -> None:
     assert "fetch(" not in page
 
 
-def test_seven_views_plus_summary_and_ai_example(page: str) -> None:
-    # v2.7 lifts the six-view ceiling: over-investing is a missing problem class,
-    # not scope creep. Seven numbered view cards carry a .vnum badge 1..7; the AI
-    # example does not; there is no eighth.
-    for n in range(1, 8):
+def test_five_views_plus_summary_and_ai_example(page: str) -> None:
+    # SPEC v3.3 (the view prune): the ruthless cut takes the closed set from seven to
+    # five. Horizon (trajectory — monitoring, not a decision) is cut; "Falling through
+    # the cracks" folds into view 1 (its orphans are already flagged "no funded plan"
+    # there). Five numbered cards carry a .vnum badge 1..5; the AI example does not;
+    # there is no sixth.
+    for n in range(1, 6):
         assert f'class="vnum">{n}</span>' in page
-    assert 'class="vnum">8</span>' not in page
+    assert 'class="vnum">6</span>' not in page
     assert page.count('class="summary"') == 1
     assert page.count('class="card ai"') == 1
+
+
+def test_orphans_folded_into_view1_not_a_separate_card(page: str) -> None:
+    # SPEC v3.3 §2: the orphan finding (over appetite, no funded plan) is a computed
+    # callout in view 1, not its own card — it was a filtered slice of view 1's list,
+    # already flagged "no funded plan" in red. The standalone card is gone.
+    assert "Falling through the cracks" not in page
+    view1 = _card_html(page, "1")
+    assert "over appetite with no funded remediation" in view1   # the folded finding
+    assert 'class="callout"' in view1
+    assert "no funded plan" in view1                             # still flagged in the list
+
+
+def test_horizon_view_is_cut_but_the_engine_still_computes_it(page: str) -> None:
+    # SPEC v3.3 §1: the trajectory/horizon card is cut from the dashboard, but the
+    # engine capability (emerging_items) is untouched — the cut is editorial, not a
+    # loss of the model.
+    assert "On the horizon" not in page
+    assert ">Trajectory</th>" not in page
+    g = load_graph(DATA)
+    cfg = Config(as_of=AS_OF)
+    validate_graph(g, cfg)
+    assert GraphEngine(g, cfg).emerging_items()                  # engine still has it
 
 
 def test_status_is_never_colour_alone(page: str) -> None:
@@ -274,12 +299,13 @@ def _card_html(page: str, n: str) -> str:
     return m.group(0)
 
 
-def test_view6_cankicking_is_a_ranked_table_no_scatter(page: str) -> None:
+def test_cankicking_is_a_ranked_table_no_scatter(page: str) -> None:
     # SPEC v3.2 §1: the scatter is gone (age and exposure are uncorrelated here, so
     # a 2-D plot showed two independent facts a sorted table shows better). One
     # ranked table, top 5 by annualized exposure, an owner column, the Type tag and
-    # the exposure-semantic caveat kept, and no raw-ID primary label.
-    view6 = _card_html(page, "6")
+    # the exposure-semantic caveat kept, and no raw-ID primary label. (Card 5 since
+    # the v3.3 prune.)
+    view6 = _card_html(page, "5")
     assert "<svg" not in view6                          # the scatter SVG is deleted
     assert ">Annualized exposure</th>" in view6         # renamed from "dollars at stake"
     assert "Dollars at stake" not in view6
@@ -293,12 +319,12 @@ def test_view6_cankicking_is_a_ranked_table_no_scatter(page: str) -> None:
     assert re.search(r'class="nm">[^<]*[A-Za-z][^<]*<span class="sub">', view6)
 
 
-def test_view6_concentration_callout_is_computed_from_the_top5(page: str) -> None:
+def test_cankicking_concentration_callout_is_computed_from_the_top5(page: str) -> None:
     # SPEC v3.2 §1c / acceptance 4 (the honesty gate): the owner-concentration
     # callout renders only if one owner holds 3+ of the computed top 5. On this
     # corpus platform-lead holds 4 of 5, so it fires — and it names the real count
-    # and owner, framed structurally, not as blame.
-    view6 = _card_html(page, "6")
+    # and owner, framed structurally, not as blame. (Card 5 since the v3.3 prune.)
+    view6 = _card_html(page, "5")
     top5_owners = re.findall(r'<td class="num">\$[\dkM.]+</td><td>([a-z-]+)</td>', view6)
     assert len(top5_owners) == 5
     from collections import Counter
@@ -450,14 +476,16 @@ def test_owner_surfaces_only_where_it_changes_the_read(page: str) -> None:
     for owner in ("platform-lead", "payments-lead", "security-eng-lead"):
         assert f"owner: {owner}" in top5
     # §3: the predation "eaten alive" panel names the victim owners and states the
-    # concentration-vs-distribution contrast against the deferral view.
-    view5 = _card_html(page, "5")
-    assert ">Owner</th>" in view5
+    # concentration-vs-distribution contrast against the deferral view. (Card 4 since
+    # the v3.3 prune.)
+    predation = _card_html(page, "4")
+    assert ">Owner</th>" in predation
     for owner in ("platform-lead", "payments-lead", "data-platform-lead", "tns-lead"):
-        assert owner in view5
-    assert "distributes" in view5 and "concentrates" in view5
-    # §4: the inventory (card 4) carries owner on each over-appetite risk.
-    assert _card_html(page, "4").count('class="rec-own"') == 3
+        assert owner in predation
+    assert "distributes" in predation and "concentrates" in predation
+    # §4: the inventory (card 3 since the v3.3 prune) carries owner on each
+    # over-appetite risk.
+    assert _card_html(page, "3").count('class="rec-own"') == 3
 
 
 def test_owner_is_absent_from_view1_and_the_domain_view(page: str) -> None:

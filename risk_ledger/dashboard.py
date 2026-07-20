@@ -262,6 +262,17 @@ def _okr_name(graph: Graph, okr_id: str) -> str:
     return okr.title if okr and okr.title else okr_id
 
 
+def _join_names(names) -> str:
+    """A prose list — ``A``, ``A and B``, ``A, B, and C`` — for naming a handful of
+    risks inline without a table."""
+    xs = list(names)
+    if len(xs) <= 1:
+        return xs[0] if xs else ""
+    if len(xs) == 2:
+        return f"{xs[0]} and {xs[1]}"
+    return ", ".join(xs[:-1]) + f", and {xs[-1]}"
+
+
 def _owner(owner: str) -> str:
     """The accountable owner as a handle, not an email (SPEC v3.2): ``platform-lead``,
     not ``platform-lead@company.example``. Owner is surfaced only where naming who is
@@ -544,10 +555,28 @@ def _view1(graph: Graph, eng: GraphEngine) -> str:
             f'<td class="num">{money(r.threshold)}</td>'
             f'<td class="drv">{pos}</td>'
             f'<td class="drv">{drivers} · {funded}</td></tr>')
+    # The orphan finding (SPEC v3.3 §2: the retired "falling through the cracks"
+    # card, folded in): a risk over appetite with no funded remediation behind it —
+    # the exposure the exception lens alone would miss. It is already visible in the
+    # Driven-by column ("no funded plan", red); the callout names it as a finding so
+    # a whole card is not spent on a filtered slice of this list.
+    orphans = [r for r in eng.all_named_risk_residuals()
+               if r.state == "over" and not _addressed_by_funded(graph, r.scenario_ids)]
+    orphans.sort(key=lambda r: r.band.mean, reverse=True)
+    orphan_callout = ""
+    if orphans:
+        names = _join_names(o.named_risk.label for o in orphans)
+        verb = "is" if len(orphans) == 1 else "are"
+        orphan_callout = (f'<p class="callout"><b>{_esc(names)} {verb} over appetite with no funded '
+                          f'remediation</b> behind {"it" if len(orphans) == 1 else "them"} — the exposure the '
+                          f'exception lens alone would miss. Flagged <span style="color:var(--status-over)">no '
+                          f'funded plan</span> in the list below; the Top-5 banner says what to do about '
+                          f'{"it" if len(orphans) == 1 else "each"}.</p>')
     return _card(
         "1", "Your biggest exposures now",
         "Named risks by position against their own appetite: the 5–95% interval tinted by state, the mean as an interior tick with its dollar figure, and the slice past the appetite line (red) as the breach mass.",
-        exposure_interval_svg(rows, lo_b, hi_b)
+        orphan_callout
+        + exposure_interval_svg(rows, lo_b, hi_b)
         + f'<table class="tbl"><thead><tr><th></th><th>Named risk</th><th class="num">Residual (90% CI)</th>'
         f'<th class="num">Appetite</th><th>Position</th><th>Driven by</th></tr></thead><tbody>{"".join(items)}</tbody></table>')
 
@@ -622,26 +651,6 @@ def _view_domains(graph: Graph, eng: GraphEngine) -> str:
                  inner)
 
 
-def _view2(graph: Graph, eng: GraphEngine) -> str:
-    over = [r for r in eng.all_named_risk_residuals() if r.state == "over"]
-    orphans = [r for r in over if not _addressed_by_funded(graph, r.scenario_ids)]
-    orphans.sort(key=lambda r: r.band.mean, reverse=True)
-    if not orphans:
-        inner = '<p class="empty">No orphans — every over-appetite risk has a funded plan.</p>'
-    else:
-        rows = "".join(
-            f'<tr><td>{_dot(r.state)}</td><td class="nm" title="{_esc(r.named_risk.title)}">{_esc(r.named_risk.label)}</td>'
-            f'<td class="num">{band_str(r.band.low, r.band.high)}</td>'
-            f'<td>{_esc(_owner(r.named_risk.owner))}</td>'
-            f'<td class="drv">{_pct(r.p_over_threshold)} chance over its {money(r.threshold)} appetite</td></tr>'
-            for r in orphans)
-        inner = (f'<p class="lede">Real exposure over appetite with <b>no funded remediation</b> behind it — '
-                 f'the exposure the exception lens alone would miss.</p>'
-                 f'<table class="tbl"><thead><tr><th></th><th>Named risk</th><th class="num">Residual</th>'
-                 f'<th>Owner</th><th>Why it matters</th></tr></thead><tbody>{rows}</tbody></table>')
-    return _card("3", "Falling through the cracks", "Orphans: over appetite, not accepted, no funded plan.", inner)
-
-
 _STATE_RANK = {"over": 0, "at": 1, "below": 2}
 _HEALTH_RANK = {"red": 0, "amber": 1, "green": 2}
 _HEALTH_COLOUR = {"red": "var(--status-over)", "amber": "var(--status-below)"}
@@ -692,7 +701,7 @@ def _view3(graph: Graph, eng: GraphEngine) -> str:
              f'evidence. A healthy control needs no line, and a risk whose controls are all healthy is a scope '
              f'problem, not a safeguard failure. Never colour alone — each marker carries its word.</p>'
              + "".join(blocks))
-    return _card("4", "Are the controls holding each breach?",
+    return _card("3", "Are the controls holding each breach?",
                  "For each risk over appetite, the controls meant to hold it — how many, and which ones can't currently do the job.",
                  inner)
 
@@ -711,7 +720,7 @@ def _exc_tag(eid: str, state: str | None) -> str:
 def _view4(graph: Graph, eng: GraphEngine) -> str:
     holes = _predation(graph, eng)
     if not holes:
-        return _card("5", "Which project is eating the others",
+        return _card("4", "Which project is eating the others",
                      "No project is funded by starving others in this corpus.",
                      '<p class="empty">No <code>diverted_to</code> predation to show.</p>')
 
@@ -769,7 +778,7 @@ def _view4(graph: Graph, eng: GraphEngine) -> str:
              f'The exceptions land on the teams that were deprioritized — some of them over '
              f'appetite. Each team\'s own risk stays in view 1, on its own owner; this view draws '
              f'only the predation.</p>{contrast}{panel_a}{panel_b}')
-    return _card("5", "Which project is eating the others",
+    return _card("4", "Which project is eating the others",
                  "The diverted_to graph as predation, not a summed footprint: one project's "
                  "resource-grab, and the forced exceptions it pushed onto the teams it starved.",
                  inner)
@@ -883,37 +892,10 @@ def _view5(graph: Graph, eng: GraphEngine) -> str:
              f'<th class="num">Annualized exposure</th><th>Owner</th><th>What it is</th></tr></thead>'
              f'<tbody>{trows}</tbody></table>'
              + tail)
-    return _card("6", "The can you keep kicking",
+    return _card("5", "The can you keep kicking",
                  "The deferrals carrying the most exposure, ranked — renewed exceptions (exposure held) "
                  "and slipped remediations (exposure retirable), with the accountable owner.",
                  inner)
-
-
-_TRAJ_ARROW = {"rising": "▲", "receding": "▼", "stable": "▬"}
-
-
-def _view6(graph: Graph, eng: GraphEngine) -> str:
-    emerging = eng.emerging_items()
-    erows = "".join(
-        f'<tr><td class="nm">{_esc(e.scenario.title)}</td>'
-        f'<td class="tag">{"/".join(e.scenario.vectors) or "—"}</td>'
-        f'<td class="num">{band_str(e.band.low, e.band.high)}</td>'
-        f'<td>{_TRAJ_ARROW.get(e.trajectory, "▬")} {_esc(e.trajectory)}</td>'
-        f'<td class="drv">{"would breach appetite" if e.would_breach else "within if promoted"}</td></tr>'
-        for e in emerging)
-    breached = eng.breached_kris()
-    kris = ", ".join(k.kri_id.replace("KRI-", "") for k in breached[:6])
-    p = eng.portfolio()
-    inner = (f'<p class="lede">The forward-looking line: current managed residual is '
-             f'<b style="color:{RAG[p.appetite_state][1]}">over the {money(p.appetite)} appetite</b> while the '
-             f'emerging column holds items — wide, moving, AI-vectored — that are not yet appetite-tested. Some '
-             f'would breach it if they firmed up; others are receding or would stay within. Kept apart from the '
-             f'appetite math (honest uncertainty).</p>'
-             f'<table class="tbl"><thead><tr><th>Emerging risk</th><th>Vector</th><th class="num">Wide interval</th>'
-             f'<th>Trajectory</th><th>If promoted</th></tr></thead><tbody>{erows}</tbody></table>'
-             f'<p class="chain">KRI breaches feeding the horizon ({len(breached)}): {_esc(kris)}…</p>')
-    return _card("7", "On the horizon",
-                 "Emerging risks with wide bands and trajectory, plus the KRI breaches feeding them.", inner)
 
 
 def _ai_example(graph: Graph) -> str:
@@ -1076,8 +1058,7 @@ def build_dashboard(graph: Graph, eng: GraphEngine) -> str:
         + _summary(graph, eng)
         + '<div class="grid">'
         + _view1(graph, eng) + _view_domains(graph, eng)
-        + _view2(graph, eng) + _view3(graph, eng) + _view4(graph, eng)
-        + _view5(graph, eng) + _view6(graph, eng)
+        + _view3(graph, eng) + _view4(graph, eng) + _view5(graph, eng)
         + _ai_example(graph)
         + '</div>'
         '<footer>Every figure is a 90% confidence interval from a light FAIR-shaped Monte Carlo, measured '

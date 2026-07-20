@@ -84,7 +84,8 @@ additive term). The next step connects a **live metric source** (Prometheus, a
 metrics warehouse) to populate `current_value` on each refresh, adds **threshold
 alerting** and **trend monitoring**, and — further out — **automated KRI-to-factor
 mapping** so a new metric proposes which factor it should inform. On the dashboard a
-KRI stays a light signal on a risk and a feed into the horizon view, not its own
+KRI stays a light signal on a risk and a feed into the emerging-risk track (the engine
+still computes it; the standalone horizon view was cut in the v3.3 prune), not its own
 monitoring product.
 
 ## 7. Deduplication checks (tier-aware)
@@ -111,10 +112,11 @@ runtime.
 ## Explicitly out of scope (and why)
 
 This artifact is a **model of the operating model**, not a platform — a closed set of
-seven dashboard views plus a portfolio summary, rendered from synthetic git-native YAML.
-There is deliberately **no workflow engine, no live collectors, and no database**; the
-view set is closed and each view earns its place by mapping to a question a VP actually
-asks (`SPEC v2.7 §8`). The security posture follows from that shape: a static,
+five dashboard views plus a portfolio summary and the Top-5 banner, rendered from
+synthetic git-native YAML. There is deliberately **no workflow engine, no live
+collectors, and no database**; the view set is closed and each view earns its place by
+mapping to a question a VP actually asks (`SPEC v2.7 §8`, pruned seven→five in v3.3 —
+Horizon cut, Falling-through-the-cracks folded into view 1). The security posture follows from that shape: a static,
 read-only, public HTML page with no login, no user input, and no backend has the same
 near-zero surface as the repo it extends, so the standard auth / RBAC / rate-limiting /
 input-sanitization requirements are **not applicable and intentionally omitted**
