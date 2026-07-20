@@ -25,7 +25,7 @@ from pathlib import Path
 from .config import Config
 from .graph import Graph
 from .graph_engine import GraphEngine
-from .graph_views import build_drift, flagged_renewals, slipped_remediations
+from .graph_views import flagged_renewals, slipped_remediations
 from .loader import load_graph
 from .render_svg import nice_ceiling
 from .validation import validate_graph
@@ -198,32 +198,56 @@ def exposure_interval_svg(rows: list[tuple], lo_b: float, hi_b: float) -> str:
     return _svg(640, h, "".join(body), "Residual interval (5–95%) as a percent of appetite, by named risk")
 
 
-def launch_debt_svg(rows: list[tuple], axis_max: float) -> str:
-    """View 4: per-launch reported vs true footprint. rows = [(okr, reported, true)].
-    The amber overhang is the undeclared risk debt the launch's own ledger hides."""
-    left, right, top = 150, 20, 8
-    row_h, gap = 30, 14
-    plot_w = 640 - left - right
-    h = top + len(rows) * (row_h + gap) + 18
+def _predation(graph: Graph, eng: GraphEngine) -> list[dict]:
+    """The ``diverted_to`` graph read as predation (SPEC v2.9, predation view).
 
-    def x(v):
-        return left + plot_w * min(v / axis_max, 1.0)
+    A ``diverted_to`` sink is a **black hole** — a project funded by starving
+    others. Each exception filed on a starved project (``issue.okr``) and diverted
+    here is a *forced* exception that sits on the **victim's** books, not the
+    sink's. We never sum those onto the sink (the retired "true footprint" was that
+    manufactured sum); we report the relationship — blast radius on the cause, the
+    forced exceptions on the victims — with the RAG state of the risk each forced
+    exception sits on, so an over-appetite casualty can read red. Black holes are
+    ranked by blast radius (victims, then forced exceptions)."""
+    st: dict[str, str | None] = {}
+    for nid in graph.named_risks:
+        r = eng.named_risk_residual(nid)
+        st[nid] = r.state if r else None
 
-    body = [_rect(0, 0, 640, h, "var(--surface)")]
-    for i, (okr, reported, true) in enumerate(rows):
-        y = top + i * (row_h + gap)
-        body.append(_t(left - 10, y + 13, okr, size=12, anchor="end"))
-        # reported (sage) then the undeclared debt (amber) overhang
-        body.append(_rect(left, y, max(x(reported) - left, 1), 16, "var(--accent)", rx=4))
-        if true > reported:
-            body.append(_rect(x(reported), y, max(x(true) - x(reported), 1), 16, "var(--status-below)", rx=4))
-            body.append(_t(x(true) + 6, y + 13, "+" + money(true - reported) + " hidden", size=10, fill="var(--status-below-tint)"))
-        body.append(_t(left, y + 27, f"reported {money(reported)} · true {money(true)}", size=10, fill="var(--text-muted)"))
-    body.append(_rect(left, h - 12, 10, 10, "var(--accent)", rx=2))
-    body.append(_t(left + 15, h - 3, "reported footprint", size=10, fill="var(--text-muted)"))
-    body.append(_rect(left + 130, h - 12, 10, 10, "var(--status-below)", rx=2))
-    body.append(_t(left + 145, h - 3, "undeclared debt (diverted in)", size=10, fill="var(--text-muted)"))
-    return _svg(640, h, "".join(body), "Risk debt per launch: reported vs true footprint")
+    def risk_state(issue) -> str | None:
+        for sid in graph.resolved_scenarios(issue):
+            sc = graph.scenarios.get(sid)
+            if sc and sc.named_risk:
+                return st.get(sc.named_risk)
+        return st.get(issue.mapped_risk)
+
+    sinks: dict[str, list] = {}
+    for i in graph.issues:
+        if (i.type == "exception" and i.diverted_to and i.diverted_to != i.okr
+                and eng.has_contribution(i.id)):
+            sinks.setdefault(i.diverted_to, []).append(i)
+
+    holes = []
+    for sink, excs in sinks.items():
+        vmap: dict[str, list] = {}
+        for i in excs:
+            vmap.setdefault(i.okr, []).append((i.id, risk_state(i)))
+        victims = []
+        for okr, forced in vmap.items():
+            forced.sort(key=lambda t: t[0])
+            victims.append({"okr": okr, "forced": forced,
+                            "has_over": any(s == "over" for _, s in forced)})
+        # over-appetite casualties first (the sharp end), then alphabetical
+        victims.sort(key=lambda v: (not v["has_over"], v["okr"]))
+        holes.append({
+            "sink": sink,
+            "n_victims": len(vmap),
+            "n_exc": len(excs),
+            "n_over": sum(1 for _i in excs if risk_state(_i) == "over"),
+            "victims": victims,
+        })
+    holes.sort(key=lambda h: (h["n_victims"], h["n_exc"]), reverse=True)
+    return holes
 
 
 def cankicking_scatter_svg(points: list[tuple], x_max: float, y_max: float) -> str:
@@ -338,11 +362,9 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
     orphans = [r for r in over if not _addressed_by_funded(graph, r.scenario_ids)]
     n_renew = len(flagged_renewals(graph, eng.config))
     n_slip = len(slipped_remediations(graph, eng.config))
-    # launch carrying the most undeclared debt
-    drifts = [build_drift(graph, eng, o) for o in graph.okrs]
-    drifts = [d for d in drifts if d.true and d.has_undeclared_debt]
-    drifts.sort(key=lambda d: (d.true.mean - (d.reported.mean if d.reported else 0)), reverse=True)
-    launch = drifts[0] if drifts else None
+    # the black hole: the project starving the most others (SPEC v2.9 predation §3c)
+    holes = _predation(graph, eng)
+    hole = holes[0] if holes else None
     # over-investing is a problem too (SPEC v2.7 §3): the over-controlled domain is
     # the one with nothing at or above appetite, reported by its idle dollars (a
     # real quantity, not the Simpson's-trap ratio, SPEC v2.8 §3).
@@ -383,8 +405,8 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
           if ma else "—"), True),
         ("Over-controlled", oc.domain.title if oc else "—",
          (f"{money(oc_idle)} idle — nothing at or above appetite" if oc else "—"), True),
-        ("Riding a launch", _okr_name(graph, launch.okr) if launch else "—",
-         (f"+{money(launch.true.mean - launch.reported.mean)} undeclared debt on {_okr_name(graph, launch.okr)}" if launch else "no diverted debt"), False),
+        ("Eating other teams", hole["sink"] if hole else "—",
+         (f'starving {hole["n_victims"]} projects · {hole["n_over"]} over appetite' if hole else "no diverted debt"), False),
         ("The can you keep kicking", f"{n_renew} renewed · {n_slip} slipped",
          "temporary-forever + slipped dates", False),
     ]
@@ -573,26 +595,57 @@ def _view3(graph: Graph, eng: GraphEngine) -> str:
                  "Control health with evidence blind spots and the over-appetite risks the weak controls are supposed to hold.", inner)
 
 
+def _exc_tag(eid: str, state: str | None) -> str:
+    """A forced exception, tagged with the RAG state of the risk it sits on. Over
+    appetite is the escalation, so it reads red (``--status-over``); at/below stay
+    muted, because amber is unused-tolerance everywhere else and must never stand
+    in for caused-harm (SPEC v2.9 predation view, acceptance 5)."""
+    if state == "over":
+        return f'<span class="nb" style="color:var(--status-over)">{_esc(eid)} · OVER</span>'
+    label = {"at": "at appetite", "below": "below"}.get(state, "—")
+    return f'<span class="nb" style="color:var(--text-muted)">{_esc(eid)} · {label}</span>'
+
+
 def _view4(graph: Graph, eng: GraphEngine) -> str:
-    drifts = [build_drift(graph, eng, o) for o in graph.okrs]
-    drifts = [d for d in drifts if d.true and d.true.mean > 0]
-    drifts.sort(key=lambda d: d.true.mean, reverse=True)
-    top = drifts[:6]
-    axis_max = nice_ceiling(max(d.true.high for d in top)) if top else 1.0
-    rows = [(_okr_name(graph, d.okr), d.reported.mean if d.reported else 0, d.true.mean) for d in top]
-    # starvation chain
-    starved = {}
-    for i in graph.issues:
-        if i.type == "exception" and i.diverted_to:
-            starved.setdefault(i.diverted_to, set()).add(i.okr)
-    chain = "; ".join(f"<b>{_esc(dest)}</b> ← {', '.join(sorted(src))}" for dest, src in list(starved.items())[:2])
-    inner = (f'<p class="lede">Each launch\'s own ledger shows the risk it accepted directly. Its <i>true</i> '
-             f'footprint adds the risk debt from other goals whose work was deferred to fund it '
-             f'(<code>diverted_to</code>). The amber overhang is undeclared risk debt.</p>'
-             + launch_debt_svg(rows, axis_max)
-             + (f'<p class="chain">Starvation chain: {chain}</p>' if chain else ""))
-    return _card("5", "Risk riding on your launches and rebuilds",
-                 "The launch-centric OKR view: risk debt per major launch/rebuild, and the starvation chain.", inner)
+    holes = _predation(graph, eng)
+    if not holes:
+        return _card("5", "Which project is eating the others",
+                     "No project is funded by starving others in this corpus.",
+                     '<p class="empty">No <code>diverted_to</code> predation to show.</p>')
+
+    # Panel A — black holes (the cause), ranked by blast radius.
+    a_rows = "".join(
+        f'<tr><td class="nm">{_esc(h["sink"])}</td>'
+        f'<td class="drv"><span class="nb">starving {h["n_victims"]} projects · {h["n_exc"]} exceptions</span></td>'
+        f'<td class="drv">'
+        + (f'<span class="nb" style="color:var(--status-over)">{h["n_over"]} over appetite</span>'
+           if h["n_over"] else '<span class="nb">0 over appetite</span>')
+        + '</td></tr>'
+        for h in holes)
+    panel_a = (f'<h4>Black holes — a project funded by starving others</h4>'
+               f'<table class="tbl"><thead><tr><th>Project</th><th>Blast radius</th>'
+               f'<th>Escalation</th></tr></thead><tbody>{a_rows}</tbody></table>')
+
+    # Panel B — eaten alive (the casualties): the forced exceptions on the victims'
+    # own books, where they actually sit. No summed bar; over-appetite casualties red.
+    b_rows = "".join(
+        f'<tr><td class="nm">'
+        + (f'<span style="color:var(--status-over)">{_esc(v["okr"])}</span>' if v["has_over"] else _esc(v["okr"]))
+        + f'</td><td class="drv"><span class="nb">{_esc(h["sink"])}</span></td>'
+        f'<td class="drv">' + ", ".join(_exc_tag(eid, s) for eid, s in v["forced"]) + '</td></tr>'
+        for h in holes for v in h["victims"])
+    panel_b = (f'<h4>Eaten alive — where the forced exceptions actually sit</h4>'
+               f'<table class="tbl"><thead><tr><th>Project</th><th>Starved by</th>'
+               f'<th>Exceptions forced on it</th></tr></thead><tbody>{b_rows}</tbody></table>')
+
+    inner = (f'<p class="lede">One project is buying its deadline with other teams\' risk. '
+             f'The exceptions land on the teams that were deprioritized — some of them over '
+             f'appetite. Each team\'s own risk stays in view 1, on its own owner; this view draws '
+             f'only the predation.</p>{panel_a}{panel_b}')
+    return _card("5", "Which project is eating the others",
+                 "The diverted_to graph as predation, not a summed footprint: one project's "
+                 "resource-grab, and the forced exceptions it pushed onto the teams it starved.",
+                 inner)
 
 
 def _view5(graph: Graph, eng: GraphEngine) -> str:
