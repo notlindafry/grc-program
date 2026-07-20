@@ -334,16 +334,18 @@ def test_top5_within_appetite_is_computed_not_asserted(page: str) -> None:
         assert dashboard.money(res.band.mean) in page    # the printed figure is the computed one
 
 
-def test_top5_over_correction_reports_freed_risk_budget(page: str) -> None:
+def test_top5_over_correction_reports_freed_risk_capacity(page: str) -> None:
     # When a fund-row over-corrects to below the line, the headroom it opens
-    # (appetite - residual) is surfaced as redeployable risk budget for a future
-    # strategic initiative — computed from the what-if, not asserted.
+    # (appetite - residual) is surfaced as risk CAPACITY — appetite headroom for a
+    # bolder bet, not a spendable "budget" (risk is measured in dollars, it is not
+    # literal money). Computed from the what-if, not asserted.
     g = load_graph(DATA)
     cfg = Config(as_of=AS_OF)
     validate_graph(g, cfg)
     eng = GraphEngine(g, cfg)
     top5 = re.search(r'<section class="top5".*?</section>', page, re.S).group(0)
-    assert "redeploy to a future strategic initiative" in top5
+    assert "risk capacity" in top5 and "bolder strategic bet" in top5
+    assert "risk budget" not in top5 and "redeploy" not in top5
     res = eng.residual_if_funded("NR-PLATFORM-OUTAGE", ["REM-2026-0114"])
     assert res.state == "below"                           # it genuinely over-corrects
     freed = eng.named_risk_residual("NR-PLATFORM-OUTAGE").threshold - res.band.mean
@@ -357,7 +359,7 @@ def test_top5_is_deduped_by_risk_and_type_c_names_the_lever(page: str) -> None:
     text = re.sub(r"<[^>]+>", "", top5)                  # strip tags for prose checks
     assert text.count("Production compromise") == 1      # deduped, appears once
     assert "Reprioritize gcloud-migration" in text       # predation, a lever
-    assert "Hold Privacy spend flat and redirect" in text  # reallocation, a lever
+    assert "Hold Privacy investment flat" in text        # reallocation, a lever
     # the in-progress steady-state row, not a false "fund" of an already-funded plan
     assert "Keep REM-2026-0102 on track (in progress)" in text
 
