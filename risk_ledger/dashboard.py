@@ -354,6 +354,123 @@ def _domain_idle(rollup, residuals: dict):
 # Sections
 # ---------------------------------------------------------------------------
 
+_UNFUNDED = {"proposed"}
+_IN_PROGRESS = {"in_progress"}
+
+
+def _funding_effect(live, res, appetite: float) -> str:
+    """The computed what-if effect on one line: the live mean and breach, an arrow,
+    the post-funding mean, and the RAG state it lands in (SPEC v3.0 §3a). Shown, not
+    asserted — the number is what residual_if_funded actually returns."""
+    landed = {"at": "now at appetite", "below": "now below appetite",
+              "over": "still over"}.get(res.state, "")
+    return (f"{money(live.band.mean)} ({_pct(live.p_over_appetite)} breach) &rarr; "
+            f"<b>{money(res.band.mean)}</b>, within its {money(appetite)} appetite ({landed})")
+
+
+def _top5_recs(graph: Graph, eng: GraphEngine) -> list[str]:
+    """The Top 5 (SPEC v3.0 §3): ranked plans, deduped by risk, each a one-line
+    action + lever + risk + **computed** effect. Fund-rows are gated on
+    residual_if_funded — a plan earns a slot only if the engine reproduces the
+    within-appetite result (acceptance 2), never asserts it. Ranking is severity ×
+    actionability: (1) over & unfunded, (2) predation with over-appetite casualties,
+    (3) a domain over-built while breaches go unfunded, (4) the materiality tail,
+    (5) steady-state (keep a funded fix on track)."""
+    residuals = {r.named_risk.id: r for r in eng.all_named_risk_residuals()}
+    over = sorted((r for r in residuals.values() if r.state == "over"),
+                  key=lambda r: r.band.mean, reverse=True)
+    recs: list[tuple[int, float, str, str]] = []  # (priority, tiebreak, subject, html)
+    n_unfunded_over = 0
+
+    for r in over:
+        nid = r.named_risk.id
+        plan = eng.plan_to_appetite(nid, _UNFUNDED)
+        if plan and plan.sufficient:  # Type A / B — fund a sufficient unfunded plan
+            n_unfunded_over += 1
+            rems = [next(x for x in graph.remediations if x.id == rid) for rid in plan.remediation_ids]
+            names = " + ".join(f"{rm.id} (restore {rm.restores_control})" for rm in rems)
+            verb = "Fund" if len(rems) == 1 else "Fund together"
+            cleared = ", ".join(plan.result.cleared)
+            line = (f'<b>{verb} {_esc(names)}</b> — clears {_esc(cleared)} and brings '
+                    f'<b>{_esc(r.named_risk.label)}</b> {_funding_effect(r, plan.result, r.threshold)}')
+            # When the fix over-corrects to below the line, the headroom it opens is
+            # unused tolerance the business can spend elsewhere: freed risk budget.
+            if plan.result.state == "below":
+                freed = r.threshold - plan.result.band.mean
+                line += (f'; the <b>{money(freed)}</b> it opens below the line is risk budget '
+                         f'the business can redeploy to a future strategic initiative')
+            recs.append((1, -r.band.mean, nid, line + "."))
+        else:
+            inflight = eng.plan_to_appetite(nid, _IN_PROGRESS)
+            if inflight and inflight.sufficient:  # steady-state — the sufficient fix is actively underway
+                names = " & ".join(inflight.remediation_ids)
+                recs.append((5, -r.band.mean, nid,
+                             f'<b>Keep {_esc(names)} on track</b> (in progress) — it brings '
+                             f'<b>{_esc(r.named_risk.label)}</b> {_funding_effect(r, inflight.result, r.threshold)}; '
+                             f"don't let the in-flight fix slip."))
+            else:  # Type D — no funded path reaches appetite
+                recs.append((1, -r.band.mean, nid,
+                             f'<b>Accept or escalate {_esc(r.named_risk.label)}</b> — no funded path brings it '
+                             f'within its {money(r.threshold)} appetite this cycle; decide at a board-signed '
+                             f'threshold or escalate for budget.'))
+
+    # Priority 2 — predation with over-appetite casualties (Type C, a lever not a plan)
+    for h in _predation(graph, eng):
+        if h["n_over"] >= 1:
+            casualties = ", ".join(v["okr"] for h2 in [h] for v in h2["victims"] if v["has_over"])
+            recs.append((2, -float(h["n_exc"]), h["sink"],
+                         f'<b>Reprioritize {_esc(h["sink"])}</b> — it is forcing {h["n_exc"]} exceptions on '
+                         f'{h["n_victims"]} teams and pushing {_esc(casualties)} over their own appetite to hold its date.'))
+
+    # Priority 3 — a domain over-built while breaches go unfunded (Type C, reallocation)
+    resid = {r.named_risk.id: r for r in eng.all_named_risk_residuals()}
+    oc, oc_idle = None, -1.0
+    for d in eng.all_domain_rollups():
+        idle, _o, _b, status = _domain_idle(d, resid)
+        if status == "over-controlled" and idle > oc_idle:
+            oc, oc_idle = d, idle
+    if oc is not None:
+        nids = graph.named_risks_of_domain.get(oc.domain.id, [])
+        tol = sum(graph.named_risks[n].appetite_threshold for n in nids
+                  if graph.named_risks[n].appetite_threshold)
+        used = sum(resid[n].band.mean for n in nids if n in resid)
+        util = round(used / tol * 100) if tol else 0
+        recs.append((3, -oc_idle, oc.domain.id,
+                     f'<b>Hold {_esc(oc.domain.title)} spend flat and redirect the next headcount</b> — it runs at '
+                     f'{util}% of its {money(tol)} declared tolerance while {n_unfunded_over} '
+                     f'{"breach sits" if n_unfunded_over == 1 else "breaches sit"} unfunded over appetite.'))
+
+    recs.sort(key=lambda t: (t[0], t[1]))
+    out, seen = [], set()
+    for _pri, _tb, subject, html in recs:
+        if subject in seen:
+            continue
+        seen.add(subject)
+        out.append(html)
+        if len(out) == 5:
+            break
+
+    # Priority 4 — the materiality tail is a FALLBACK only: it fills a slot when
+    # fewer than five real findings exist, and never bumps a live steady-state fix
+    # off the list. On this corpus the five above are all real, so it does not show.
+    if len(out) < 5:
+        p = eng.portfolio()
+        if p and p.capacity:
+            out.append(
+                f'<b>Govern the materiality tail</b> — a {_pct(p.p_over_capacity)} chance the portfolio crosses its '
+                f'{money(p.capacity)} audit-materiality line this year; nothing to fund, but the board-level number to hold to.')
+    return out[:5]
+
+
+def _top5_section(graph: Graph, eng: GraphEngine) -> str:
+    """The banner above the summary: what to do, before what is true (SPEC v3.0 §3b).
+    Unnumbered — it is not one of the seven views, it is the executive's first read."""
+    items = "".join(f'<li><span class="t5n">{i}</span><span class="t5t">{line}</span></li>'
+                    for i, line in enumerate(_top5_recs(graph, eng), 1))
+    return (f'<section class="top5" aria-label="Top 5 — do this first">'
+            f'<h2>Do this first <span class="t5sub">the five highest-leverage moves, ranked · '
+            f'fund-rows are computed, not asserted</span></h2><ol>{items}</ol></section>')
+
 
 def _summary(graph: Graph, eng: GraphEngine) -> str:
     p = eng.portfolio()
@@ -774,6 +891,19 @@ a:hover { text-decoration:underline; }
 header .eyebrow { color:var(--accent); font-size:10.5px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; }
 header h1 { font-size:30px; margin:6px 0 4px; color:var(--text-strong); }
 header .meta { color:var(--text-muted); font-size:13.5px; }
+.top5 { margin:26px 0 0; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:22px 26px; }
+.top5 > h2 { font-size:16px; font-weight:600; color:var(--text-strong); margin:0 0 14px;
+  text-transform:uppercase; letter-spacing:0.04em; }
+.top5 .t5sub { display:block; font-size:12px; font-weight:400; text-transform:none;
+  letter-spacing:0; color:var(--text-muted); margin-top:4px; }
+.top5 ol { list-style:none; margin:0; padding:0; }
+.top5 li { display:flex; gap:14px; align-items:baseline; padding:11px 0; border-top:1px solid var(--border); }
+.top5 li:first-child { border-top:none; }
+.top5 .t5n { flex:0 0 auto; width:22px; height:22px; border-radius:50%; border:1.5px solid var(--accent);
+  color:var(--accent); font-size:12px; font-weight:600; display:inline-flex; align-items:center;
+  justify-content:center; }
+.top5 .t5t { color:var(--text); font-size:13.5px; line-height:1.5; }
 .summary { margin:32px 0; }
 .summary > h2 { font-size:17px; font-weight:500; color:var(--text); max-width:640px; margin:0 0 16px; }
 .hero { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:26px 28px; }
@@ -839,6 +969,7 @@ def build_dashboard(graph: Graph, eng: GraphEngine) -> str:
         '<h1>GRC portfolio — the ten-second read for VP of Engineering</h1>'
         f'<div class="meta">Executive view for engineering leadership · reference date '
         f'{eng.config.as_of.isoformat()} · <b>synthetic data</b>, generated from git-native YAML</div></header>'
+        + _top5_section(graph, eng)
         + _summary(graph, eng)
         + '<div class="grid">'
         + _view1(graph, eng) + _view_domains(graph, eng)

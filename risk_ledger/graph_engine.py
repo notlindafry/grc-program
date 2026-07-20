@@ -167,6 +167,33 @@ class NamedRiskResidual:
         return self.p_over_threshold
 
 
+@dataclass(frozen=True)
+class ResidualResult:
+    """A named risk's residual under a counterfactual funding set (SPEC v3.0 §2):
+    the post-funding band, mean, breach probability and RAG state, plus the ids of
+    the exceptions the funded plans clear on this risk's own scenarios."""
+
+    band: Band
+    p_over_appetite: float
+    state: str
+    cleared: tuple[str, ...] = ()
+
+    @property
+    def mean(self) -> float:
+        return self.band.mean
+
+
+@dataclass(frozen=True)
+class FundingPlan:
+    """The smallest set of remediations that brings a risk to AT-or-better, decided
+    by the engine (SPEC v3.0 §2): the ordered ids, the post-funding result, and
+    whether it actually reaches within appetite."""
+
+    remediation_ids: tuple[str, ...]
+    result: ResidualResult
+    sufficient: bool
+
+
 @dataclass
 class DomainRollup:
     domain: Domain
@@ -343,6 +370,9 @@ class GraphEngine:
             sid = self._primary_scenario(issue)
             if sid is not None:
                 by_scn[sid].append(issue)
+        # kept so the what-if (residual_if_funded) can re-sum a scenario over a
+        # counterfactual exception set without a second path into residual.
+        self._issues_by_scn = by_scn
 
         for sid in self._scn_dists:
             scn = self.graph.scenarios[sid]
@@ -419,6 +449,131 @@ class GraphEngine:
         if not scn_ids:
             return None
         return self.mc.sum_streams([self._scn_residual_samples[sid] for sid in scn_ids])
+
+    # -- remediation what-if: residual if a plan were funded (SPEC v3.0 §2) ---
+
+    def _cleared_issue_ids(self, rem) -> set[str]:
+        """The active issues a restore clears — every issue on the control it
+        restores. Restoring a control clears *that control's* exceptions/vulns,
+        not just a nominated one."""
+        if rem.type == "restore" and rem.restores_control:
+            return {i.id for i in self.graph.issues if rem.restores_control in i.controls}
+        return set()
+
+    def remediations_for_risk(self, nid: str, statuses: Optional[set[str]] = None) -> list:
+        """Remediations whose funding would move ``nid``'s residual: a restore that
+        clears an issue on one of its managed scenarios, or a strengthen mapped to
+        it. Optionally filtered by status (e.g. only the unfunded ``proposed``)."""
+        on_risk = {i.id for sid in self._managed_scenarios_of(nid)
+                   for i in self._issues_by_scn.get(sid, [])}
+        out = []
+        for r in self.graph.remediations:
+            if statuses is not None and r.status not in statuses:
+                continue
+            if r.type == "restore" and (self._cleared_issue_ids(r) & on_risk):
+                out.append(r)
+            elif r.type == "strengthen" and r.mapped_risk == nid:
+                out.append(r)
+        return out
+
+    def residual_if_funded(self, nid: str, remediation_ids) -> Optional[ResidualResult]:
+        """Recompute ``nid``'s residual as if the given remediations were funded.
+
+        A ``restore`` removes its control's exceptions from the affected scenarios;
+        a ``strengthen`` replaces the moved factor with its ``post_control_90ci``
+        band. Then run the SAME Monte Carlo over the reduced/altered exception set
+        and re-aggregate to the named risk (identical ``rag_band``, v2.6). This is
+        not a new model — it is the existing one path into residual, run over a
+        counterfactual exception input. An empty list returns the live residual."""
+        nr = self.graph.named_risks.get(nid)
+        if nr is None or nr.appetite_threshold is None:
+            return None
+        scn_ids = self._managed_scenarios_of(nid)
+        if not scn_ids:
+            return None
+        ids = set(remediation_ids)
+        rems = [r for r in self.graph.remediations if r.id in ids]
+        cleared: set[str] = set()
+        strengthen: dict[str, tuple[str, list[float]]] = {}
+        for r in rems:
+            cleared |= self._cleared_issue_ids(r)
+            if r.type == "strengthen" and r.moves and r.post_control_90ci:
+                sid = self._primary_scenario_of_risk(nid)
+                if sid is not None:
+                    strengthen[sid] = (r.moves, r.post_control_90ci)
+
+        cleared_here: set[str] = set()
+        per = []
+        for sid in scn_ids:
+            if sid in strengthen:
+                per.append(self._strengthened_scenario_samples(sid, *strengthen[sid], cleared))
+                continue
+            streams = [self._scn_baseline[sid]]
+            for issue in self._issues_by_scn.get(sid, []):
+                if issue.id in cleared:
+                    cleared_here.add(issue.id)
+                    continue
+                s = self._contrib_samples.get(issue.id)
+                if s is not None:
+                    streams.append(s)
+            per.append(self.mc.sum_streams(streams))
+        samples = self.mc.sum_streams(per)
+        band = Band.from_samples(samples)
+        p = _p_exceed(samples, nr.appetite_threshold)
+        state = rag_band(band.mean, nr.appetite_threshold, p,
+                         floor=self.green_floor, p_red=self.p_red)
+        return ResidualResult(band=band, p_over_appetite=p, state=state,
+                              cleared=tuple(sorted(cleared_here)))
+
+    def _primary_scenario_of_risk(self, nid: str) -> Optional[str]:
+        scn = self._managed_scenarios_of(nid)
+        return scn[0] if scn else None
+
+    def _strengthened_scenario_samples(self, sid, factor, band, cleared) -> list[float]:
+        """Re-price one scenario with its ``factor`` distribution swapped for the
+        strengthen's post-control band, then re-add its non-cleared exceptions —
+        still the one path (``ale_samples`` + the existing contributions)."""
+        dists = dict(self._scn_dists[sid])
+        dists[factor] = fit_distribution(factor, band[0], band[1])
+        baseline = self.mc.ale_samples(
+            dists[OPPORTUNITY_FREQUENCY], dists[PROBABILITY_OF_REALIZATION],
+            dists[LOSS_MAGNITUDE], key=f"{sid}|strengthen")
+        streams = [baseline]
+        for issue in self._issues_by_scn.get(sid, []):
+            if issue.id in cleared:
+                continue
+            s = self._contrib_samples.get(issue.id)
+            if s is not None:
+                streams.append(s)
+        return self.mc.sum_streams(streams)
+
+    def plan_to_appetite(self, nid: str, statuses: Optional[set[str]] = None) -> Optional[FundingPlan]:
+        """The smallest set of remediations (drawn from ``remediations_for_risk``,
+        optionally status-filtered) that brings ``nid`` to AT-or-better, ordered by
+        single-plan dial-movement (SPEC v3.0 §2). Name the one highest-impact plan
+        unless more than one is genuinely required. Returns None if the risk is not
+        over appetite or has no candidate plans; ``sufficient=False`` if no set
+        reaches within appetite (Type D)."""
+        live = self.named_risk_residual(nid)
+        if live is None or live.state != RAG_OVER:
+            return None
+        cands = self.remediations_for_risk(nid, statuses)
+        if not cands:
+            return None
+        scored = []
+        for r in cands:
+            res = self.residual_if_funded(nid, [r.id])
+            scored.append((live.band.mean - (res.band.mean if res else live.band.mean), r.id))
+        scored.sort(key=lambda t: t[0], reverse=True)
+        ordered = [rid for _, rid in scored]
+        chosen: list[str] = []
+        result = None
+        for rid in ordered:
+            chosen.append(rid)
+            result = self.residual_if_funded(nid, chosen)
+            if result and result.state != RAG_OVER:
+                return FundingPlan(tuple(chosen), result, True)
+        return FundingPlan(tuple(chosen), result, False) if result else None
 
     # -- domain rollups (monitored, no ceiling) -----------------------------
 

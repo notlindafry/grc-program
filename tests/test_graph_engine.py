@@ -451,6 +451,61 @@ def test_diverted_to_starvation_chain_exists(corpus_engine):
     assert all(i.diverted_to in graph.okrs for i in diverted)
 
 
+# ---------------------------------------------------------------------------
+# residual_if_funded: the remediation what-if (SPEC v3.0 §2)
+# ---------------------------------------------------------------------------
+
+
+def test_residual_if_funded_empty_list_is_the_live_residual(corpus_engine):
+    # Acceptance 1: an empty funding set returns the live residual unchanged.
+    _, eng = corpus_engine
+    live = eng.named_risk_residual("NR-PLATFORM-OUTAGE")
+    res = eng.residual_if_funded("NR-PLATFORM-OUTAGE", [])
+    assert res.state == live.state
+    assert abs(res.band.mean - live.band.mean) < 1.0  # same samples, same mean
+
+
+def test_residual_if_funded_restore_lowers_the_band(corpus_engine):
+    # Acceptance 1: funding a restore that clears a real exception lowers the band,
+    # and reports the exception it cleared on this risk's scenarios.
+    _, eng = corpus_engine
+    live = eng.named_risk_residual("NR-PLATFORM-OUTAGE")
+    res = eng.residual_if_funded("NR-PLATFORM-OUTAGE", ["REM-2026-0114"])
+    assert res.band.mean < live.band.mean
+    assert res.state != "over"                       # crosses out of breach
+    assert "EXC-2026-0130" in res.cleared
+
+
+def test_residual_if_funded_uses_the_live_path_no_new_compute(corpus_engine):
+    # Acceptance 1: the counterfactual re-sums the SAME per-scenario baseline and
+    # per-issue contribution streams the live residual uses — no second path. So
+    # funding every exception that a risk carries reproduces its baseline exactly.
+    _, eng = corpus_engine
+    empty = eng.residual_if_funded("NR-PLATFORM-OUTAGE", [])
+    live = eng.named_risk_residual("NR-PLATFORM-OUTAGE")
+    assert empty.band.low == live.band.low and empty.band.high == live.band.high
+
+
+def test_plan_to_appetite_pins_single_plan_sufficiency(corpus_engine):
+    # Acceptance 2: exactly one unfunded plan brings Platform outage within appetite;
+    # funding none leaves it over. The engine decides, and we pin it.
+    _, eng = corpus_engine
+    plan = eng.plan_to_appetite("NR-PLATFORM-OUTAGE", {"proposed"})
+    assert plan is not None and plan.sufficient
+    assert plan.remediation_ids == ("REM-2026-0114",)   # one plan, not two
+    assert eng.residual_if_funded("NR-PLATFORM-OUTAGE", []).state == "over"
+
+
+def test_plan_to_appetite_prod_has_no_unfunded_plan_but_an_inflight_one(corpus_engine):
+    # SPEC v3.0 interview call: Production compromise is over, but its sufficient
+    # plans are already in_progress, not unfunded — so there is nothing to "fund".
+    _, eng = corpus_engine
+    assert eng.plan_to_appetite("NR-PROD-COMPROMISE", {"proposed"}) is None
+    inflight = eng.plan_to_appetite("NR-PROD-COMPROMISE", {"in_progress"})
+    assert inflight is not None and inflight.sufficient
+    assert inflight.result.state != "over"
+
+
 def test_incident_mapping_stored_as_data(corpus_engine):
     # SPEC §8 / §E story 8: the offline AI incident->scenario mapping, as data.
     graph, _ = corpus_engine
