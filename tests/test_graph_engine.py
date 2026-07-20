@@ -442,6 +442,30 @@ def test_no_managed_scenario_over_capacity(corpus_engine):
     assert eng.scenarios_over_capacity() == []
 
 
+def test_mapping_prune_kept_every_load_bearing_control(corpus_engine):
+    # SPEC v3.1 acceptance 2 — the check that protects the prune: a mapping change
+    # is only safe if nothing load-bearing falls out. Every control referenced by
+    # an exception/vuln on a risk's scenarios, or restored by a remediation that
+    # clears such an issue, must still be mapped to that risk after the prune.
+    graph, _ = corpus_engine
+    for nid, count in (("NR-PROD-COMPROMISE", 15), ("NR-ENDPOINT-MALWARE", 6)):
+        mapped = {cid for cid, c in graph.controls.items() if nid in c.mapped_named_risks}
+        assert len(mapped) == count                       # pruned to the spec count
+        scn = set(graph.scenarios_of_named_risk.get(nid, []))
+        load_bearing = set()
+        for i in graph.issues:
+            if set(graph.resolved_scenarios(i)) & scn:
+                load_bearing |= set(i.controls)
+        for r in graph.remediations:
+            if r.restores_control and any(
+                r.restores_control in i.controls and set(graph.resolved_scenarios(i)) & scn
+                for i in graph.issues
+            ):
+                load_bearing.add(r.restores_control)
+        assert load_bearing <= mapped, f"{nid} lost load-bearing controls: {sorted(load_bearing - mapped)}"
+    assert graph.controls["A.8.19"].mapped_named_risks == ["NR-ENDPOINT-MALWARE"]  # moved, §1a
+
+
 def test_diverted_to_starvation_chain_exists(corpus_engine):
     # SPEC §E story 7: exceptions reallocated to a named launch OKR.
     graph, _ = corpus_engine

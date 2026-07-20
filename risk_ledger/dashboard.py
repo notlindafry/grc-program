@@ -251,10 +251,16 @@ def _predation(graph: Graph, eng: GraphEngine) -> list[dict]:
 
 
 def cankicking_scatter_svg(points: list[tuple], x_max: float, y_max: float) -> str:
-    """View 5: exposure (y) vs age in days (x) for temporary-forever exceptions.
-    points = [(age_days, exposure, label)]. Top-right = old and expensive."""
-    left, right, top, bottom = 56, 96, 16, 46
-    w, h = 640, 264
+    """One deferral space (SPEC v3.1 §4): age of deferral (x) vs dollars at stake
+    (y). Two kinds of deferral share the axes — a **renewed exception** (filled
+    circle, the exposure you're carrying and not revisiting) and a **slipped
+    remediation** (hollow square, the exposure you'd retire if the work shipped).
+    Shape encodes type, so the old unkeyed amber is gone; colour is neutral and a
+    key names the shapes. points = [(age, exposure, label, kind)], kind in
+    {"exc", "rem"}; each point maps one-to-one to a table row below."""
+    left, right, top, bottom = 56, 96, 16, 56
+    w, h = 640, 288
+    ink = "var(--accent)"  # neutral brand ink, not a RAG status — the amber is retired
 
     def px(a):
         return left + (w - left - right) * min(a / x_max, 1.0)
@@ -263,7 +269,6 @@ def cankicking_scatter_svg(points: list[tuple], x_max: float, y_max: float) -> s
         return (h - bottom) - (h - bottom - top) * min(e / y_max, 1.0)
 
     body = [_rect(0, 0, w, h, "var(--surface)")]
-    # gridlines + axes
     for f in (0.5, 1.0):
         gy = py(y_max * f)
         body.append(f'<line x1="{left}" y1="{gy:.1f}" x2="{w - right}" y2="{gy:.1f}" style="stroke:var(--border)" stroke-width="1"/>')
@@ -272,27 +277,28 @@ def cankicking_scatter_svg(points: list[tuple], x_max: float, y_max: float) -> s
     body.append(f'<line x1="{left}" y1="{h - bottom}" x2="{w - right}" y2="{h - bottom}" style="stroke:var(--border)"/>')
     for f in (0.5, 1.0):
         body.append(_t(px(x_max * f), h - bottom + 15, f"{int(x_max * f)}d", size=10, fill="var(--text-muted)", anchor="middle"))
-    body.append(_t(left, top - 4, "exposure ↑", size=10, fill="var(--text-muted)"))
-    body.append(_t((left + w - right) / 2, h - 6, "age since filed (days) →", size=10, fill="var(--text-muted)", anchor="middle"))
-    # place labels with greedy vertical de-collision so near-coincident points stay legible
-    placed: list[tuple[float, float, float]] = []  # (x0, x1, baseline_y)
-    for age, exp, label in sorted(points, key=lambda p: (py(p[1]), px(p[0]))):
-        cx, cy = px(age), py(exp)
-        body.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="6" fill-opacity="0.85" stroke-width="1.5" '
-                    f'style="fill:var(--status-below);stroke:var(--surface)"/>')
-        w_est = len(label) * 5.6 + 12
-        to_left = cx + 12 + w_est > w - 4
-        anchor = "end" if to_left else "start"
-        lx0, lx1 = (cx - 12 - w_est, cx - 12) if to_left else (cx + 12, cx + 12 + w_est)
-        ly = cy + 3
-        while any(not (lx1 < p0 or lx0 > p1) and abs(ly - by) < 13 for p0, p1, by in placed):
-            ly += 14
-        placed.append((lx0, lx1, ly))
-        lead_x = cx - 8 if to_left else cx + 8
-        if abs(ly - (cy + 3)) > 6:  # leader line when the label was nudged away
-            body.append(f'<line x1="{cx:.1f}" y1="{cy:.1f}" x2="{lead_x:.1f}" y2="{ly - 3:.1f}" style="stroke:var(--text-muted)" stroke-width="0.75" opacity="0.6"/>')
-        body.append(_t(cx + (-12 if to_left else 12), ly, label, size=10, anchor=anchor))
-    return _svg(w, h, "".join(body), "Can-kicking: exposure versus age of deferral")
+    body.append(_t(left, top - 4, "dollars at stake ↑", size=10, fill="var(--text-muted)"))
+    body.append(_t((left + w - right) / 2, h - bottom + 30, "age of deferral (days) →", size=10, fill="var(--text-muted)", anchor="middle"))
+
+    def mark(cx, cy, kind):
+        if kind == "exc":
+            return (f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="6" fill-opacity="0.9" stroke-width="1.5" '
+                    f'style="fill:{ink};stroke:var(--surface)"/>')
+        return (f'<rect x="{cx - 6:.1f}" y="{cy - 6:.1f}" width="12" height="12" rx="0" '
+                f'style="fill:var(--surface);stroke:{ink}" stroke-width="1.6"/>')
+
+    # Marks only — the unified table below carries identity (every dot is one of
+    # its rows), so point labels would just crowd the low-dollar cluster.
+    for age, exp, _label, kind in sorted(points, key=lambda p: (py(p[1]), px(p[0]))):
+        body.append(mark(px(age), py(exp), kind))
+
+    # key: the shapes named (never a mark without its word)
+    ky = h - 8
+    body.append(mark(left + 4, ky - 3, "exc"))
+    body.append(_t(left + 14, ky, "renewed exception", size=10, fill="var(--text-muted)"))
+    body.append(mark(left + 168, ky - 3, "rem"))
+    body.append(_t(left + 178, ky, "slipped remediation", size=10, fill="var(--text-muted)"))
+    return _svg(w, h, "".join(body), "Deferral: dollars at stake versus age, renewals and slips")
 
 
 # ---------------------------------------------------------------------------
@@ -679,49 +685,54 @@ def _view2(graph: Graph, eng: GraphEngine) -> str:
 
 _STATE_RANK = {"over": 0, "at": 1, "below": 2}
 _HEALTH_RANK = {"red": 0, "amber": 1, "green": 2}
+_HEALTH_COLOUR = {"red": "var(--status-over)", "amber": "var(--status-below)"}
+_EV_RANK = {"none": 0, "missing": 0, "stale": 1, "fresh": 2}  # worst evidence first
 
 
 def _view3(graph: Graph, eng: GraphEngine) -> str:
-    """View 4 (SPEC v2.8 §4): where safeguards are weakest, answered for the VP.
-    The Policy column (the auditor's traceability question, wrong reader) is
-    replaced by the **named risks each control mitigates and their RAG state** —
-    a red control sitting on an over-appetite risk is the entire point. Sorted by
-    health AND the worst mapped risk state, so a red control on a breach outranks
-    a red control on an idle risk. Policy stays in the model and validation, and
-    the traceability claim stays in the prose below."""
+    """View 4, reframed (SPEC v3.1 §3): a control inventory scoped to the breaches,
+    not a re-ranking of risks already ranked in view 1. For each over-appetite
+    risk: how many controls are mapped to it (credible counts post-prune, §1), and
+    only the weak ones named — red/amber on health, or unproven on evidence, since
+    a healthy control needs no line. A risk whose mapped controls are all healthy
+    is a scope problem, not a safeguard failure — the compliance framework is wired
+    in, its exposure is elsewhere. Unmapped controls never appear; they are a
+    compliance-completeness concern, not this reader's problem."""
     residuals = {r.named_risk.id: r for r in eng.all_named_risk_residuals()}
-
-    def worst_state(control):
-        states = [residuals[n].state for n in control.mapped_named_risks if n in residuals]
-        return min((_STATE_RANK[s] for s in states), default=3)
-
-    unhealthy = sorted(eng.unhealthy_controls(),
-                       key=lambda h: (_HEALTH_RANK[h.health], worst_state(h.control)))[:10]
-    rows = []
-    for h in unhealthy:
-        colour = "var(--status-over)" if h.health == "red" else "var(--status-below)"
-        ev = h.evidence_status
-        note = "clean on findings — but unproven" if h.clean_but_unproven else (
-            f"{sum(h.findings_by_severity.values())} finding(s), {h.open_gap_count} accepted gap(s)")
-        mapped = sorted((residuals[n] for n in h.control.mapped_named_risks if n in residuals),
-                        key=lambda r: _STATE_RANK[r.state])[:2]
-        miti = ("; ".join(f'{_esc(r.named_risk.label)} {_dot(r.state)}' for r in mapped)
-                or '<span class="mut">—</span>')
-        rows.append(
-            f'<tr><td><span class="dot" style="background:{colour}"></span> '
-            f'<b style="color:{colour}">{h.health.upper()}</b></td>'
-            f'<td class="nm">{_esc(h.control.id)} {_esc(h.control.title)}</td>'
-            f'<td>evidence: <b>{ev}</b></td><td class="drv">{_esc(note)}</td>'
-            f'<td class="drv">{miti}</td></tr>')
-    inner = (f'<p class="lede">Control health is derived from open issues <i>and</i> evidence freshness — a '
-             f'control can be green on findings but amber because its evidence is stale or missing (the '
-             f'provability signal). Each row shows the named risk the control <b>mitigates</b> and its state, so '
-             f'a red control on an over-appetite risk is legible at a glance; the two lead for exactly that reason. '
-             f'Every control still traces up to a governing policy (kept in the model, not this table).</p>'
-             f'<table class="tbl"><thead><tr><th>Health</th><th>Control (ISO 27001:2022)</th><th>Evidence</th>'
-             f'<th>Why</th><th>&rarr; Mitigates</th></tr></thead><tbody>{"".join(rows)}</tbody></table>')
-    return _card("4", "Where your safeguards are weakest",
-                 "Control health with evidence blind spots and the over-appetite risks the weak controls are supposed to hold.", inner)
+    over = sorted((r for r in residuals.values() if r.state == "over"),
+                  key=lambda r: r.band.mean, reverse=True)
+    blocks = []
+    for r in over:
+        cids = graph.controls_of_named_risk.get(r.named_risk.id, [])
+        healths = [h for h in (eng.control_health(c) for c in cids) if h]
+        weak = sorted((h for h in healths if h.health in ("red", "amber")),
+                      key=lambda h: (_HEALTH_RANK[h.health], _EV_RANK.get(h.evidence_status, 9)))
+        if weak:
+            head = (f'<h4>{_esc(r.named_risk.label)} — {len(cids)} controls mapped, '
+                    f'<b style="color:var(--status-over)">{len(weak)} can\'t currently do the job</b></h4>')
+            rows = "".join(
+                f'<tr><td class="nm">{_esc(h.control.id)} {_esc(h.control.title)}</td>'
+                f'<td><span class="dot" style="background:{_HEALTH_COLOUR[h.health]}"></span> '
+                f'<b style="color:{_HEALTH_COLOUR[h.health]}">{h.health.upper()}</b></td>'
+                f'<td class="drv">evidence {h.evidence_status}</td></tr>'
+                for h in weak)
+            block = head + f'<table class="tbl"><tbody>{rows}</tbody></table>'
+        else:
+            head = (f'<h4>{_esc(r.named_risk.label)} — {len(cids)} controls mapped, '
+                    f'<b style="color:var(--status-at)">all healthy</b></h4>')
+            names = ", ".join(_esc(graph.controls[c].title) for c in cids)
+            block = (head + f'<p class="drv">Over appetite, but every mapped control is healthy — so this is '
+                     f'<b>scope creep to contain, not a safeguard to fix</b>. The controls wired to it '
+                     f'({names}) show the ISO compliance framework is in place; the exposure is scope, not a gap.</p>')
+        blocks.append(block)
+    inner = (f'<p class="lede">For each risk over appetite, the controls meant to hold it: how many are mapped, and '
+             f'only the ones that <b>can\'t currently do the job</b> — red or amber on health, or unproven on '
+             f'evidence. A healthy control needs no line, and a risk whose controls are all healthy is a scope '
+             f'problem, not a safeguard failure. Never colour alone — each marker carries its word.</p>'
+             + "".join(blocks))
+    return _card("4", "Are the controls holding each breach?",
+                 "For each risk over appetite, the controls meant to hold it — how many, and which ones can't currently do the job.",
+                 inner)
 
 
 def _exc_tag(eid: str, state: str | None) -> str:
@@ -777,30 +788,83 @@ def _view4(graph: Graph, eng: GraphEngine) -> str:
                  inner)
 
 
+def _slip_exposure(eng: GraphEngine, graph: Graph, rem) -> tuple[float, str | None]:
+    """The residual a slipped remediation would retire if it shipped (SPEC v3.1
+    §4b), via the v3.0 ``residual_if_funded`` what-if — computed, not invented.
+    Returns (reduction, nid) for the risk it helps most, or (0, None) if it clears
+    nothing on a managed risk (forward-looking work that doesn't move the aggregate)."""
+    cleared = eng._cleared_issue_ids(rem)
+    nids = set()
+    for i in graph.issues:
+        if i.id in cleared:
+            for sid in graph.resolved_scenarios(i):
+                sc = graph.scenarios.get(sid)
+                if sc and sc.named_risk:
+                    nids.add(sc.named_risk)
+    if rem.type == "strengthen" and rem.mapped_risk:
+        nids.add(rem.mapped_risk)
+    best = (0.0, None)
+    for nid in nids:
+        live = eng.named_risk_residual(nid)
+        after = eng.residual_if_funded(nid, [rem.id])
+        if live and after:
+            red = live.band.mean - after.band.mean
+            if red > best[0]:
+                best = (red, nid)
+    return best
+
+
 def _view5(graph: Graph, eng: GraphEngine) -> str:
+    """One deferral dataset (SPEC v3.1 §4). The old view stacked two datasets with
+    no shared key — a scatter of renewed exceptions over a table of slipped
+    remediations, so no dot matched any row. Unify on the dimension both share: a
+    deferral with an age and a dollar exposure. Every dot maps to exactly one row."""
     as_of = eng.config.as_of
-    renewed = flagged_renewals(graph, eng.config)
-    pts = []
-    for e in renewed:
+    lbl = {nid: nr.label for nid, nr in graph.named_risks.items()}
+    pts, table = [], []  # scatter points and their one-to-one table rows
+    for e in flagged_renewals(graph, eng.config):
         band = eng.contribution_band(e.id)
         exp = band.mean if band else 0.0
         age = (as_of - e.filed_on).days if e.filed_on else 0
-        pts.append((age, exp, f"{e.id.replace('EXC-2026-', '#')} ×{e.renewal_count}"))
-    x_max = nice_ceiling(max((a for a, _, _ in pts), default=100))
-    y_max = nice_ceiling(max((e for _, e, _ in pts), default=1.0)) or 1.0
-    slipped = slipped_remediations(graph, eng.config)[:8]
-    srows = "".join(
-        f'<tr><td class="nm">{_esc(r.id)}</td><td>{_esc(r.status)}</td>'
-        f'<td class="num" style="color:var(--status-over)">{_esc(r.target_date)}</td><td class="drv">{_esc(r.title)}</td></tr>'
-        for r in slipped)
-    inner = (f'<p class="lede">Chronic deferral: exceptions renewed unchanged past the alert count, and '
-             f'remediations whose target date has already slipped. Top-right of the scatter is old and expensive.</p>'
+        pts.append((age, exp, e.id.replace("EXC-2026-", "#"), "exc"))
+        table.append(("Renewal", e.id, age, exp,
+                      f"renewed &times;{e.renewal_count} unchanged — exposure held"))
+    n_slip_total = 0
+    for r in slipped_remediations(graph, eng.config):
+        n_slip_total += 1
+        red, nid = _slip_exposure(eng, graph, r)
+        if red <= 1000:  # no residual to retire: forward-looking work, not "at stake"
+            continue
+        age = (as_of - r.target_date).days if r.target_date else 0
+        pts.append((age, red, r.id.replace("REM-2026-", "R#"), "rem"))
+        table.append(("Slip", r.id, age, red,
+                      f"would retire {money(red)} on {_esc(lbl.get(nid, nid))} — exposure retirable"))
+    n_slip_priced = sum(1 for t in table if t[0] == "Slip")
+    x_max = nice_ceiling(max((a for a, _, _, _ in pts), default=100))
+    y_max = nice_ceiling(max((e for _, e, _, _ in pts), default=1.0)) or 1.0
+
+    table.sort(key=lambda t: t[3], reverse=True)  # dollars at stake, desc
+    trows = "".join(
+        f'<tr><td>{"● " if typ == "Renewal" else "▫ "}{typ}</td>'
+        f'<td class="nm">{_esc(rid)}</td>'
+        f'<td class="num">{age}d</td>'
+        f'<td class="num">{money(exp)}</td>'
+        f'<td class="drv">{detail}</td></tr>'
+        for typ, rid, age, exp, detail in table)
+
+    inner = (f'<p class="lede">Two kinds of deferral on one axis — age of deferral against dollars at stake. '
+             f'<b>Renewals plot the exposure you\'re holding; slips plot the exposure you\'d retire.</b> Both are '
+             f'deferral, aged and priced; the two dollar figures are the same axis but not the same quantity, so '
+             f'the shape (● renewal, ▫ slip) keeps them distinct. Slip exposure is the <code>residual_if_funded</code> '
+             f'what-if. {n_slip_priced} of {n_slip_total} slipped remediations carry residual to retire; the rest '
+             f'defer work that does not move the current aggregate, so they are not plotted.</p>'
              + cankicking_scatter_svg(pts, x_max, y_max)
-             + f'<h4>Slipped remediation target dates ({len(slipped_remediations(graph, eng.config))})</h4>'
-             f'<table class="tbl"><thead><tr><th>Remediation</th><th>Status</th><th class="num">Target (past)</th>'
-             f'<th>Work</th></tr></thead><tbody>{srows}</tbody></table>')
+             + f'<table class="tbl"><thead><tr><th>Type</th><th>Item</th><th class="num">Age</th>'
+             f'<th class="num">Dollars at stake</th><th>What it is</th></tr></thead>'
+             f'<tbody>{trows}</tbody></table>')
     return _card("6", "The can you keep kicking",
-                 "Chronic deferrals from renewal counts and slipped remediation target dates.", inner)
+                 "One deferral space: renewed exceptions (exposure carried) and slipped remediations (exposure retirable), aged and priced.",
+                 inner)
 
 
 _TRAJ_ARROW = {"rising": "▲", "receding": "▼", "stable": "▬"}

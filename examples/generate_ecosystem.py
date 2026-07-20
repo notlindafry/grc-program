@@ -290,35 +290,40 @@ CONTROL_POLICY = {
     "A.8.34": "POL-COMPLIANCE",
 }
 
-# Named-risk mappings per control (SPEC §2.6, M2M). A meaningful subset -- a
-# control mapping to no named risk is left deliberately for a few (e.g. IP
-# rights, supporting utilities) so the "why do we do this?" flag is demonstrated.
+# Named-risk mappings per control (SPEC §2.6, M2M), pruned to causally-defensible
+# links only (SPEC v3.1 §1): a control is listed against a risk only where it
+# prevents, detects, or limits that specific loss event. Controls with no listed
+# risk are genuinely unmapped (~38 of 93) — the expected state of an illustration,
+# not a flag; the unmapped-control check is retired (§2).
 CONTROL_NAMED_RISKS = {
-    "A.5.7": ["NR-PROD-COMPROMISE"],
+    "A.5.8": ["NR-PROD-COMPROMISE"],  # v3.1 §1a Prod keep-15
     "A.5.14": ["NR-DATA-EXFIL"],
     "A.5.15": ["NR-PROD-COMPROMISE"], "A.5.16": ["NR-PROD-COMPROMISE"],
     "A.5.17": ["NR-PROD-COMPROMISE"], "A.5.18": ["NR-PROD-COMPROMISE", "NR-VENDOR-ACCESS"],
     "A.5.19": ["NR-VENDOR-ACCESS"], "A.5.20": ["NR-VENDOR-ACCESS"],
     "A.5.21": ["NR-MODEL-SUPPLY", "NR-VENDOR-ACCESS"], "A.5.22": ["NR-VENDOR-ACCESS"],
     "A.5.23": ["NR-PLATFORM-OUTAGE", "NR-VENDOR-ACCESS"],
-    "A.5.24": ["NR-PLATFORM-OUTAGE"], "A.5.26": ["NR-PROD-COMPROMISE"],
+    "A.5.24": ["NR-PLATFORM-OUTAGE"], "A.5.25": ["NR-PROD-COMPROMISE"], "A.5.26": ["NR-PROD-COMPROMISE"],
     "A.5.29": ["NR-PLATFORM-OUTAGE", "NR-DATA-AVAILABILITY"],
     "A.5.30": ["NR-PLATFORM-OUTAGE"],
     "A.5.31": ["NR-REG-FILINGS", "NR-PCI-SCOPE"], "A.5.33": ["NR-REG-FILINGS"],
     "A.5.34": ["NR-DATA-RESIDENCY", "NR-SUBPROCESSOR-GOV"],
     "A.5.36": ["NR-PCI-SCOPE", "NR-REG-FILINGS"],
-    "A.6.3": ["NR-ENDPOINT-MALWARE"], "A.6.7": ["NR-ENDPOINT-MALWARE"],
+    "A.6.3": ["NR-ENDPOINT-MALWARE"],  # v3.1 §1b: the one People control retained (phishing-delivered malware)
     "A.8.1": ["NR-ENDPOINT-MALWARE"], "A.8.2": ["NR-PROD-COMPROMISE"],
-    "A.8.3": ["NR-DATA-EXFIL", "NR-PROD-COMPROMISE"], "A.8.4": ["NR-MIGRATION-DATAINTEGRITY"],
+    "A.8.3": ["NR-DATA-EXFIL"], "A.8.4": ["NR-MIGRATION-DATAINTEGRITY"],
     "A.8.5": ["NR-PROD-COMPROMISE"], "A.8.6": ["NR-PLATFORM-OUTAGE", "NR-DATA-AVAILABILITY"],
     "A.8.7": ["NR-ENDPOINT-MALWARE"], "A.8.8": ["NR-PROD-COMPROMISE", "NR-ENDPOINT-MALWARE"],
     "A.8.9": ["NR-MIGRATION-AVAILABILITY"], "A.8.11": ["NR-DATA-RESIDENCY", "NR-DATA-EXFIL"],
     "A.8.12": ["NR-DATA-EXFIL"], "A.8.13": ["NR-DATA-AVAILABILITY", "NR-MIGRATION-DATAINTEGRITY"],
     "A.8.14": ["NR-PLATFORM-OUTAGE"], "A.8.15": ["NR-ABUSE-DETECTION", "NR-PROD-COMPROMISE"],
-    "A.8.16": ["NR-ABUSE-DETECTION", "NR-CARD-TESTING"], "A.8.20": ["NR-PROD-COMPROMISE"],
+    "A.8.16": ["NR-ABUSE-DETECTION", "NR-CARD-TESTING"], "A.8.18": ["NR-PROD-COMPROMISE"],
+    "A.8.19": ["NR-ENDPOINT-MALWARE"],  # v3.1 §1a: software-installation control, moved Prod -> malware
+    "A.8.20": ["NR-PROD-COMPROMISE"],
     "A.8.21": ["NR-PLATFORM-OUTAGE"], "A.8.22": ["NR-PROD-COMPROMISE"],
     "A.8.23": ["NR-ENDPOINT-MALWARE"], "A.8.24": ["NR-DATA-EXFIL", "NR-DATA-RESIDENCY"],
     "A.8.25": ["NR-MIGRATION-DATAINTEGRITY"], "A.8.26": ["NR-CARD-TESTING"],
+    "A.8.27": ["NR-PROD-COMPROMISE"],  # v3.1 §1a Prod keep-15
     "A.8.28": ["NR-MIGRATION-DATAINTEGRITY"], "A.8.29": ["NR-MIGRATION-AVAILABILITY"],
     "A.8.30": ["NR-MODEL-SUPPLY"], "A.8.31": ["NR-MIGRATION-AVAILABILITY"],
     "A.8.32": ["NR-MIGRATION-AVAILABILITY", "NR-MIGRATION-DATAINTEGRITY"],
@@ -327,39 +332,25 @@ CONTROL_NAMED_RISKS = {
     "A.5.12": ["NR-DATA-QUALITY"], "A.8.10": ["NR-DATA-RESIDENCY"],
 }
 
-# A small, deliberate set of controls left mapping to NO named risk, so the
-# "why do we do this?" flag (SPEC §2.6) is demonstrated as a rare, meaningful
-# signal rather than blanket noise. These are genuinely weak fits for a pure-
-# software fintech's tech-risk taxonomy.
-ORPHAN_CONTROLS = {"A.5.6", "A.5.32", "A.7.11"}  # special-interest groups, IP rights, supporting utilities
-
-# Theme fallback for controls without a specific mapping: the named risk that
-# theme's controls broadly support. Keeps the SoA coverage read honest without
-# fabricating pinpoint mappings for every Annex A line.
-THEME_DEFAULT_RISK = {
-    "Organizational": "NR-PROD-COMPROMISE",
-    "People": "NR-ENDPOINT-MALWARE",
-    "Physical": "NR-ENDPOINT-MALWARE",
-    "Technological": "NR-PROD-COMPROMISE",
-}
-
-
 def named_risks_for(ref: str, theme: str) -> list[str]:
-    """Named risks a control mitigates: explicit map, then orphan, then theme default."""
-    if ref in CONTROL_NAMED_RISKS:
-        return CONTROL_NAMED_RISKS[ref]
-    if ref in ORPHAN_CONTROLS:
-        return []
-    return [THEME_DEFAULT_RISK[theme]]
+    """Named risks a control mitigates: the explicit, causally-defensible map only
+    (SPEC v3.1 §1). There is **no theme fallback** — whole-theme attachment (every
+    A.5/A.8 to Prod-compromise, every A.6/A.7 to Endpoint-malware) was tags, not
+    relatedness, and inflated two risks' maps to 32 and 25. A control with no
+    listed risk is genuinely unmapped, which is the expected state of an
+    illustration, not a finding (the unmapped-control flag is retired, §2).
+    ``theme`` is unused, kept for the render signature."""
+    return CONTROL_NAMED_RISKS.get(ref, [])
 
 CONTROL_YAML_HEAD = """\
 # The ISO/IEC 27001:2022 Annex A control backbone -- all 93 controls across the
 # four themes (Organizational A.5, People A.6, Physical A.7, Technological A.8;
 # 37/8/14/34). Keyed by Annex A reference so the full set is unambiguously
 # seeded (SPEC §2.6). Each control names its governing policy (the "traces up to
-# a policy" coverage read) and the named risks it mitigates (M2M). A control
-# mapping to no named risk is a "why do we do this?" signal, surfaced by
-# validation. Control HEALTH is derived at build time (SPEC §4), never stored.
+# a policy" coverage read) and the named risks it mitigates (M2M), mapped only
+# where there is a causal path (SPEC v3.1 §1). A control mapping to no named risk
+# is simply unexercised in this illustration, not a flag. Control HEALTH is
+# derived at build time (SPEC §4), never stored.
 # All data synthetic.
 
 """

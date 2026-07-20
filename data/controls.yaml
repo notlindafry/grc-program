@@ -14,31 +14,31 @@
   title: Policies for information security
   theme: Organizational
   policy: POL-INFOSEC
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 "A.5.2":
   title: Information security roles and responsibilities
   theme: Organizational
   policy: POL-INFOSEC
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 "A.5.3":
   title: Segregation of duties
   theme: Organizational
   policy: POL-ACCESS-CONTROL
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 "A.5.4":
   title: Management responsibilities
   theme: Organizational
   policy: POL-INFOSEC
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 "A.5.5":
   title: Contact with authorities
   theme: Organizational
   policy: POL-COMPLIANCE
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 "A.5.6":
   title: Contact with special interest groups
@@ -50,7 +50,7 @@
   title: Threat intelligence
   theme: Organizational
   policy: POL-LOGGING-MONITORING
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 "A.5.8":
   title: Information security in project management
@@ -62,19 +62,19 @@
   title: Inventory of information and other associated assets
   theme: Organizational
   policy: POL-ASSET-MGMT
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 "A.5.10":
   title: Acceptable use of information and other associated assets
   theme: Organizational
   policy: POL-ASSET-MGMT
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 "A.5.11":
   title: Return of assets
   theme: Organizational
   policy: POL-ASSET-MGMT
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 "A.5.12":
   title: Classification of information
@@ -86,7 +86,7 @@
   title: Labelling of information
   theme: Organizational
   policy: POL-DATA-CLASSIFICATION
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 "A.5.14":
   title: Information transfer
@@ -170,13 +170,13 @@
   title: Learning from information security incidents
   theme: Organizational
   policy: POL-INCIDENT
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 "A.5.28":
   title: Collection of evidence
   theme: Organizational
   policy: POL-INCIDENT
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 "A.5.29":
   title: Information security during disruption
@@ -218,7 +218,7 @@
   title: Independent review of information security
   theme: Organizational
   policy: POL-INFOSEC
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 "A.5.36":
   title: Compliance with policies, rules and standards for information security
@@ -230,7 +230,7 @@
   title: Documented operating procedures
   theme: Organizational
   policy: POL-INFOSEC
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 
 # --- People (A.6.1-A.6.8, 8) ---
@@ -239,13 +239,13 @@
   title: Screening
   theme: People
   policy: POL-HR-SECURITY
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.6.2":
   title: Terms and conditions of employment
   theme: People
   policy: POL-HR-SECURITY
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.6.3":
   title: Information security awareness, education and training
@@ -257,31 +257,31 @@
   title: Disciplinary process
   theme: People
   policy: POL-HR-SECURITY
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.6.5":
   title: Responsibilities after termination or change of employment
   theme: People
   policy: POL-HR-SECURITY
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.6.6":
   title: Confidentiality or non-disclosure agreements
   theme: People
   policy: POL-HR-SECURITY
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.6.7":
   title: Remote working
   theme: People
   policy: POL-HR-SECURITY
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.6.8":
   title: Information security event reporting
   theme: People
   policy: POL-INCIDENT
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 
 # --- Physical (A.7.1-A.7.14, 14) ---
@@ -290,61 +290,61 @@
   title: Physical security perimeters
   theme: Physical
   policy: POL-PHYSICAL
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.7.2":
   title: Physical entry
   theme: Physical
   policy: POL-PHYSICAL
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.7.3":
   title: Securing offices, rooms and facilities
   theme: Physical
   policy: POL-PHYSICAL
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.7.4":
   title: Physical security monitoring
   theme: Physical
   policy: POL-PHYSICAL
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.7.5":
   title: Protecting against physical and environmental threats
   theme: Physical
   policy: POL-PHYSICAL
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.7.6":
   title: Working in secure areas
   theme: Physical
   policy: POL-PHYSICAL
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.7.7":
   title: Clear desk and clear screen
   theme: Physical
   policy: POL-PHYSICAL
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.7.8":
   title: Equipment siting and protection
   theme: Physical
   policy: POL-PHYSICAL
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.7.9":
   title: Security of assets off-premises
   theme: Physical
   policy: POL-PHYSICAL
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.7.10":
   title: Storage media
   theme: Physical
   policy: POL-ASSET-MGMT
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.7.11":
   title: Supporting utilities
@@ -356,19 +356,19 @@
   title: Cabling security
   theme: Physical
   policy: POL-PHYSICAL
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.7.13":
   title: Equipment maintenance
   theme: Physical
   policy: POL-PHYSICAL
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 "A.7.14":
   title: Secure disposal or re-use of equipment
   theme: Physical
   policy: POL-ASSET-MGMT
-  mapped_named_risks: [NR-ENDPOINT-MALWARE]
+  mapped_named_risks: []
 
 
 # --- Technological (A.8.1-A.8.34, 34) ---
@@ -389,7 +389,7 @@
   title: Information access restriction
   theme: Technological
   policy: POL-ACCESS-CONTROL
-  mapped_named_risks: [NR-DATA-EXFIL, NR-PROD-COMPROMISE]
+  mapped_named_risks: [NR-DATA-EXFIL]
 
 "A.8.4":
   title: Access to source code
@@ -473,7 +473,7 @@
   title: Clock synchronization
   theme: Technological
   policy: POL-LOGGING-MONITORING
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: []
 
 "A.8.18":
   title: Use of privileged utility programs
@@ -485,7 +485,7 @@
   title: Installation of software on operational systems
   theme: Technological
   policy: POL-CHANGE-MGMT
-  mapped_named_risks: [NR-PROD-COMPROMISE]
+  mapped_named_risks: [NR-ENDPOINT-MALWARE]
 
 "A.8.20":
   title: Networks security
