@@ -265,17 +265,49 @@ def test_view4_is_a_control_inventory_scoped_to_breaches(page: str) -> None:
     assert "A.8.5 Secure authentication" in page and "RED" in page and "evidence stale" in page
 
 
-def test_view6_cankicking_is_one_dataset_with_type_and_key(page: str) -> None:
-    # SPEC v3.1 §4/§5/§6/§7: one deferral space — renewed exceptions and slipped
-    # remediations on shared axes, a Type column, a shape key, the exposure
-    # semantic caveat, slip exposure from the what-if, and no reused amber.
-    view6 = re.search(r'class="vnum">6</span>.*?</section>', page, re.S).group(0)
-    assert ">Type</th>" in view6                       # unified table, one type column
+def _card_html(page: str, n: str) -> str:
+    """The HTML of one numbered view card, from its .vnum badge to the next card
+    (or the AI example) — the cards are sibling <div>s, not <section>s, so anchor
+    on the badge that opens the following card instead of a closing tag."""
+    m = re.search(rf'class="vnum">{n}</span>.*?(?=class="vnum">|class="card ai")', page, re.S)
+    assert m, f"card {n} not found"
+    return m.group(0)
+
+
+def test_view6_cankicking_is_a_ranked_table_no_scatter(page: str) -> None:
+    # SPEC v3.2 §1: the scatter is gone (age and exposure are uncorrelated here, so
+    # a 2-D plot showed two independent facts a sorted table shows better). One
+    # ranked table, top 5 by annualized exposure, an owner column, the Type tag and
+    # the exposure-semantic caveat kept, and no raw-ID primary label.
+    view6 = _card_html(page, "6")
+    assert "<svg" not in view6                          # the scatter SVG is deleted
+    assert ">Annualized exposure</th>" in view6         # renamed from "dollars at stake"
+    assert "Dollars at stake" not in view6
+    assert ">Owner</th>" in view6                       # the accountable-owner column (§1c)
+    assert ">Type</th>" in view6                        # the two-quantities caveat still keyed
     assert "Renewal" in view6 and "Slip" in view6
-    assert "renewed exception" in view6 and "slipped remediation" in view6  # the shape key
-    assert "you'd retire" in view6                      # the mandatory semantic caveat (§4c)
-    assert "residual_if_funded" in view6                # slip exposure is the v3.0 what-if (§7)
-    assert "fill:var(--status-below)" not in view6      # the unkeyed amber marks are gone (§4d)
+    assert "you'd retire" in view6                       # the mandatory semantic caveat
+    assert "residual_if_funded" in view6                 # slip exposure is the v3.0 what-if
+    assert re.search(r"\d+ more deferrals?, all under \$", view6)  # the bounded tail line
+    # the item label is a human handle, not a raw record id in the primary slot
+    assert re.search(r'class="nm">[^<]*[A-Za-z][^<]*<span class="sub">', view6)
+
+
+def test_view6_concentration_callout_is_computed_from_the_top5(page: str) -> None:
+    # SPEC v3.2 §1c / acceptance 4 (the honesty gate): the owner-concentration
+    # callout renders only if one owner holds 3+ of the computed top 5. On this
+    # corpus platform-lead holds 4 of 5, so it fires — and it names the real count
+    # and owner, framed structurally, not as blame.
+    view6 = _card_html(page, "6")
+    top5_owners = re.findall(r'<td class="num">\$[\dkM.]+</td><td>([a-z-]+)</td>', view6)
+    assert len(top5_owners) == 5
+    from collections import Counter
+    owner, n = Counter(top5_owners).most_common(1)[0]
+    fired = 'class="callout">' in view6
+    assert fired == (n >= 3)                              # conditional on the real composition
+    if fired:
+        assert f"{n} of these 5 sit with {owner}" in view6
+        assert "not because one person is behind" in view6  # structural framing
 
 
 def test_view5_is_predation_not_a_summed_footprint(page: str) -> None:
@@ -405,6 +437,36 @@ def test_top5_is_deduped_by_risk_and_type_c_names_the_lever(page: str) -> None:
     rem = next(x for x in g.remediations if x.id == "REM-2026-0102")
     assert f"Keep {rem.title} on track (in progress)" in text
     assert "REM-2026-0102" not in text
+
+
+def test_owner_surfaces_only_where_it_changes_the_read(page: str) -> None:
+    # SPEC v3.2 §2/§3/§4: owner is a handle stripped to the lead (not the email),
+    # surfaced on the rows a VP acts on — the top-5 over-appetite recs, the predation
+    # casualties, the inventory breaches — and deliberately not on view 1's full scan
+    # or the domain view, where it would compete or fail to aggregate.
+    assert "@" not in re.search(r'class="rec-own">[^<]*</span>', page).group(0)  # stripped handle
+    # §2/§4: the three over-appetite risks name their owner in the top-5 banner.
+    top5 = re.search(r'<section class="top5".*?</section>', page, re.S).group(0)
+    for owner in ("platform-lead", "payments-lead", "security-eng-lead"):
+        assert f"owner: {owner}" in top5
+    # §3: the predation "eaten alive" panel names the victim owners and states the
+    # concentration-vs-distribution contrast against the deferral view.
+    view5 = _card_html(page, "5")
+    assert ">Owner</th>" in view5
+    for owner in ("platform-lead", "payments-lead", "data-platform-lead", "tns-lead"):
+        assert owner in view5
+    assert "distributes" in view5 and "concentrates" in view5
+    # §4: the inventory (card 4) carries owner on each over-appetite risk.
+    assert _card_html(page, "4").count('class="rec-own"') == 3
+
+
+def test_owner_is_absent_from_view1_and_the_domain_view(page: str) -> None:
+    # SPEC v3.2 §4: owner earns a place on the rows a VP acts on, not the rows they
+    # scan. View 1 (the full ranked list) and the domain view do not gain an owner
+    # column — owners compete with the exposure numbers there and do not aggregate
+    # to a domain (Security spans four leads).
+    assert 'class="rec-own"' not in _card_html(page, "1")
+    assert 'class="rec-own"' not in _card_html(page, "2")
 
 
 def test_no_probability_renders_as_a_certainty(page: str) -> None:

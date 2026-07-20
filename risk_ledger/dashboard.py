@@ -27,7 +27,6 @@ from .graph import Graph
 from .graph_engine import GraphEngine
 from .graph_views import flagged_renewals, slipped_remediations
 from .loader import load_graph
-from .render_svg import nice_ceiling
 from .validation import validate_graph
 
 # Every colour is a design-system token, defined once in the ``:root`` block
@@ -250,57 +249,6 @@ def _predation(graph: Graph, eng: GraphEngine) -> list[dict]:
     return holes
 
 
-def cankicking_scatter_svg(points: list[tuple], x_max: float, y_max: float) -> str:
-    """One deferral space (SPEC v3.1 §4): age of deferral (x) vs dollars at stake
-    (y). Two kinds of deferral share the axes — a **renewed exception** (filled
-    circle, the exposure you're carrying and not revisiting) and a **slipped
-    remediation** (hollow square, the exposure you'd retire if the work shipped).
-    Shape encodes type, so the old unkeyed amber is gone; colour is neutral and a
-    key names the shapes. points = [(age, exposure, label, kind)], kind in
-    {"exc", "rem"}; each point maps one-to-one to a table row below."""
-    left, right, top, bottom = 56, 96, 16, 56
-    w, h = 640, 288
-    ink = "var(--accent)"  # neutral brand ink, not a RAG status — the amber is retired
-
-    def px(a):
-        return left + (w - left - right) * min(a / x_max, 1.0)
-
-    def py(e):
-        return (h - bottom) - (h - bottom - top) * min(e / y_max, 1.0)
-
-    body = [_rect(0, 0, w, h, "var(--surface)")]
-    for f in (0.5, 1.0):
-        gy = py(y_max * f)
-        body.append(f'<line x1="{left}" y1="{gy:.1f}" x2="{w - right}" y2="{gy:.1f}" style="stroke:var(--border)" stroke-width="1"/>')
-        body.append(_t(left - 6, gy + 3, money(y_max * f), size=10, fill="var(--text-muted)", anchor="end"))
-    body.append(f'<line x1="{left}" y1="{top}" x2="{left}" y2="{h - bottom}" style="stroke:var(--border)"/>')
-    body.append(f'<line x1="{left}" y1="{h - bottom}" x2="{w - right}" y2="{h - bottom}" style="stroke:var(--border)"/>')
-    for f in (0.5, 1.0):
-        body.append(_t(px(x_max * f), h - bottom + 15, f"{int(x_max * f)}d", size=10, fill="var(--text-muted)", anchor="middle"))
-    body.append(_t(left, top - 4, "dollars at stake ↑", size=10, fill="var(--text-muted)"))
-    body.append(_t((left + w - right) / 2, h - bottom + 30, "age of deferral (days) →", size=10, fill="var(--text-muted)", anchor="middle"))
-
-    def mark(cx, cy, kind):
-        if kind == "exc":
-            return (f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="6" fill-opacity="0.9" stroke-width="1.5" '
-                    f'style="fill:{ink};stroke:var(--surface)"/>')
-        return (f'<rect x="{cx - 6:.1f}" y="{cy - 6:.1f}" width="12" height="12" rx="0" '
-                f'style="fill:var(--surface);stroke:{ink}" stroke-width="1.6"/>')
-
-    # Marks only — the unified table below carries identity (every dot is one of
-    # its rows), so point labels would just crowd the low-dollar cluster.
-    for age, exp, _label, kind in sorted(points, key=lambda p: (py(p[1]), px(p[0]))):
-        body.append(mark(px(age), py(exp), kind))
-
-    # key: the shapes named (never a mark without its word)
-    ky = h - 8
-    body.append(mark(left + 4, ky - 3, "exc"))
-    body.append(_t(left + 14, ky, "renewed exception", size=10, fill="var(--text-muted)"))
-    body.append(mark(left + 168, ky - 3, "rem"))
-    body.append(_t(left + 178, ky, "slipped remediation", size=10, fill="var(--text-muted)"))
-    return _svg(w, h, "".join(body), "Deferral: dollars at stake versus age, renewals and slips")
-
-
 # ---------------------------------------------------------------------------
 # Data helpers
 # ---------------------------------------------------------------------------
@@ -312,6 +260,13 @@ def _okr_name(graph: Graph, okr_id: str) -> str:
     never applies a cosmetic ``.title()`` filter."""
     okr = graph.okrs.get(okr_id)
     return okr.title if okr and okr.title else okr_id
+
+
+def _owner(owner: str) -> str:
+    """The accountable owner as a handle, not an email (SPEC v3.2): ``platform-lead``,
+    not ``platform-lead@company.example``. Owner is surfaced only where naming who is
+    accountable changes what the reader does — never everywhere the field exists."""
+    return owner.split("@")[0] if owner else ""
 
 
 def _addressed_by_funded(graph: Graph, scenario_ids: list[str]) -> bool:
@@ -390,6 +345,10 @@ def _top5_recs(graph: Graph, eng: GraphEngine) -> list[str]:
 
     for r in over:
         nid = r.named_risk.id
+        # Over-appetite risks carry their accountable owner (SPEC v3.2 §2/§4) — the
+        # who-to-summon handle on the rows a VP acts on. Predation and domain recs
+        # below name a project/domain, not a single owner, so they do not.
+        own = f' <span class="rec-own">owner: {_esc(_owner(r.named_risk.owner))}</span>' if r.named_risk.owner else ""
         plan = eng.plan_to_appetite(nid, _UNFUNDED)
         if plan and plan.sufficient:  # Type A / B — fund a sufficient unfunded plan
             n_unfunded_over += 1
@@ -405,7 +364,7 @@ def _top5_recs(graph: Graph, eng: GraphEngine) -> list[str]:
             # read like freed cash.
             recs.append((1, -r.band.mean, nid,
                          f'<b>{verb} {_esc(names)}</b> — clears {_esc(cleared)} and brings '
-                         f'<b>{_esc(r.named_risk.label)}</b> {_funding_effect(r, plan.result, r.threshold)}.'))
+                         f'<b>{_esc(r.named_risk.label)}</b> {_funding_effect(r, plan.result, r.threshold)}.{own}'))
         else:
             inflight = eng.plan_to_appetite(nid, _IN_PROGRESS)
             if inflight and inflight.sufficient:  # steady-state — the sufficient fix is actively underway
@@ -414,12 +373,12 @@ def _top5_recs(graph: Graph, eng: GraphEngine) -> list[str]:
                 recs.append((5, -r.band.mean, nid,
                              f'<b>Keep {_esc(names)} on track</b> (in progress) — it brings '
                              f'<b>{_esc(r.named_risk.label)}</b> {_funding_effect(r, inflight.result, r.threshold)}; '
-                             f"don't let the in-flight fix slip."))
+                             f"don't let the in-flight fix slip.{own}"))
             else:  # Type D — no funded path reaches appetite
                 recs.append((1, -r.band.mean, nid,
                              f'<b>Accept or escalate {_esc(r.named_risk.label)}</b> — no funded path brings it '
                              f'within its {money(r.threshold)} appetite this cycle; decide at a board-signed '
-                             f'threshold or escalate for budget.'))
+                             f'threshold or escalate for budget.{own}'))
 
     # Priority 2 — predation with over-appetite casualties (Type C, a lever not a plan)
     for h in _predation(graph, eng):
@@ -673,7 +632,7 @@ def _view2(graph: Graph, eng: GraphEngine) -> str:
         rows = "".join(
             f'<tr><td>{_dot(r.state)}</td><td class="nm" title="{_esc(r.named_risk.title)}">{_esc(r.named_risk.label)}</td>'
             f'<td class="num">{band_str(r.band.low, r.band.high)}</td>'
-            f'<td>{_esc(r.named_risk.owner)}</td>'
+            f'<td>{_esc(_owner(r.named_risk.owner))}</td>'
             f'<td class="drv">{_pct(r.p_over_threshold)} chance over its {money(r.threshold)} appetite</td></tr>'
             for r in orphans)
         inner = (f'<p class="lede">Real exposure over appetite with <b>no funded remediation</b> behind it — '
@@ -707,8 +666,11 @@ def _view3(graph: Graph, eng: GraphEngine) -> str:
         healths = [h for h in (eng.control_health(c) for c in cids) if h]
         weak = sorted((h for h in healths if h.health in ("red", "amber")),
                       key=lambda h: (_HEALTH_RANK[h.health], _EV_RANK.get(h.evidence_status, 9)))
+        # Over-appetite risks carry their accountable owner (SPEC v3.2 §4) — the
+        # who-to-summon handle, on the inventory and the top-5 but not view 1's scan.
+        own = f' <span class="rec-own">owner: {_esc(_owner(r.named_risk.owner))}</span>' if r.named_risk.owner else ""
         if weak:
-            head = (f'<h4>{_esc(r.named_risk.label)} — {len(cids)} controls mapped, '
+            head = (f'<h4>{_esc(r.named_risk.label)}{own} — {len(cids)} controls mapped, '
                     f'<b style="color:var(--status-over)">{len(weak)} can\'t currently do the job</b></h4>')
             rows = "".join(
                 f'<tr><td class="nm">{_esc(h.control.id)} {_esc(h.control.title)}</td>'
@@ -718,7 +680,7 @@ def _view3(graph: Graph, eng: GraphEngine) -> str:
                 for h in weak)
             block = head + f'<table class="tbl"><tbody>{rows}</tbody></table>'
         else:
-            head = (f'<h4>{_esc(r.named_risk.label)} — {len(cids)} controls mapped, '
+            head = (f'<h4>{_esc(r.named_risk.label)}{own} — {len(cids)} controls mapped, '
                     f'<b style="color:var(--status-at)">all healthy</b></h4>')
             names = ", ".join(_esc(graph.controls[c].title) for c in cids)
             block = (head + f'<p class="drv">Over appetite, but every mapped control is healthy — so this is '
@@ -768,20 +730,45 @@ def _view4(graph: Graph, eng: GraphEngine) -> str:
 
     # Panel B — eaten alive (the casualties): the forced exceptions on the victims'
     # own books, where they actually sit. No summed bar; over-appetite casualties red.
+    # The victim's owner is the accountable lead the exception lands on (SPEC v3.2 §3)
+    # — read off the forced exceptions themselves, since an OKR carries no owner.
+    issue_by_id = {i.id: i for i in graph.issues}
+
+    def victim_owner(v) -> str:
+        owns = sorted({_owner(issue_by_id[eid].owner) for eid, _ in v["forced"]
+                       if eid in issue_by_id and issue_by_id[eid].owner})
+        return ", ".join(owns)
+
     b_rows = "".join(
         f'<tr><td class="nm">'
         + (f'<span style="color:var(--status-over)">{_esc(v["okr"])}</span>' if v["has_over"] else _esc(v["okr"]))
-        + f'</td><td class="drv"><span class="nb">{_esc(h["sink"])}</span></td>'
+        + f'</td><td>{_esc(victim_owner(v)) or "&mdash;"}</td>'
+        f'<td class="drv"><span class="nb">{_esc(h["sink"])}</span></td>'
         f'<td class="drv">' + ", ".join(_exc_tag(eid, s) for eid, s in v["forced"]) + '</td></tr>'
         for h in holes for v in h["victims"])
     panel_b = (f'<h4>Eaten alive — where the forced exceptions actually sit</h4>'
-               f'<table class="tbl"><thead><tr><th>Project</th><th>Starved by</th>'
+               f'<table class="tbl"><thead><tr><th>Project</th><th>Owner</th><th>Starved by</th>'
                f'<th>Exceptions forced on it</th></tr></thead><tbody>{b_rows}</tbody></table>')
+
+    # The concentration-vs-distribution contrast (SPEC v3.2 §3): the can-kicking view
+    # concentrates on one overloaded function (a resourcing problem); this one
+    # distributes one project's cost across separate owners who had no say (a
+    # governance problem). Compute the distinct victim owners so the count is real.
+    top_hole = holes[0]
+    distinct = sorted({o for v in top_hole["victims"] for o in (victim_owner(v).split(", ") if victim_owner(v) else [])})
+    n_owners = len(distinct)
+    contrast = ""
+    if n_owners >= 2:
+        contrast = (f'<p class="callout"><b>{_esc(top_hole["sink"])}’s deadline is generating risk on '
+                    f'{n_owners} other leads’ books.</b> This is the mirror image of the deferral view: '
+                    f'can-kicking <b>concentrates</b> on one overloaded function (resource it), predation '
+                    f'<b>distributes</b> one project’s cost onto separate owners who had no say (govern it). '
+                    f'Two findings, not one fact twice.</p>')
 
     inner = (f'<p class="lede">One project is buying its deadline with other teams\' risk. '
              f'The exceptions land on the teams that were deprioritized — some of them over '
              f'appetite. Each team\'s own risk stays in view 1, on its own owner; this view draws '
-             f'only the predation.</p>{panel_a}{panel_b}')
+             f'only the predation.</p>{contrast}{panel_a}{panel_b}')
     return _card("5", "Which project is eating the others",
                  "The diverted_to graph as predation, not a summed footprint: one project's "
                  "resource-grab, and the forced exceptions it pushed onto the teams it starved.",
@@ -815,20 +802,24 @@ def _slip_exposure(eng: GraphEngine, graph: Graph, rem) -> tuple[float, str | No
 
 
 def _view5(graph: Graph, eng: GraphEngine) -> str:
-    """One deferral dataset (SPEC v3.1 §4). The old view stacked two datasets with
-    no shared key — a scatter of renewed exceptions over a table of slipped
-    remediations, so no dot matched any row. Unify on the dimension both share: a
-    deferral with an age and a dollar exposure. Every dot maps to exactly one row."""
+    """One deferral list, ranked (SPEC v3.2 §1). The scatter is gone: age and
+    exposure are uncorrelated here (the expensive slips are new, the old renewals
+    are cheap), so a 2-D plot showed two independent facts a sorted table shows
+    better, over 27 near-identical unlabelled shapes. Rank by annualized exposure,
+    show the top 5, name the owner. Two kinds of deferral share the column — a
+    **renewal** carries exposure *held*, a **slip** carries exposure that *would be
+    retired* — so the Type tag and the caption keep the two quantities distinct even
+    though they sit on one ranked axis."""
     as_of = eng.config.as_of
     lbl = {nid: nr.label for nid, nr in graph.named_risks.items()}
-    pts, table = [], []  # scatter points and their one-to-one table rows
+    rows = []  # (typ, id, age, exposure, owner, handle, sub, detail)
     for e in flagged_renewals(graph, eng.config):
         band = eng.contribution_band(e.id)
         exp = band.mean if band else 0.0
         age = (as_of - e.filed_on).days if e.filed_on else 0
-        pts.append((age, exp, e.id.replace("EXC-2026-", "#"), "exc"))
-        table.append(("Renewal", e.id, age, exp,
-                      f"renewed &times;{e.renewal_count} unchanged — exposure held"))
+        sub = f"renewed &times;{e.renewal_count} unrevisited"
+        rows.append(("Renewal", e.id, age, exp, _owner(e.owner),
+                     e.title or e.id, sub, "exposure held — carried, not revisited"))
     n_slip_total = 0
     for r in slipped_remediations(graph, eng.config):
         n_slip_total += 1
@@ -836,34 +827,65 @@ def _view5(graph: Graph, eng: GraphEngine) -> str:
         if red <= 1000:  # no residual to retire: forward-looking work, not "at stake"
             continue
         age = (as_of - r.target_date).days if r.target_date else 0
-        pts.append((age, red, r.id.replace("REM-2026-", "R#"), "rem"))
-        table.append(("Slip", r.id, age, red,
-                      f"would retire {money(red)} on {_esc(lbl.get(nid, nid))} — exposure retirable"))
-    n_slip_priced = sum(1 for t in table if t[0] == "Slip")
-    x_max = nice_ceiling(max((a for a, _, _, _ in pts), default=100))
-    y_max = nice_ceiling(max((e for _, e, _, _ in pts), default=1.0)) or 1.0
+        sub = f"stalled fix on {_esc(lbl.get(nid, nid))}"
+        rows.append(("Slip", r.id, age, red, _owner(r.owner),
+                     r.title or r.id, sub, "exposure that would retire if the fix shipped"))
+    n_slip_priced = sum(1 for t in rows if t[0] == "Slip")
 
-    table.sort(key=lambda t: t[3], reverse=True)  # dollars at stake, desc
+    rows.sort(key=lambda t: t[3], reverse=True)  # annualized exposure, desc
+    top = rows[:5]
+
     trows = "".join(
         f'<tr><td>{"● " if typ == "Renewal" else "▫ "}{typ}</td>'
-        f'<td class="nm">{_esc(rid)}</td>'
+        f'<td class="nm">{_esc(handle)}<span class="sub">{sub} · {_esc(rid)}</span></td>'
         f'<td class="num">{age}d</td>'
         f'<td class="num">{money(exp)}</td>'
+        f'<td>{_esc(owner) if owner else "&mdash;"}</td>'
         f'<td class="drv">{detail}</td></tr>'
-        for typ, rid, age, exp, detail in table)
+        for typ, rid, age, exp, owner, handle, sub, detail in top)
 
-    inner = (f'<p class="lede">Two kinds of deferral on one axis — age of deferral against dollars at stake. '
-             f'<b>Renewals plot the exposure you\'re holding; slips plot the exposure you\'d retire.</b> Both are '
-             f'deferral, aged and priced; the two dollar figures are the same axis but not the same quantity, so '
-             f'the shape (● renewal, ▫ slip) keeps them distinct. Slip exposure is the <code>residual_if_funded</code> '
-             f'what-if. {n_slip_priced} of {n_slip_total} slipped remediations carry residual to retire; the rest '
-             f'defer work that does not move the current aggregate, so they are not plotted.</p>'
-             + cankicking_scatter_svg(pts, x_max, y_max)
+    # Tail: the deferrals below the top 5, bounded — a silent cut would read as
+    # "these are all of them" (dataviz anti-pattern), so name the count and the cap.
+    tail = ""
+    if len(rows) > 5:
+        cap = math.ceil(rows[5][3] / 1000) * 1000
+        n_more = len(rows) - 5
+        tail = (f'<p class="drv" style="margin-top:8px">{n_more} more '
+                f'{"deferral" if n_more == 1 else "deferrals"}, all under {money(cap)}.</p>')
+
+    # §1c concentration callout — computed on the actual top 5, rendered only if one
+    # owner holds 3+ (the honesty gate: a named pattern must be in the data). On this
+    # corpus platform-lead holds 4 of 5, so it fires; framed structurally, not as blame.
+    callout = ""
+    owners = [t[4] for t in top if t[4]]
+    if owners:
+        dom = max(set(owners), key=owners.count)
+        n = owners.count(dom)
+        if n >= 3:
+            lever = (f"Platform carries the shared tech debt the rest of the org builds on, "
+                     f"so the load-bearing function is where deferral piles up — resourcing "
+                     f"platform is the lever, not chasing the individual items."
+                     if dom == "platform-lead" else
+                     f"The deferred risk concentrates on one function — resourcing {_esc(dom)} "
+                     f"is the lever, not chasing the individual items.")
+            callout = (f'<p class="callout"><b>{n} of these {len(top)} sit with '
+                       f'{_esc(dom)}</b> — not because one person is behind, but because the '
+                       f'deferred risk concentrates where the load-bearing function is. {lever}</p>')
+
+    inner = (f'<p class="lede">The deferrals that carry the most exposure, ranked. '
+             f'<b>Renewals show exposure you\'re holding; slips show exposure you\'d retire.</b> '
+             f'They rank on one column but are not the same quantity, so the Type tag (● renewal, '
+             f'▫ slip) keeps them distinct. Slip exposure is the <code>residual_if_funded</code> '
+             f'what-if; {n_slip_priced} of {n_slip_total} slipped remediations carry residual to '
+             f'retire, the rest defer work that does not move the current aggregate.</p>'
+             + callout
              + f'<table class="tbl"><thead><tr><th>Type</th><th>Item</th><th class="num">Age</th>'
-             f'<th class="num">Dollars at stake</th><th>What it is</th></tr></thead>'
-             f'<tbody>{trows}</tbody></table>')
+             f'<th class="num">Annualized exposure</th><th>Owner</th><th>What it is</th></tr></thead>'
+             f'<tbody>{trows}</tbody></table>'
+             + tail)
     return _card("6", "The can you keep kicking",
-                 "One deferral space: renewed exceptions (exposure carried) and slipped remediations (exposure retirable), aged and priced.",
+                 "The deferrals carrying the most exposure, ranked — renewed exceptions (exposure held) "
+                 "and slipped remediations (exposure retirable), with the accountable owner.",
                  inner)
 
 
@@ -980,6 +1002,8 @@ header .meta { color:var(--text-muted); font-size:13.5px; }
   color:var(--accent); font-size:12px; font-weight:600; display:inline-flex; align-items:center;
   justify-content:center; }
 .top5 .t5t { color:var(--text); font-size:13.5px; line-height:1.5; }
+.rec-own { display:inline-block; margin-left:4px; color:var(--text-muted); font-size:11.5px;
+  white-space:nowrap; border:1px solid var(--border); border-radius:var(--radius-sm); padding:1px 7px; }
 .summary { margin:32px 0; }
 .summary > h2 { font-size:17px; font-weight:500; color:var(--text); max-width:640px; margin:0 0 16px; }
 .hero { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:26px 28px; }
@@ -1016,6 +1040,9 @@ table.tbl { width:100%; border-collapse:collapse; font-size:13px; }
 .tbl .num { text-align:right; font-family:var(--font-display); white-space:nowrap; }
 .tbl .nm { color:var(--text-strong); }
 .tbl .drv { color:var(--text-muted); }
+.tbl .nm .sub { display:block; color:var(--text-muted); font-size:11.5px; font-weight:400; margin-top:2px; }
+.callout { border-left:3px solid var(--accent); background:var(--bg); padding:10px 14px; margin:0 0 14px;
+  border-radius:var(--radius-sm); color:var(--text); font-size:13px; line-height:1.5; max-width:760px; }
 .nb { white-space:nowrap; }
 .tbl .pol { color:var(--accent); font-size:12px; }
 .tbl .tag { color:var(--status-below-tint); font-size:12px; }
