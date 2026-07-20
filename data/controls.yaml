@@ -2,9 +2,10 @@
 # four themes (Organizational A.5, People A.6, Physical A.7, Technological A.8;
 # 37/8/14/34). Keyed by Annex A reference so the full set is unambiguously
 # seeded (SPEC §2.6). Each control names its governing policy (the "traces up to
-# a policy" coverage read) and the named risks it mitigates (M2M). A control
-# mapping to no named risk is a "why do we do this?" signal, surfaced by
-# validation. Control HEALTH is derived at build time (SPEC §4), never stored.
+# a policy" coverage read) and the named risks it mitigates (M2M), mapped only
+# where there is a causal path (SPEC v3.1 §1). A control mapping to no named risk
+# is simply unexercised in this illustration, not a flag. Control HEALTH is
+# derived at build time (SPEC §4), never stored.
 # All data synthetic.
 
 
