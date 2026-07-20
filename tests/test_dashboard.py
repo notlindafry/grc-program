@@ -299,6 +299,69 @@ def test_riding_tile_shows_predation_not_summed_debt(page: str) -> None:
     assert "starving 4 projects · 2 over appetite" in page
 
 
+def test_top5_renders_above_the_summary_exactly_five(page: str) -> None:
+    # SPEC v3.0 §3/§3b: the Top 5 is the executive's first read — above the
+    # portfolio summary, exactly five ranked rows, and NOT one of the seven views
+    # (no vnum badge; the closed-seven contract is unchanged).
+    assert 'class="top5"' in page
+    assert page.index('class="top5"') < page.index('class="summary"')
+    top5 = re.search(r'<section class="top5".*?</section>', page, re.S).group(0)
+    assert top5.count("<li>") == 5
+    assert 'class="vnum"' not in top5
+
+
+def test_top5_fund_rows_name_a_remediation_and_a_computed_effect(page: str) -> None:
+    # SPEC v3.0 §3a / acceptance 4: every fund-row names a specific remediation ID
+    # and its computed effect; no row reads "do something about X" or is finding-only.
+    top5 = re.search(r'<section class="top5".*?</section>', page, re.S).group(0)
+    assert "Fund REM-2026-0114 (restore A.8.14)" in top5
+    assert "Fund REM-2026-0112 (restore A.8.22)" in top5
+    assert "within its" in top5 and "&rarr;" in top5  # the computed effect arrow
+    assert "do something about" not in top5.lower()
+
+
+def test_top5_within_appetite_is_computed_not_asserted(page: str) -> None:
+    # SPEC v3.0 acceptance 2 (the one that matters): each fund-row's within-appetite
+    # claim is reproduced by residual_if_funded, and the computed post-funding mean
+    # is what the page prints — never a back-solved figure.
+    g = load_graph(DATA)
+    cfg = Config(as_of=AS_OF)
+    validate_graph(g, cfg)
+    eng = GraphEngine(g, cfg)
+    for nid, rem in (("NR-PLATFORM-OUTAGE", "REM-2026-0114"), ("NR-PCI-SCOPE", "REM-2026-0112")):
+        res = eng.residual_if_funded(nid, [rem])
+        assert res.state != "over"                       # the claim is true
+        assert dashboard.money(res.band.mean) in page    # the printed figure is the computed one
+
+
+def test_top5_over_correction_reports_freed_risk_budget(page: str) -> None:
+    # When a fund-row over-corrects to below the line, the headroom it opens
+    # (appetite - residual) is surfaced as redeployable risk budget for a future
+    # strategic initiative — computed from the what-if, not asserted.
+    g = load_graph(DATA)
+    cfg = Config(as_of=AS_OF)
+    validate_graph(g, cfg)
+    eng = GraphEngine(g, cfg)
+    top5 = re.search(r'<section class="top5".*?</section>', page, re.S).group(0)
+    assert "redeploy to a future strategic initiative" in top5
+    res = eng.residual_if_funded("NR-PLATFORM-OUTAGE", ["REM-2026-0114"])
+    assert res.state == "below"                           # it genuinely over-corrects
+    freed = eng.named_risk_residual("NR-PLATFORM-OUTAGE").threshold - res.band.mean
+    assert dashboard.money(freed) in top5                 # the freed figure is computed
+
+
+def test_top5_is_deduped_by_risk_and_type_c_names_the_lever(page: str) -> None:
+    # SPEC v3.0 acceptance 5/7: no risk appears twice; Type C rows name the lever
+    # (reprioritize / hold-and-redirect), not a remediation.
+    top5 = re.search(r'<section class="top5".*?</section>', page, re.S).group(0)
+    text = re.sub(r"<[^>]+>", "", top5)                  # strip tags for prose checks
+    assert text.count("Production compromise") == 1      # deduped, appears once
+    assert "Reprioritize gcloud-migration" in text       # predation, a lever
+    assert "Hold Privacy spend flat and redirect" in text  # reallocation, a lever
+    # the in-progress steady-state row, not a false "fund" of an already-funded plan
+    assert "Keep REM-2026-0102 on track (in progress)" in text
+
+
 def test_no_probability_renders_as_a_certainty(page: str) -> None:
     # SPEC v2.8 §6: a probability printed as a bare 100% / 0% reads like a bug.
     # (width:100% on responsive SVGs / tables is layout, not a probability.)
