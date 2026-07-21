@@ -99,3 +99,27 @@ KRI-DPA-COVERAGE:
   threshold: 0.1
   trend: rising
   direction: over
+
+KRI-AGENT-ACTION-VELOCITY:
+  title: Agent-initiated production actions per hour (p95)
+  informs: [SCN-2026-0032]
+  current_value: 55
+  threshold: 60
+  trend: rising
+  direction: over
+
+KRI-AGENT-PERM-ESCALATION:
+  title: Agent permission-escalation requests per week
+  informs: [SCN-2026-0019, SCN-2026-0032]
+  current_value: 2
+  threshold: 5
+  trend: stable
+  direction: over
+
+KRI-AGENT-DELEGATION-DEPTH:
+  title: Maximum observed agent delegation depth (7-day)
+  informs: [SCN-2026-0032]
+  current_value: 2
+  threshold: 3
+  trend: stable
+  direction: over

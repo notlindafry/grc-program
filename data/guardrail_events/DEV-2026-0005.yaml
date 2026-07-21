@@ -1,0 +1,18 @@
+# Guardrail deviation (v4.0 §0.E): a second PROPOSED deviation, inside its
+# disposition window at the 2026-06-18 reference date (due that day). Synthetic.
+id: DEV-2026-0005
+type: exception
+title: Agent deploy to prod under an expired change-ticket approval
+filed_on: 2026-06-17
+status: active
+mapped_scenarios: [SCN-2026-0019]
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.02, 0.04]
+  estimated_by: offline-ai-deviation-monitor
+guardrail: GR-AGENT-PROD-WRITE
+disposition: proposed
+severity: medium
+response_invoked: monitor + notify_owner
+detected_by: offline-ai-deviation-monitor
+disposition_due: 2026-06-18                # filed_on + 24h SLA; due, not yet overdue

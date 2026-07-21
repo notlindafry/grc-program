@@ -1,0 +1,25 @@
+# A won't-fix vulnerability the org decided to accept: a risk acceptance, so
+# an exception (v4.0 §0.0 retired the separate vuln type; patching-SLA state
+# is a first-line vulnerability-management signal, not a second-line risk
+# model fact). Folds into the mapped scenario's PoR. Synthetic.
+id: EXC-2026-0170
+type: exception
+title: Accepted RCE on a migrated jobs runner
+owner: platform-lead@company.com
+filed_on: 2026-05-18
+status: active
+mapped_scenarios: [SCN-2026-0001]
+control: [A.8.8]
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.015, 0.04]
+  estimated_by: r.chen@company.com
+  estimated_on: 2026-05-18
+reason: accepted_vulnerability
+scope:
+  type: enumerated
+  assets: [legacy-jobs-runner]
+expires_on: 2026-08-15
+renewals:
+  count: 0
+  justification_changed_last: null

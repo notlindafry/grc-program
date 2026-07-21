@@ -8,4 +8,4 @@ operational_owner: platform-oncall@company.com
 mechanism: patch_the_out-of-sla_privilege-escalatio
 restores_control: A.8.8
 addresses_scenarios: [SCN-2026-0012]
-addresses_issues: [VULN-2026-0002]
+addresses_issues: [EXC-2026-0171]

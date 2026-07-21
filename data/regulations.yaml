@@ -1,0 +1,54 @@
+# External requirement register (v4.0 §0.B): framework + requirement, each
+# referencing existing ISO 27001:2022 Annex A controls so one control can
+# satisfy many obligations (map once, satisfy many). DORA validated:
+# Regulation (EU) 2022/2554, applicable to EU financial entities and their ICT
+# providers since 17 January 2025; five pillars, the first four mandatory, the
+# fifth voluntary. Company Corp is modelled EU-in-scope. requirement_ref stays
+# at PILLAR level: DORA's RTS/ITS were still being finalized through 2026, so
+# article-level detail is to-be-verified against the regulation text — do not
+# fabricate article numbers. The satisfied_by_controls mappings are
+# human-ratified illustrative mappings, not authored by the tool; each id must
+# exist in controls.yaml. DORA maps primarily to the Resilience domain with
+# Security / Third-party / incident threads crossing in (manifestation over
+# cause: DORA is a cross-cutting obligation, not a domain). All data synthetic.
+
+DORA-P1-ICT-RISK-MGMT:
+  framework: DORA
+  requirement_ref: "Pillar 1 — ICT risk management"      # article/RTS detail TBV vs Reg (EU) 2022/2554
+  title: ICT risk management framework
+  satisfied_by_controls: [A.5.1, A.8.8]
+DORA-P2-INCIDENT-REPORTING:
+  framework: DORA
+  requirement_ref: "Pillar 2 — ICT-related incident management, classification & reporting"
+  title: ICT-related incident management and reporting
+  satisfied_by_controls: [A.5.24, A.5.26, A.8.15]         # A.8.15 shared with PCI-REQ-10 -> reuse
+DORA-P3-RESILIENCE-TESTING:
+  framework: DORA
+  requirement_ref: "Pillar 3 — digital operational resilience testing"
+  title: Digital operational resilience testing
+  satisfied_by_controls: [A.5.30, A.8.8]
+DORA-P4-THIRD-PARTY-RISK:
+  framework: DORA
+  requirement_ref: "Pillar 4 — ICT third-party risk management"
+  title: ICT third-party risk management
+  satisfied_by_controls: [A.5.19, A.5.20, A.5.21, A.5.22]
+DORA-P5-INFO-SHARING:
+  framework: DORA
+  requirement_ref: "Pillar 5 — information & intelligence sharing"   # VOLUNTARY, not mandatory
+  title: Information and intelligence sharing
+  satisfied_by_controls: [A.5.6]
+PCI-REQ-8:
+  framework: PCI-DSS
+  requirement_ref: "Req 8 — identify users and authenticate access"
+  title: Identify users and authenticate access to system components
+  satisfied_by_controls: [A.5.16, A.5.17, A.8.5]
+PCI-REQ-10:
+  framework: PCI-DSS
+  requirement_ref: "Req 10 — logging & monitoring"
+  title: Log and monitor all access to system components and cardholder data
+  satisfied_by_controls: [A.8.15, A.8.16]                 # A.8.15 also under DORA-P2 -> reuse
+PCI-REQ-11:
+  framework: PCI-DSS
+  requirement_ref: "Req 11 — test security of systems and networks regularly"
+  title: Test security of systems and networks regularly
+  satisfied_by_controls: [A.8.8, A.8.29]                  # A.8.8 also under DORA-P1/P3 -> reuse

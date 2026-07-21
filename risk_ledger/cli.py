@@ -5,6 +5,7 @@
     risk-ledger drift [OKR]  per-OKR reported-vs-true footprint (undeclared risk debt)
     risk-ledger renewals     the can-you-keep-kicking view: temporary-forever + slipped work
     risk-ledger dashboard    render the executive dashboard (the hero artifact) to HTML
+    risk-ledger grc          render the GRC-program tab (landing scorecard) to HTML
 
 Global options pin the Monte Carlo run and the calibration window; they override
 any ``config.yaml`` in the corpus.
@@ -187,6 +188,20 @@ def _cmd_dashboard(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_grc(args: argparse.Namespace) -> int:
+    """Render the GRC tab (v4.0 Spec 1) — a separate page over the extended
+    corpus. The eng build path is untouched (P.4)."""
+    from . import render_grc
+
+    data_dir = Path(args.data)
+    cfg = _build_config(args, data_dir)
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    render_grc.render_grc_to(data_dir, cfg, out)
+    print(f"Wrote {out}")
+    return 0
+
+
 def _cmd_drift(args: argparse.Namespace) -> int:
     graph, cfg, eng = _prepare(args)
     print(render_drift(graph, eng, cfg, only_okr=args.okr))
@@ -215,6 +230,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("renewals", help="the can-you-keep-kicking view")
     p_dash = sub.add_parser("dashboard", help="render the executive dashboard (hero artifact) to HTML")
     p_dash.add_argument("--out", default="docs/dashboard.html", help="output path (default: docs/dashboard.html)")
+    p_grc = sub.add_parser("grc", help="render the GRC-program tab (landing scorecard) to HTML")
+    p_grc.add_argument("--out", default="docs/grc.html", help="output path (default: docs/grc.html)")
     return parser
 
 
@@ -227,6 +244,7 @@ def main(argv: list[str] | None = None) -> int:
         "drift": _cmd_drift,
         "renewals": _cmd_renewals,
         "dashboard": _cmd_dashboard,
+        "grc": _cmd_grc,
     }
     try:
         return dispatch[args.command](args)

@@ -1,0 +1,20 @@
+# Guardrail deviation (v4.0 §0.E): dispositioned ACCEPTED within its SLA — a
+# ratified provisional exception; contributes to the provisional deviation
+# exposure overlay (§1.C), never to the eng residual. Synthetic.
+id: DEV-2026-0002
+type: exception
+title: Regulated-table export by the support agent to an unapproved store
+filed_on: 2026-06-05
+status: active
+mapped_scenarios: [SCN-2026-0002]
+exception_effect:                          # bounded by GR-AGENT-DATA-EXPORT provisional_move
+  moves: probability_of_realization
+  with_exception_90ci: [0.01, 0.03]
+  estimated_by: offline-ai-deviation-monitor
+guardrail: GR-AGENT-DATA-EXPORT
+disposition: accepted
+severity: medium
+response_invoked: monitor + notify_owner
+detected_by: offline-ai-deviation-monitor
+disposition_due: 2026-06-07                # filed_on + 48h SLA
+disposition_on: 2026-06-06                 # decided within SLA

@@ -1,0 +1,20 @@
+# Guardrail deviation (v4.0 §0.E): dispositioned DISMISSED (false positive —
+# the approving review existed under a different account mapping). No
+# contribution anywhere. Synthetic.
+id: DEV-2026-0003
+type: exception
+title: Agent-authored change flagged as merged without human approval
+filed_on: 2026-06-01
+status: resolved
+mapped_scenarios: [SCN-2026-0034]
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.04, 0.10]
+  estimated_by: offline-ai-deviation-monitor
+guardrail: GR-AGENT-CODE-MERGE
+disposition: dismissed
+severity: low
+response_invoked: monitor
+detected_by: offline-ai-deviation-monitor
+disposition_due: 2026-06-02
+disposition_on: 2026-06-01

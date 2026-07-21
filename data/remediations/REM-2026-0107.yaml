@@ -8,4 +8,4 @@ operational_owner: platform-oncall@company.com
 mechanism: deploy_edr_agent_to_the_endpoint_fleet
 restores_control: A.8.7
 addresses_scenarios: [SCN-2026-0012]
-addresses_issues: [VULN-2026-0002]
+addresses_issues: [EXC-2026-0171]

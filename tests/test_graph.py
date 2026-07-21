@@ -71,7 +71,6 @@ def test_entity_counts(graph):
 def test_issue_types_present(graph):
     # The v2 corpus is self-contained (decoupled from the legacy exceptions/).
     assert len(graph.issues_for("exception")) >= 20
-    assert len(graph.issues_for("vuln")) >= 1
     assert len(graph.issues_for("finding")) >= 1
 
 
@@ -110,7 +109,7 @@ def test_derived_adjacency(graph):
     assert "NR-PROD-COMPROMISE" in graph.named_risks_of_okr["gcloud-migration"]
     # Remediation -> scenario / issue (m2m).
     assert graph.remediations_of_scenario["SCN-2026-0001"]
-    assert graph.remediations_of_issue["VULN-2026-0001"]
+    assert graph.remediations_of_issue["EXC-2026-0170"]
 
 
 def test_emerging_scenarios_carry_ai_bands_with_varied_trajectory(graph):
@@ -190,9 +189,11 @@ def _codes(problems, severity=None):
 
 def test_issue_must_map_to_a_scenario():
     issue = IssueRecord.parse(
-        {"id": "VULN-1", "type": "vuln", "moves": "probability_of_realization",
-         "with_acceptance_90ci": [0.01, 0.05], "estimated_by": "r.chen@company.com"},
-        "VULN-1.yaml",
+        {"id": "EXC-1", "type": "exception",
+         "exception_effect": {"moves": "probability_of_realization",
+                              "with_exception_90ci": [0.01, 0.05],
+                              "estimated_by": "r.chen@company.com"}},
+        "EXC-1.yaml",
     )
     g = _minimal_graph(issues=[issue])
     problems = validate_graph(g, Config(as_of=AS_OF))

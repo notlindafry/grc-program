@@ -284,14 +284,16 @@ def _str_list(value: Any) -> list[str]:
     return [str(v) for v in value if str(v).strip()]
 
 
-# Issue subtypes (the ``type`` discriminator, SPEC §2.5). Only the first two
-# move a factor and enter the residual bands; a finding informs control health
-# and the narrative but is never simulated (the "one path into residual" rule).
+# Issue subtypes (the ``type`` discriminator, SPEC §2.5; v4.0 §0.0). Only an
+# exception moves a factor and enters the residual bands — a risk acceptance is
+# the one path into residual. A finding informs control health and the narrative
+# but is never simulated. The former ``vuln`` type (an out-of-SLA accepted
+# vulnerability) was retired in v4.0 §0.0: a won't-fix acceptance IS an
+# exception, and SLA state is a first-line vulnerability-management signal.
 ISSUE_EXCEPTION = "exception"
-ISSUE_VULN = "vuln"
 ISSUE_FINDING = "finding"
-ISSUE_TYPES = (ISSUE_EXCEPTION, ISSUE_VULN, ISSUE_FINDING)
-FACTOR_MOVING_ISSUE_TYPES = (ISSUE_EXCEPTION, ISSUE_VULN)
+ISSUE_TYPES = (ISSUE_EXCEPTION, ISSUE_FINDING)
+FACTOR_MOVING_ISSUE_TYPES = (ISSUE_EXCEPTION,)
 
 FINDING_SEVERITIES = ("low", "medium", "high", "critical")
 FINDING_SOURCES = ("audit", "incident-PMAI", "self-identified")
@@ -677,13 +679,13 @@ class IssueRecord:
     """The issues floor, generalised from exceptions with a ``type`` discriminator
     (SPEC §2.5). One record per individually reviewable decision.
 
-    Three subtypes share the common fields (``id``, ``title``, ``owner``,
+    Two subtypes share the common fields (``id``, ``title``, ``owner``,
     ``filed_on``, ``status``, ``mapped_scenarios``, ``controls``):
 
     * ``exception`` — the unchanged existing schema; moves one scenario factor via
-      ``exception_effect.moves`` + ``with_exception_90ci``.
-    * ``vuln`` — an out-of-SLA accepted vulnerability; folds into the scenario's
-      PoR via top-level ``moves`` + ``with_acceptance_90ci``.
+      ``exception_effect.moves`` + ``with_exception_90ci``. A won't-fix accepted
+      vulnerability is an exception (``reason: accepted_vulnerability``); the
+      separate ``vuln`` type was retired in v4.0 §0.0.
     * ``finding`` — audit/incident/self-identified; carries a bounded ``severity``
       that informs control health and narrative but is **never simulated**.
 
@@ -713,7 +715,7 @@ class IssueRecord:
     mapped_risk: str = ""  # legacy single-risk link, bridged to a scenario in the graph
     controls: list[str] = field(default_factory=list)
 
-    # exception / vuln: the moved factor and its accepted band.
+    # exception: the moved factor and its accepted band.
     moves: str = ""
     with_ci_90ci: Optional[list[float]] = None
     estimated_by: str = ""
@@ -732,9 +734,6 @@ class IssueRecord:
     renewal_count: int = 0
     justification_changed_last: Optional[str] = None
     expires_on: Optional[dt.date] = None
-
-    # vuln-only.
-    asset: str = ""
 
     # finding-only.
     source: str = ""
@@ -758,18 +757,11 @@ class IssueRecord:
         if not isinstance(assets, list):
             assets = [assets]
 
-        # The moved factor + accepted band lives in exception_effect for an
-        # exception, and at the top level (with_acceptance_90ci) for a vuln.
-        if itype == ISSUE_VULN:
-            moves = str(raw.get("moves", "probability_of_realization"))
-            with_ci = _ci(raw.get("with_acceptance_90ci"))
-            estimated_by = str(raw.get("estimated_by", ""))
-            estimated_on = _as_date(raw.get("estimated_on"))
-        else:
-            moves = str(effect.get("moves", ""))
-            with_ci = _ci(effect.get("with_exception_90ci"))
-            estimated_by = str(effect.get("estimated_by", ""))
-            estimated_on = _as_date(effect.get("estimated_on"))
+        # The moved factor + accepted band lives in exception_effect.
+        moves = str(effect.get("moves", ""))
+        with_ci = _ci(effect.get("with_exception_90ci"))
+        estimated_by = str(effect.get("estimated_by", ""))
+        estimated_on = _as_date(effect.get("estimated_on"))
 
         return cls(
             id=str(raw.get("id", "")),
@@ -803,7 +795,6 @@ class IssueRecord:
                 else None
             ),
             expires_on=_as_date(raw.get("expires_on")),
-            asset=str(raw.get("asset", "")),
             source=str(raw.get("source", "")),
             severity=str(raw.get("severity", "")),
             problems=[],
@@ -838,7 +829,7 @@ class IssueRecord:
 
     @property
     def moves_a_factor(self) -> bool:
-        """Only exception and vuln change residual (the one-path rule, SPEC §4)."""
+        """Only an exception changes residual (the one-path rule, SPEC §4; v4.0 §0.0)."""
         return self.type in FACTOR_MOVING_ISSUE_TYPES
 
     @property

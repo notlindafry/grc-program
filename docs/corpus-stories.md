@@ -95,7 +95,8 @@ prune these are surfaced as a computed callout in view 1 (they are already flagg
 
 **4. A control with poor health from clustered findings.**
 `A.8.5` (Secure authentication) → **RED**: `FND-2026-0001`/`0002` (high) +
-`FND-2026-0003` (medium). `A.8.8` RED from three accepted vulns.
+`FND-2026-0003` (medium). `A.8.8` RED from three accepted-vulnerability
+exceptions (`EXC-2026-0170/0171/0172`).
 
 **5. A control clean on findings but amber on stale/missing evidence.**
 `A.8.32` (Change management) → **AMBER**, no findings, evidence missing

@@ -50,7 +50,7 @@ the risk manifests:
 | 1 | **Domain** — where risk manifests (7: Resilience, Data integrity, Security, Privacy, Change & delivery, Third-party, Compliance) | board / portfolio |
 | 2 | **Named risk** — owned; appetite is set here | executive (VP) |
 | 3 | **Scenario** — the quantified loss event the Monte Carlo runs on | practitioner |
-| floor | **Issues** — exceptions, vulns, findings | operational owners |
+| floor | **Issues** — exceptions, findings | operational owners |
 
 Two cross-cutting dimensions apply *across* the domains: **impact** (who bears
 the harm) and **AI as a causation vector**. Both are tags on a scenario, and the
@@ -80,8 +80,10 @@ Loss Event Frequency (LEF) = OF × PoR
 Annualized Loss Exposure (ALE) = LEF × LM
 ```
 
-**One path into residual.** Only factor-moving issues (`exception`, `vuln`)
-change a scenario's residual. Finding severity, control health, evidence
+**One path into residual.** Only factor-moving issues (`exception` — a risk
+acceptance, including a won't-fix accepted vulnerability filed with
+`reason: accepted_vulnerability`) change a scenario's residual. Finding
+severity, control health, evidence
 freshness, and KRIs *inform* the estimate; none adds its own term. Scenario
 residuals aggregate up to the named risk, the domain, and the portfolio. A light
 Monte Carlo (pure standard library, reproducible) produces every band.
@@ -138,6 +140,7 @@ risk-ledger portfolio                # residual aggregation, appetite/capacity, 
 risk-ledger drift [OKR]              # per-OKR reported-vs-true footprint (undeclared risk debt)
 risk-ledger renewals                 # the can-you-keep-kicking view: temporary-forever + slipped work
 risk-ledger dashboard                # render the executive dashboard (the hero artifact) to HTML
+risk-ledger grc                      # render the GRC-program tab (landing scorecard) to HTML
 ```
 
 By default the tool reads the corpus in `./data`. Regenerate the whole
@@ -154,6 +157,15 @@ Action publishes to Vercel:
 
 A GitHub Action ([`.github/workflows/deploy-report.yml`](.github/workflows/deploy-report.yml))
 regenerates from the corpus and redeploys on every push to `main`.
+
+`risk-ledger grc` renders the **GRC tab** (v4.0, work in progress) to
+`docs/grc.html` — a separate page for a GRC Manager measuring the health of the
+program itself (coverage, hygiene, SLA throughput, AI governance), not the risk
+portfolio. It reads additional registers (`regulations.yaml`, `sla_config.yaml`,
+`guardrails.yaml`, `agent_inventory.yaml`, `guardrail_events/`) that the eng
+build never opens, so **the eng dashboard stays byte-identical** — the isolation
+guarantee; guardrail deviations live outside `data/issues/` and never enter
+residual.
 
 > ⚠️ **The deploy is public and automatic.** Every push to `main` publishes
 > whatever is in `data/` to the live URL — there is no separate "make this

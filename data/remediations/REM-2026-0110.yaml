@@ -8,3 +8,4 @@ operational_owner: tns-oncall@company.com
 mechanism: retrain_the_abuse-detection_model
 restores_control: A.8.16
 addresses_scenarios: [SCN-2026-0008]
+addresses_issues: [FND-2026-0004]
