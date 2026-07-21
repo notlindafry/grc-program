@@ -170,7 +170,7 @@ class Graph:
                 "scenarios": len(self.scenarios),
                 "issues": len(self.issues),
                 "issues_by_type": {
-                    t: len(self.issues_for(t)) for t in ("exception", "vuln", "finding")
+                    t: len(self.issues_for(t)) for t in ("exception", "finding")
                 },
                 "controls": len(self.controls),
                 "policies": len(self.policies),

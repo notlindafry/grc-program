@@ -105,7 +105,7 @@ def load_graph(data_dir: Path) -> Graph:
     scenarios = _load_record_dir(data_dir / "scenarios", Scenario.parse, errors)
     graph.scenarios = {s.id: s for s in scenarios if s.id}
 
-    # Issues: the v2 corpus is self-contained under issues/ (exceptions, vulns,
+    # Issues: the v2 corpus is self-contained under issues/ (exceptions and
     # findings), independently calibrated. The legacy exceptions/ directory feeds
     # the v1 engine only and is not read here, so the two corpora stay decoupled
     # and the v2 effects can be rescaled without disturbing the frozen v1 tests.

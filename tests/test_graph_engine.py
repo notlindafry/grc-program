@@ -180,13 +180,15 @@ def test_finding_never_enters_the_residual_band():
 
 def test_primary_scenario_attribution():
     # A factor-moving issue mapped to two scenarios contributes only to the first.
-    vuln = IssueRecord.parse({
-        "id": "VULN-1", "type": "vuln", "mapped_scenarios": ["SCN-1", "SCN-2"],
-        "moves": "probability_of_realization", "with_acceptance_90ci": [0.05, 0.15],
-        "estimated_by": "r.chen@company.com", "estimated_on": "2026-05-01",
-    }, "VULN-1.yaml")
-    eng = _engine([_scn("SCN-1"), _scn("SCN-2")], [vuln])
-    assert [c.issue.id for c in eng.scenario_residual("SCN-1").contributors] == ["VULN-1"]
+    exc = IssueRecord.parse({
+        "id": "EXC-1", "type": "exception", "mapped_scenarios": ["SCN-1", "SCN-2"],
+        "exception_effect": {"moves": "probability_of_realization",
+                             "with_exception_90ci": [0.05, 0.15],
+                             "estimated_by": "r.chen@company.com",
+                             "estimated_on": "2026-05-01"},
+    }, "EXC-1.yaml")
+    eng = _engine([_scn("SCN-1"), _scn("SCN-2")], [exc])
+    assert [c.issue.id for c in eng.scenario_residual("SCN-1").contributors] == ["EXC-1"]
     assert eng.scenario_residual("SCN-2").contributors == []
 
 
@@ -272,7 +274,7 @@ def test_control_health_stories(corpus_engine):
     # §5.4: a control with poor health from clustered findings.
     assert by_id["A.8.5"].health == "red"
     assert by_id["A.8.5"].findings_by_severity.get("high", 0) >= 2
-    # Accepted vulns cluster on the vuln-management control.
+    # Accepted-vulnerability exceptions cluster on the vuln-management control.
     assert by_id["A.8.8"].health == "red"
     assert by_id["A.8.8"].open_gap_count >= 2
     # §5.5: a control clean on findings but amber on stale/missing evidence.
@@ -286,7 +288,7 @@ def test_control_health_never_touches_residual(corpus_engine):
     # contributors to the scenario they touch.
     _, eng = corpus_engine
     res = eng.scenario_residual("SCN-2026-0001")
-    assert all(c.issue.type in ("exception", "vuln") for c in res.contributors)
+    assert all(c.issue.type == "exception" for c in res.contributors)
 
 
 def test_emerging_items_are_ai_vectored_and_not_uniform(corpus_engine):
@@ -462,7 +464,7 @@ def test_no_managed_scenario_over_capacity(corpus_engine):
 def test_mapping_prune_kept_every_load_bearing_control(corpus_engine):
     # SPEC v3.1 acceptance 2 — the check that protects the prune: a mapping change
     # is only safe if nothing load-bearing falls out. Every control referenced by
-    # an exception/vuln on a risk's scenarios, or restored by a remediation that
+    # an exception on a risk's scenarios, or restored by a remediation that
     # clears such an issue, must still be mapped to that risk after the prune.
     graph, _ = corpus_engine
     for nid, count in (("NR-PROD-COMPROMISE", 15), ("NR-ENDPOINT-MALWARE", 6)):

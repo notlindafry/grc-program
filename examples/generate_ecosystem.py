@@ -4,8 +4,8 @@
 This extends ``generate_corpus.py`` (which still writes the legacy risks /
 exceptions / remediations / okrs the engine reads) with the new-model entities:
 the enterprise anchor, the Tier-1 domains, Tier-2 named risks, Tier-3 scenarios,
-the generalised issues floor (vulns + findings; exceptions stay in their own
-directory and are read as ``type: exception``), the ISO 27001:2022 Annex A
+the generalised issues floor (findings + accepted-vulnerability exceptions; other
+exceptions stay in their own directory), the ISO 27001:2022 Annex A
 control backbone, policies, evidence, KRIs, and the horizon watch list.
 
 Day 1 scope: coherent, valid shapes that load, validate, and confirm the SPEC §3
@@ -787,7 +787,8 @@ def render_scenario(spec) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 7. Issues -- exceptions (self-contained, rescaled effects), vulns, findings.
+# 7. Issues -- exceptions (self-contained, rescaled effects; including accepted
+# vulnerabilities, v4.0 §0.0) and findings.
 # ---------------------------------------------------------------------------
 # Exception effects are rescaled (SPEC v2.1 §D3): each with_exception band is a
 # plausible consequence of its control gap -- most a 1.2-2x move on the scenario,
@@ -975,14 +976,17 @@ def build_exceptions():
     return out
 
 
-VULNS = [
-    ("VULN-2026-0001", "Accepted out-of-SLA RCE on a migrated jobs runner",
+# Won't-fix vulnerability acceptances, filed as exceptions with
+# ``reason: accepted_vulnerability`` (v4.0 §0.0 retired the separate vuln type:
+# a risk acceptance is an exception; patching-SLA state is a first-line signal).
+ACCEPTED_VULN_EXCEPTIONS = [
+    ("EXC-2026-0170", "Accepted RCE on a migrated jobs runner",
      "platform-lead@company.com", "SCN-2026-0001", ["A.8.8"], "probability_of_realization",
      [0.015, 0.04], "r.chen@company.com", "2026-05-18", "legacy-jobs-runner", "2026-08-15"),
-    ("VULN-2026-0002", "Unpatched privilege-escalation CVE on the endpoint fleet",
+    ("EXC-2026-0171", "Accepted privilege-escalation CVE on the endpoint fleet",
      "it-lead@company.com", "SCN-2026-0012", ["A.8.8", "A.8.7"], "probability_of_realization",
      [0.02, 0.05], "j.okafor@company.com", "2026-05-22", "corp-endpoint-fleet", "2026-09-30"),
-    ("VULN-2026-0003", "Deferred dependency patch on the checkout service",
+    ("EXC-2026-0172", "Accepted deferred dependency patch on the checkout service",
      "payments-lead@company.com", "SCN-2026-0015", ["A.8.8"], "probability_of_realization",
      [0.015, 0.045], "p.nguyen@company.com", "2026-06-01", "checkout-service", "2026-08-31"),
 ]
@@ -1002,18 +1006,24 @@ FINDINGS = [
 ]
 
 
-def render_vuln(spec) -> str:
-    (vid, title, owner, scn, controls, moves, ci, est_by, est_on, asset, expires) = spec
+def render_accepted_vuln_exception(spec) -> str:
+    (eid, title, owner, scn, controls, moves, ci, est_by, est_on, asset, expires) = spec
     controls_render = "[" + ", ".join(controls) + "]"
     return "\n".join([
-        "# An out-of-SLA unpatched vulnerability accepted at the asset level (SPEC",
-        "# §2.5). Folds into the mapped scenario's PoR; it moves a factor, so it",
-        "# enters the residual bands. Synthetic.",
-        f"id: {vid}", "type: vuln", f"title: {title}", f"owner: {owner}",
+        "# A won't-fix vulnerability the org decided to accept: a risk acceptance, so",
+        "# an exception (v4.0 §0.0 retired the separate vuln type; patching-SLA state",
+        "# is a first-line vulnerability-management signal, not a second-line risk",
+        "# model fact). Folds into the mapped scenario's PoR. Synthetic.",
+        f"id: {eid}", "type: exception", f"title: {title}", f"owner: {owner}",
         f"filed_on: {est_on}", "status: active", f"mapped_scenarios: [{scn}]",
-        f"control: {controls_render}", f"moves: {moves}",
-        f"with_acceptance_90ci: [{ci[0]}, {ci[1]}]", f"estimated_by: {est_by}",
-        f"estimated_on: {est_on}", f"asset: {asset}", f"expires_on: {expires}", "",
+        f"control: {controls_render}",
+        "exception_effect:", f"  moves: {moves}",
+        f"  with_exception_90ci: [{ci[0]}, {ci[1]}]", f"  estimated_by: {est_by}",
+        f"  estimated_on: {est_on}",
+        "reason: accepted_vulnerability",
+        "scope:", "  type: enumerated", f"  assets: [{asset}]",
+        f"expires_on: {expires}",
+        "renewals:", "  count: 0", "  justification_changed_last: null", "",
     ])
 
 
@@ -1204,7 +1214,7 @@ def build_remediations():
         status="funded", owner="iam-lead@company.com", operational_owner="iam-oncall@company.com",
         mechanism="deploy_phishing_resistant_mfa", target_date="2026-09-01",
         addresses_scenarios=["SCN-2026-0001", "SCN-2026-0019"], restores_control="A.8.5",
-        addresses_issues=["VULN-2026-0001"])
+        addresses_issues=["EXC-2026-0170"])
     add(title="Re-enable DLP with tuned rules on export paths", rtype="restore",
         status="funded", owner="data-platform-lead@company.com", operational_owner="data-oncall@company.com",
         mechanism="re_enable_dlp_with_tuned_rules", target_date="2026-09-01",
@@ -1231,7 +1241,7 @@ def build_remediations():
         mapped_risk="NR-CARD-TESTING", moves="probability_of_realization",
         post_control_90ci=[0.004, 0.02], estimated_by="p.nguyen@company.com",
         estimated_on="2026-06-01", addresses_scenarios=["SCN-2026-0015"],
-        addresses_issues=["VULN-2026-0003"])
+        addresses_issues=["EXC-2026-0172"])
     add(title="Write-time schema validation and integrity gates", rtype="strengthen",
         status="in_progress", owner="data-platform-lead@company.com", operational_owner="data-oncall@company.com",
         mechanism="add_write_time_integrity_gates", target_date="2026-09-15",
@@ -1242,9 +1252,9 @@ def build_remediations():
     # A batch of restores/strengthens against the accumulation cluster + others.
     templates = [
         ("Deploy EDR agent to the endpoint fleet", "restore", "funded", "A.8.7",
-         ["SCN-2026-0012"], ["VULN-2026-0002"], "2026-08-20", OPS),
+         ["SCN-2026-0012"], ["EXC-2026-0171"], "2026-08-20", OPS),
         ("Patch the out-of-SLA privilege-escalation CVE", "restore", "in_progress", "A.8.8",
-         ["SCN-2026-0012"], ["VULN-2026-0002"], "2026-07-30", OPS),
+         ["SCN-2026-0012"], ["EXC-2026-0171"], "2026-07-30", OPS),
         ("Restore the data-validation suite", "restore", "funded", "A.8.33",
          ["SCN-2026-0005"], None, "2026-09-10", "data-oncall@company.com"),
         ("Retrain the abuse-detection model", "restore", "proposed", "A.8.16",
@@ -1506,8 +1516,8 @@ def build_ecosystem() -> None:
         (SCN / f"{spec[0]}.yaml").write_text(render_scenario(spec))
     for eid, text in build_exceptions():
         (ISSUES / f"{eid}.yaml").write_text(text)
-    for spec in VULNS:
-        (ISSUES / f"{spec[0]}.yaml").write_text(render_vuln(spec))
+    for spec in ACCEPTED_VULN_EXCEPTIONS:
+        (ISSUES / f"{spec[0]}.yaml").write_text(render_accepted_vuln_exception(spec))
     for spec in FINDINGS:
         (ISSUES / f"{spec[0]}.yaml").write_text(render_finding(spec))
     for text in build_remediations():

@@ -50,7 +50,7 @@ the risk manifests:
 | 1 | **Domain** — where risk manifests (7: Resilience, Data integrity, Security, Privacy, Change & delivery, Third-party, Compliance) | board / portfolio |
 | 2 | **Named risk** — owned; appetite is set here | executive (VP) |
 | 3 | **Scenario** — the quantified loss event the Monte Carlo runs on | practitioner |
-| floor | **Issues** — exceptions, vulns, findings | operational owners |
+| floor | **Issues** — exceptions, findings | operational owners |
 
 Two cross-cutting dimensions apply *across* the domains: **impact** (who bears
 the harm) and **AI as a causation vector**. Both are tags on a scenario, and the
@@ -80,8 +80,10 @@ Loss Event Frequency (LEF) = OF × PoR
 Annualized Loss Exposure (ALE) = LEF × LM
 ```
 
-**One path into residual.** Only factor-moving issues (`exception`, `vuln`)
-change a scenario's residual. Finding severity, control health, evidence
+**One path into residual.** Only factor-moving issues (`exception` — a risk
+acceptance, including a won't-fix accepted vulnerability filed with
+`reason: accepted_vulnerability`) change a scenario's residual. Finding
+severity, control health, evidence
 freshness, and KRIs *inform* the estimate; none adds its own term. Scenario
 residuals aggregate up to the named risk, the domain, and the portfolio. A light
 Monte Carlo (pure standard library, reproducible) produces every band.

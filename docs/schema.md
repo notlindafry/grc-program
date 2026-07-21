@@ -28,16 +28,20 @@ Tier 1  Domain        where the risk manifests     board / portfolio altitude   
 Tier 2  Named risk    owned; appetite is set here   executive (VP) altitude      24
 Tier 3  Scenario      the quantified loss event     practitioner altitude        29
 ------------------------- risk / issue boundary -------------------------
-        Issues        exceptions, vulns, findings   operational owners           36
+        Issues        exceptions, findings          operational owners           36
 ```
 
 Two cross-cutting dimensions apply *across* the domains rather than nesting as
 tiers: **impact** (who bears the harm) and **AI as a causation vector**. Both
 are tags on a scenario, and the dashboard can pivot the portfolio to either.
 
-**One path into residual (spec §4).** Only factor-moving issues — `exception`
-and `vuln` — change residual. `finding` severity, control health, evidence
-freshness, and KRIs *inform the estimate*; none adds its own term.
+**One path into residual (spec §4).** Only factor-moving issues — `exception` —
+change residual. `finding` severity, control health, evidence freshness, and
+KRIs *inform the estimate*; none adds its own term. (The former `vuln` type was
+retired in v4.0 §0.0: a won't-fix accepted vulnerability *is* a risk acceptance,
+i.e. an exception with `reason: accepted_vulnerability`; whether a vuln is
+within its patching SLA is a first-line vulnerability-management signal, not a
+second-line risk-model fact.)
 
 ---
 
@@ -60,7 +64,7 @@ freshness, and KRIs *inform the estimate*; none adds its own term.
 
 ```
 Entities: 7 domains · 24 named risks · 29 scenarios · 36 issues
-          (exception=28, vuln=3, finding=5) · 93 controls · 17 policies
+          (exception=31, finding=5) · 93 controls · 17 policies
           · 14 evidence · 12 KRIs · 4 horizon · 40 remediations · 16 OKRs
 
 named_risk → domain (tree):    24/24 resolve to a parent
@@ -207,8 +211,8 @@ trajectory: rising
 ### `issues/` — the floor, generalized with a `type` discriminator (§2.5)
 
 Common fields: `id`, `title`, `owner`, `filed_on`, `status`, `mapped_scenarios`
-(first is primary), `control` (scalar or list). Only `exception` and `vuln` move
-a factor and enter the residual bands.
+(first is primary), `control` (scalar or list). Only `exception` moves a factor
+and enters the residual bands.
 
 **`type: exception`** — the unchanged legacy schema (migrated from
 `exceptions/`, still names a single `mapped_risk`):
@@ -229,23 +233,28 @@ exception_effect:
 # ... reason, scope, remediation, renewals (schema intact)
 ```
 
-**`type: vuln`** — an out-of-SLA accepted vulnerability; folds into the
-scenario's PoR via a top-level `moves` + `with_acceptance_90ci`:
+A won't-fix accepted vulnerability is filed as an exception with
+`reason: accepted_vulnerability` (the separate `vuln` type was retired in
+v4.0 §0.0 — a risk acceptance is an exception):
 
 ```yaml
-id: VULN-2026-0001
-type: vuln
-title: Accepted out-of-SLA RCE on a migrated jobs runner
+id: EXC-2026-0170
+type: exception
+title: Accepted RCE on a migrated jobs runner
 owner: platform-lead@company.com
 filed_on: 2026-05-18
 status: active
 mapped_scenarios: [SCN-2026-0001]
 control: [A.8.8]
-moves: probability_of_realization
-with_acceptance_90ci: [0.02, 0.06]
-estimated_by: r.chen@company.com
-estimated_on: 2026-05-18
-asset: legacy-jobs-runner
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.015, 0.04]
+  estimated_by: r.chen@company.com
+  estimated_on: 2026-05-18
+reason: accepted_vulnerability
+scope:
+  type: enumerated
+  assets: [legacy-jobs-runner]
 expires_on: 2026-08-15
 ```
 

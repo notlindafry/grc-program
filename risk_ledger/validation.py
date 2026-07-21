@@ -25,7 +25,6 @@ from .models import (
     FLAG,
     ISSUE_FINDING,
     ISSUE_TYPES,
-    ISSUE_VULN,
     LIFECYCLE_STATES,
     STRUCTURAL,
     TRAJECTORIES,
@@ -296,15 +295,14 @@ def _validate_issue(issue, graph, config: Config) -> None:
                 issue.add(Issue("issue_scenario_unknown", ERROR, STRUCTURAL,
                                 f"{issue.id}: mapped scenario {sid!r} is not in scenarios/"))
 
-    # Factor-moving issues (exception, vuln) must carry a valid moved factor.
+    # Factor-moving issues (exceptions) must carry a valid moved factor.
     if issue.type in FACTOR_MOVING_ISSUE_TYPES:
         if issue.moves not in VARIABLES:
             issue.add(Issue("issue_moves_invalid", ERROR, STRUCTURAL,
                             f"{issue.id}: moves must be one of {', '.join(VARIABLES)}; got {issue.moves!r}"))
         elif issue.with_ci_90ci is None:
-            field_name = "with_acceptance_90ci" if issue.type == ISSUE_VULN else "with_exception_90ci"
             issue.add(Issue("issue_band_point_estimate", ERROR, STRUCTURAL,
-                            f"{issue.id}: {field_name} must be a [low, high] 90% CI, not a point estimate"))
+                            f"{issue.id}: with_exception_90ci must be a [low, high] 90% CI, not a point estimate"))
         elif not _valid_ci_for(issue.moves, issue.with_ci_90ci):
             issue.add(Issue("issue_band_out_of_range", ERROR, STRUCTURAL,
                             f"{issue.id}: accepted band {issue.with_ci_90ci!r} is not valid for {issue.moves}"))

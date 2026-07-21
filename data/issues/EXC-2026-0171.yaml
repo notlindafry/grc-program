@@ -1,0 +1,25 @@
+# A won't-fix vulnerability the org decided to accept: a risk acceptance, so
+# an exception (v4.0 §0.0 retired the separate vuln type; patching-SLA state
+# is a first-line vulnerability-management signal, not a second-line risk
+# model fact). Folds into the mapped scenario's PoR. Synthetic.
+id: EXC-2026-0171
+type: exception
+title: Accepted privilege-escalation CVE on the endpoint fleet
+owner: it-lead@company.com
+filed_on: 2026-05-22
+status: active
+mapped_scenarios: [SCN-2026-0012]
+control: [A.8.8, A.8.7]
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.02, 0.05]
+  estimated_by: j.okafor@company.com
+  estimated_on: 2026-05-22
+reason: accepted_vulnerability
+scope:
+  type: enumerated
+  assets: [corp-endpoint-fleet]
+expires_on: 2026-09-30
+renewals:
+  count: 0
+  justification_changed_last: null

@@ -8,9 +8,9 @@ factor-moving issue, and aggregates residual **up** the tree:
 
 Four rules from SPEC §4 govern the whole module:
 
-1. **One path into residual.** Only ``exception`` and ``vuln`` issues move a
-   factor and enter the bands. ``finding`` severity, control health, evidence
-   freshness, and KRIs inform the estimate/narrative but never add a term.
+1. **One path into residual.** Only ``exception`` issues move a factor and
+   enter the bands. ``finding`` severity, control health, evidence freshness,
+   and KRIs inform the estimate/narrative but never add a term.
 2. **Appetite is a two-sided target.** Three gates in order (SPEC v2.6 §1, see
    ``rag_band``): mean at/past appetite -> red; a breach probability at/past
    ``p_red`` -> red; otherwise a mean in the top quarter of tolerance -> green
@@ -63,7 +63,7 @@ HEALTH_AMBER = "amber"
 HEALTH_RED = "red"
 
 # Severity weights for the control-health burden. A finding carries its bounded
-# severity; an accepted exception/vuln on the control is an open gap weighted at
+# severity; an accepted exception on the control is an open gap weighted at
 # medium. These calibrate the green/amber/red thresholds below.
 _SEVERITY_WEIGHT = {"critical": 4, "high": 3, "medium": 2, "low": 1}
 _GAP_WEIGHT = 2
@@ -230,7 +230,7 @@ class ControlHealthResult:
     health: str                   # green | amber | red
     burden: float                 # severity-weighted open-issue load
     findings_by_severity: dict[str, int]
-    open_gap_count: int           # open exceptions/vulns on the control
+    open_gap_count: int           # open accepted exceptions on the control
     evidence_status: str          # fresh | stale | missing | none
     clean_but_unproven: bool      # green on findings, amber only from stale/missing evidence
 
@@ -454,7 +454,7 @@ class GraphEngine:
 
     def _cleared_issue_ids(self, rem) -> set[str]:
         """The active issues a restore clears — every issue on the control it
-        restores. Restoring a control clears *that control's* exceptions/vulns,
+        restores. Restoring a control clears *that control's* exceptions,
         not just a nominated one."""
         if rem.type == "restore" and rem.restores_control:
             return {i.id for i in self.graph.issues if rem.restores_control in i.controls}
@@ -731,7 +731,7 @@ class GraphEngine:
                 sev = issue.severity if issue.severity in _SEVERITY_WEIGHT else "low"
                 findings_by_sev[sev] += 1
                 burden += _SEVERITY_WEIGHT[sev]
-            elif issue.moves_a_factor:  # an open, accepted exception/vuln gap
+            elif issue.moves_a_factor:  # an open, accepted exception gap
                 gap_count += 1
                 burden += _GAP_WEIGHT
 

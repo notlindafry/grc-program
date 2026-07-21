@@ -13,9 +13,11 @@ Four rules from build spec §4 govern everything below.
 
 ## 1. One path into residual
 
-Only **factor-moving** issues change residual: an `exception` or a `vuln` moves
-exactly one scenario factor (OF, PoR, or LM) and its marginal contribution is
-added under common random numbers, exactly as in the legacy engine. A `finding`
+Only **factor-moving** issues change residual: an `exception` moves exactly one
+scenario factor (OF, PoR, or LM) and its marginal contribution is added under
+common random numbers, exactly as in the legacy engine. (A won't-fix accepted
+vulnerability is an exception with `reason: accepted_vulnerability`; the
+separate `vuln` type was retired in v4.0 §0.0.) A `finding`
 carries a bounded severity that feeds **control health and the narrative** but is
 never simulated — `IssueRecord.moves_a_factor` is `False` for a finding, so it
 can never become a contributor. Control health, evidence freshness, and KRIs
@@ -128,7 +130,7 @@ different columns so they never read as the same thing.
 Per control, a RAG rollup from two inputs — it **never re-enters residual**:
 
 - **Open-issue burden** — findings weighted by severity (critical 4, high 3,
-  medium 2, low 1) plus each open accepted exception/vuln on the control (a gap,
+  medium 2, low 1) plus each open accepted exception on the control (a gap,
   weight 2). Burden ≥ 6 → red; ≥ 2 → amber.
 - **Evidence coverage/freshness** — the worst status over the control's evidence
   (`missing` > `stale` > `fresh`; `none` if uncovered). Stale or missing evidence
@@ -137,7 +139,8 @@ Per control, a RAG rollup from two inputs — it **never re-enters residual**:
 This yields the "provability" signal (spec §5.5): a control can be **green on
 findings but amber because its evidence is stale or missing**
 (`clean_but_unproven`), and `A.8.5` (secure authentication) is **red from a
-finding cluster** (spec §5.4) while `A.8.8` is red from clustered accepted vulns.
+finding cluster** (spec §5.4) while `A.8.8` is red from clustered
+accepted-vulnerability exceptions.
 
 ## KRIs — signals and triggers
 
