@@ -90,9 +90,6 @@ table.tbl { width:100%; border-collapse:collapse; font-size:13px; }
 .st-at { color:var(--status-at); }
 .st-below { color:var(--status-below-tint); }
 .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:baseline; }
-.callout { border-left:3px solid var(--accent); background:var(--bg); padding:10px 14px; margin:14px 0 0;
-  border-radius:var(--radius-sm); color:var(--text); font-size:13px; line-height:1.5; max-width:820px; }
-.callout.warn { border-left-color:var(--status-below); }
 .lede { color:var(--text); font-size:13.5px; margin:0 0 14px; max-width:820px; }
 footer { margin-top:40px; color:var(--text-faint); font-size:12.5px; max-width:820px; }
 @media (max-width:840px) { .cols { grid-template-columns:repeat(2,1fr); } }
@@ -300,23 +297,26 @@ def _ai_governance_card(e: GRCEngine) -> str:
            (_word_over(f"{s.days_overdue}d overdue") if s.met is False else _word_below("open, in window")))
         + '</td></tr>'
         for s in sla)
-    prov_rows = "".join(
-        f'<tr><td class="nm">{_esc(c.dev.id)}</td><td class="drv">{_esc(c.dev.guardrail)}</td>'
-        f'<td class="drv">{_esc(c.named_risk)}</td>'
-        f'<td class="num">{money(c.band.low)}–{money(c.band.high)}</td>'
-        f'<td class="drv">{"clamped to bound" if c.clamped else "within bound"}</td></tr>'
-        for c in pe.contributions)
-    risk_lines = []
+    # Roll the per-deviation contributions up per named risk — the landing
+    # altitude. Count the open deviations on each, the combined provisional
+    # exposure, and what share of that risk's appetite it represents.
+    prov_rows = ""
     for nid, band in pe.by_risk.items():
         nr = e.graph.named_risks.get(nid)
         app = nr.appetite_threshold if nr else None
-        share = f" ({band.mean / app:.0%} of its {money(app)} appetite in expectation)" if app else ""
-        risk_lines.append(f'<b>{_esc(nid)}</b>: +{money(band.low)}–{money(band.high)} provisional{share}')
-    ladders = (f'<b>{len(complete)}/{len(e.graph.guardrails)}</b> guardrails declare a complete '
-               'response ladder (all four rungs)')
+        n_dev = sum(1 for c in pe.contributions if c.named_risk == nid)
+        share = f"{band.mean / app:.0%} of appetite" if app else "—"
+        prov_rows += (
+            f'<tr><td class="nm">{_esc(nid)}</td>'
+            f'<td class="num">{n_dev}</td>'
+            f'<td class="num">+{money(band.low)}–{money(band.high)}</td>'
+            f'<td class="num">{_esc(share)}</td></tr>')
+    ladders = (f'<b>{len(complete)}/{len(e.graph.guardrails)}</b> guardrails define a response for '
+               'every severity level (low, medium, high, critical).')
     if incomplete:
-        ladders += " — " + ", ".join(
-            f'{_esc(g)} missing <i>{", ".join(_esc(r) for r in rungs)}</i> {_word_below("incomplete")}'
+        ladders += " " + " ".join(
+            f'{_esc(g)} is {_word_below("incomplete")} — no response set for '
+            f'{_esc(", ".join(rungs))}.'
             for g, rungs in incomplete.items())
 
     return (
@@ -329,26 +329,24 @@ def _ai_governance_card(e: GRCEngine) -> str:
         'executor, not built here.</p>'
         f'<p class="lede">Guardrail coverage: <b>{len(ac.covered)}/{len(ac.detected)}</b> detected '
         f'agents governed. Deviations — by disposition: {disp}; by severity: {sev}.</p>'
-        '<h4>Time-to-disposition (the governing-at-speed number)</h4>'
-        '<p class="lede">Time to a human decision on a machine-proposed deviation, against each '
-        'guardrail\'s <code>disposition_sla_hours</code> — not approval-before-action. All '
+        '<h4>How fast flagged deviations get reviewed</h4>'
+        '<p class="lede">Agents act on their own; guardrails run inline, so nothing here sits in front '
+        'of an agent waiting for sign-off. A deviation is the exception — a guardrail breach caught '
+        'after the fact — that a human then reviews and closes out. This is how fast that '
+        'after-the-fact review happens, against each guardrail\'s time limit. All '
         f'{len(sla)} deviations:</p>'
         '<table class="tbl"><thead><tr><th>Deviation</th><th>Guardrail</th><th>Severity</th>'
         f'<th>Disposition</th><th>Due</th><th>Status</th></tr></thead><tbody>{sla_rows}</tbody></table>'
-        '<h4>Provisional deviation exposure — Model B overlay (WIP)</h4>'
-        '<p class="lede">The risk contribution of each <i>proposed or accepted</i> deviation (dismissed '
-        'and remediated add nothing), capped by the guardrail\'s <code>provisional_move</code> bound, '
-        'shown against the named risk\'s appetite. For the purposes of this simulation it is '
-        '<b>not added to the eng portfolio total</b> and is not treated as that risk\'s published '
-        'exposure.</p>'
-        '<table class="tbl"><thead><tr><th>Deviation</th><th>Guardrail</th><th>Named risk</th>'
-        f'<th>Provisional contribution</th><th>Bound</th></tr></thead><tbody>{prov_rows}</tbody></table>'
-        f'<p class="lede" style="margin-top:10px">{" · ".join(risk_lines)}</p>'
-        '<div class="callout warn"><b>Deliberate modeling decision — Model B:</b> the <i>exposure</i> '
-        'side may now be written by humans plus a <b>bounded auto-registrar</b>. Appetite stays '
-        'authored and machine-untouched; the one-path rule holds. The meta-guardrail is '
-        '<code>provisional_move</code>: bounded factor, mandatory disposition SLA.</div>'
-        f'<h4>Response-ladder completeness</h4><p class="lede">{ladders}.</p>'
+        '<h4>How much risk the open deviations carry</h4>'
+        '<p class="lede">The other side of the same deviations: not how fast they clear, but how much '
+        'potential risk they add while still open. Each unresolved deviation (proposed or accepted — '
+        'dismissed and remediated add nothing) adds a small, capped amount to the risk it maps to, so '
+        'a risk can accumulate exposure from several. The cap is the guardrail\'s own declared limit. '
+        'For the purposes of this simulation this stays out of the eng portfolio total and is not '
+        'treated as the risk\'s real exposure.</p>'
+        '<table class="tbl"><thead><tr><th>Named risk</th><th>Open deviations</th>'
+        f'<th>Provisional exposure</th><th>Share of appetite</th></tr></thead><tbody>{prov_rows}</tbody></table>'
+        f'<h4>Response coverage by severity</h4><p class="lede">{ladders}</p>'
         '</div>')
 
 

@@ -234,18 +234,27 @@ def test_standards_attribution_is_precise(page):
     assert "not NIST-published" in page
 
 
-def test_provisional_overlay_labeled_wip(page):
-    assert "Model B overlay (WIP)" in page
-    assert "not added to the eng portfolio total" in page
+def test_provisional_overlay_labeled_provisional(page):
+    # The deviation-exposure overlay stays clearly provisional and out of the
+    # eng total, and is framed as a modeling choice ("for the purposes of this
+    # simulation"), without leaking internal jargon (Model B, provisional_move).
+    assert "Provisional exposure" in page
+    assert "stays out of the eng portfolio total" in page
+    assert "the purposes of this simulation" in page
+    assert "Model B" not in page and "provisional_move" not in page
 
 
 def test_find_the_number_in_two_places(page, grc):
-    # §1.G acceptance 4 spot-checks: a policy, a control, a finding, a
-    # deviation each appear consistently in the scorecard and their card.
+    # §1.G acceptance 4 spot-checks: a policy, a control, a finding, and a
+    # named risk each appear consistently where they are shown.
     pc = grc.policy_currency()
     worst = pc.overdue[0]
-    assert page.count(worst.policy_id) >= 2
+    assert page.count(worst.policy_id) >= 2  # scorecard worst-aging + governance table
     assert f"{worst.days_overdue}d overdue" in page
     assert page.count("FND-2026-0006") >= 1 and "2 finding(s) with no plan" in page
-    assert page.count("DEV-2026-0001") >= 2  # SLA table + provisional table
+    assert page.count("DEV-2026-0001") >= 1  # the deviation-review table
+    # A named risk carrying provisional exposure names its own id in that table.
+    pe = grc.provisional_exposure()
+    nid = next(iter(pe.by_risk))
+    assert page.count(nid) >= 1
     assert page.count("A.8.15") >= 1  # reuse table
