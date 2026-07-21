@@ -971,9 +971,7 @@ def _ai_lens(graph: Graph, eng: GraphEngine) -> str:
         f'<b>In how we build</b><span class="ail-lv">{money(i_sum)} · {100 - p_pct}%</span></div>'
         '</div></div>'
         f'<p class="ail-cap"><b>Product AI is ~{ratio:.0f}× internal AI</b> '
-        f'({money(p_sum)} vs {money(i_sum)}). The internal slice is small because the risk is small — '
-        f'its presence answers <i>"did you look at our own AI usage?"</i> (yes); its size answers '
-        f'<i>"how worried?"</i> (a little). Its absence would be the conspicuous failure.</p>')
+        f'({money(p_sum)} vs {money(i_sum)}).</p>')
 
     inner = (
         '<p class="lede">AI is not a category of risk; it is a cause that runs through the ones you already '
@@ -1149,7 +1147,6 @@ h4 { font-size:13px; color:var(--text); margin:18px 0 8px; }
 .ail-legend .sw { width:12px; height:12px; border-radius:50%; flex:0 0 auto; }
 .ail-legend .ail-lv { color:var(--text-muted); margin-left:6px; font-family:var(--font-display); }
 .ail-cap { color:var(--text); font-size:13px; line-height:1.5; margin:0 0 6px; max-width:760px; }
-.ail-cap i { color:var(--text-muted); font-style:italic; }
 footer { margin-top:40px; color:var(--text-muted); font-size:12.5px; border-top:1px solid var(--border); padding-top:18px; }
 @media (max-width:720px) { .tiles { grid-template-columns:repeat(2,1fr); } .ai-flow { grid-template-columns:1fr; } .ai-arrow { transform:rotate(90deg); } }
 """
