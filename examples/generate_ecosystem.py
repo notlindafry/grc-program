@@ -1303,7 +1303,10 @@ def build_remediations():
         status="funded", owner="iam-lead@company.com", operational_owner="iam-oncall@company.com",
         mechanism="deploy_phishing_resistant_mfa", target_date="2026-09-01",
         addresses_scenarios=["SCN-2026-0001", "SCN-2026-0019"], restores_control="A.8.5",
-        addresses_issues=["EXC-2026-0170"])
+        # v4.0 §0.H: the passkey rollout is also the action plan for the two
+        # A.8.5 audit findings — linked so "finding without an action plan"
+        # stays a real signal, not an artifact of unlinked data.
+        addresses_issues=["EXC-2026-0170", "FND-2026-0001", "FND-2026-0002"])
     add(title="Re-enable DLP with tuned rules on export paths", rtype="restore",
         status="funded", owner="data-platform-lead@company.com", operational_owner="data-oncall@company.com",
         mechanism="re_enable_dlp_with_tuned_rules", target_date="2026-09-01",
@@ -1347,7 +1350,7 @@ def build_remediations():
         ("Restore the data-validation suite", "restore", "funded", "A.8.33",
          ["SCN-2026-0005"], None, "2026-09-10", "data-oncall@company.com"),
         ("Retrain the abuse-detection model", "restore", "proposed", "A.8.16",
-         ["SCN-2026-0008"], None, "2026-05-01", "tns-oncall@company.com"),   # slipped
+         ["SCN-2026-0008"], ["FND-2026-0004"], "2026-05-01", "tns-oncall@company.com"),   # slipped; plan for FND-0004
         ("Refresh the abuse-escalation playbook", "restore", "in_progress", "A.8.16",
          ["SCN-2026-0007"], None, "2026-04-15", "tns-oncall@company.com"),   # slipped
         ("Complete network segmentation for PCI", "restore", "proposed", "A.8.22",
@@ -1382,7 +1385,8 @@ def build_remediations():
         ("Passkey rollout wave 2 (contractor consoles)", "in_progress", ["SCN-2026-0001"], "2026-05-05"),
         ("Legacy API-key decommission", "proposed", ["SCN-2026-0001"], "2026-04-20"),
         ("Session-timeout hardening on legacy portals", "in_progress", ["SCN-2026-0001"], "2026-03-15"),
-        ("Break-glass session logging", "proposed", ["SCN-2026-0019"], "2026-05-25"),
+        ("Break-glass session logging", "proposed", ["SCN-2026-0019"], "2026-05-25",
+         ["FND-2026-0003"]),  # v4.0 §0.H: the action plan for the break-glass finding
         ("DLP coverage for ad-hoc BI connectors", "in_progress", ["SCN-2026-0002"], "2026-06-10"),
         ("Fraud-rule tuning backlog burn-down", "proposed", ["SCN-2026-0003"], "2026-04-30"),
         ("Detection-model eval-gate rollout", "in_progress", ["SCN-2026-0008"], "2026-06-05"),
@@ -1398,10 +1402,11 @@ def build_remediations():
         ("Subprocessor inventory reconciliation", "in_progress", ["SCN-2026-0018"], "2026-04-25"),
         ("Card-testing velocity limits", "proposed", ["SCN-2026-0015"], "2026-06-02"),
     ]
-    for title, status, scns, td in tail:
+    for title, status, scns, td, *issues in tail:
         add(title=title, rtype="restore", status=status, owner="platform-lead@company.com",
             operational_owner=OPS, mechanism=title.lower().replace(" ", "_")[:40],
-            target_date=td, addresses_scenarios=scns, restores_control=None)
+            target_date=td, addresses_scenarios=scns, restores_control=None,
+            addresses_issues=(issues[0] if issues else None))
     return R
 
 

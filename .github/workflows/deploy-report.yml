@@ -52,6 +52,10 @@ jobs:
           # the synthetic corpus lives in a 2026 window, so staleness/expiry math
           # must run as-of that date, not the runner's wall clock.
           python -m risk_ledger.cli --as-of 2026-06-18 dashboard --out public/index.html
+          # The GRC tab (v4.0) is a separate page; its nav links to
+          # dashboard.html, so serve the eng page under that name too.
+          cp public/index.html public/dashboard.html
+          python -m risk_ledger.cli --as-of 2026-06-18 grc --out public/grc.html
           # The page is served on a public URL -- keep crawlers out entirely.
           printf 'User-agent: *\nDisallow: /\n' > public/robots.txt
 

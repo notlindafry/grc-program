@@ -7,3 +7,4 @@ owner: platform-lead@company.com
 operational_owner: platform-oncall@company.com
 mechanism: break-glass_session_logging
 addresses_scenarios: [SCN-2026-0019]
+addresses_issues: [FND-2026-0003]

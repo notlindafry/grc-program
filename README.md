@@ -140,6 +140,7 @@ risk-ledger portfolio                # residual aggregation, appetite/capacity, 
 risk-ledger drift [OKR]              # per-OKR reported-vs-true footprint (undeclared risk debt)
 risk-ledger renewals                 # the can-you-keep-kicking view: temporary-forever + slipped work
 risk-ledger dashboard                # render the executive dashboard (the hero artifact) to HTML
+risk-ledger grc                      # render the GRC-program tab (landing scorecard) to HTML
 ```
 
 By default the tool reads the corpus in `./data`. Regenerate the whole
@@ -156,6 +157,15 @@ Action publishes to Vercel:
 
 A GitHub Action ([`.github/workflows/deploy-report.yml`](.github/workflows/deploy-report.yml))
 regenerates from the corpus and redeploys on every push to `main`.
+
+`risk-ledger grc` renders the **GRC tab** (v4.0, work in progress) to
+`docs/grc.html` — a separate page for a GRC Manager measuring the health of the
+program itself (coverage, hygiene, SLA throughput, AI governance), not the risk
+portfolio. It reads additional registers (`regulations.yaml`, `sla_config.yaml`,
+`guardrails.yaml`, `agent_inventory.yaml`, `guardrail_events/`) that the eng
+build never opens, so **the eng dashboard stays byte-identical** — the isolation
+guarantee; guardrail deviations live outside `data/issues/` and never enter
+residual.
 
 > ⚠️ **The deploy is public and automatic.** Every push to `main` publishes
 > whatever is in `data/` to the live URL — there is no separate "make this
