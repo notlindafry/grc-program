@@ -487,6 +487,10 @@ class GRCEngine:
             default_days = round(self.graph.sla.policy_review_cadence_months * 30.5)
         return _CADENCE_DAYS.get(str(cadence).lower(), default_days)
 
+    # Framing rule for anything cadence-derived (policies here; named-risk
+    # review currency when the Risk drill-down renders it): the BUILD does the
+    # checking and FLAGS records for manual review — copy must never imply the
+    # program checks dates by hand. The review/sign-off is the human step.
     def policy_currency(self) -> PolicyCurrency:
         overdue: list[OverduePolicy] = []
         for pid, pol in self.graph.policies.items():
@@ -744,7 +748,7 @@ class GRCEngine:
         dev = self.deviation_sla()
         dev_measured = [s for s in dev if s.met is not None]
         return {
-            "policy reviews on cadence": (pc.current, pc.total),
+            "policies inside review cadence (rest auto-flagged for manual review)": (pc.current, pc.total),
             "evidence fresh on its cadence": (len(ev["fresh"]), len(self.graph.evidence)),
             "live remediations on target date": (rem.total_live - len(rem.overdue), rem.total_live),
             "deviations dispositioned in SLA": (

@@ -84,6 +84,7 @@ table.tbl { width:100%; border-collapse:collapse; font-size:13px; }
 .tbl .drv { color:var(--text-muted); }
 .tbl .num { text-align:right; font-family:var(--font-display); white-space:nowrap; }
 .st { font-weight:600; font-size:12px; }
+.wip-tag { font-size:21px; vertical-align:middle; letter-spacing:0.04em; }
 .st-over { color:var(--status-over); }
 .st-at { color:var(--status-at); }
 .st-below { color:var(--status-below-tint); }
@@ -161,10 +162,11 @@ def _scorecard(e: GRCEngine) -> str:
         f'<div class="col-num">{len(rc.satisfied)}/{rc.total}</div>'
         '<div class="col-den">external requirements satisfied by a live control (regulations.yaml)</div>'
         '<div class="col-row"><div class="col-k">Worst-aging hygiene</div><div class="col-v">'
-        + (f'{_esc(worst_pol.policy_id)} review <b>{worst_pol.days_overdue}d overdue</b>' if worst_pol else "no overdue policy reviews")
+        + (f'{_esc(worst_pol.policy_id)} flagged for manual review · <b>{worst_pol.days_overdue}d overdue</b>'
+           if worst_pol else "no policies flagged for review")
         + '</div></div>'
         f'<div class="col-row"><div class="col-k">SLA</div><div class="col-v">{_sla_word(pc.current, pc.total)}'
-        f' <span class="drv">policy reviews on cadence: {pc.current}/{pc.total}</span></div></div>'
+        f' <span class="drv">policies flagged for manual review: {len(pc.overdue)}/{pc.total}</span></div></div>'
         # AI governance rides in the Governance column (§1.E), strongest WIP (P.7).
         '<div class="subtile"><div class="col-k">AI governance · WIP</div>'
         f'<div class="col-v">guardrail coverage <b>{len(ac.covered)}/{len(ac.detected)}</b> detected agents'
@@ -260,8 +262,9 @@ def _governance_card(e: GRCEngine) -> str:
         '<div class="card"><h2>Governance</h2>'
         '<p class="sub">Are commitments current, and does every obligation land on a live control?</p>'
         f'<p class="lede">Policy currency: <b>{pc.current}/{pc.total}</b> policies inside their review '
-        f'cadence (all policies; default {e.graph.sla.policy_review_cadence_months} months). '
-        f'{len(pc.overdue)} overdue:</p>'
+        f'cadence (all policies; default {e.graph.sla.policy_review_cadence_months} months). The build '
+        f'checks the dates and <b>flags {len(pc.overdue)} for manual review</b> — the review itself is '
+        'the human step, the flagging is not:</p>'
         '<table class="tbl"><thead><tr><th>Policy</th><th>Title</th><th>Last reviewed</th>'
         f'<th>Cadence</th><th>Status</th></tr></thead><tbody>{rows}</tbody></table>'
         f'<h4>Control-to-requirement coverage</h4>'
@@ -423,7 +426,8 @@ def _compliance_card(e: GRCEngine) -> str:
         'remediation pointing at them:</p>'
         '<table class="tbl"><thead><tr><th>Finding</th><th>Title</th><th>Severity</th><th>Status</th>'
         f'</tr></thead><tbody>{plan_rows}</tbody></table>'
-        f'<h4>Evidence</h4><p class="lede">Freshness (cadence + last_collected; all {n_ev} records): '
+        f'<h4>Evidence</h4><p class="lede">Freshness derived at build time (cadence + last_collected; '
+        f'all {n_ev} records), stale/missing auto-flagged for re-collection: '
         f'{_word_at("fresh")} <b>{len(ev["fresh"])}</b> · '
         f'{_word_below("stale")} <b>{len(ev["stale"])}</b> ({", ".join(_esc(x) for x in ev["stale"])}) · '
         f'{_word_over("missing")} <b>{len(ev["missing"])}</b> ({", ".join(_esc(x) for x in ev["missing"])}). '
@@ -458,8 +462,8 @@ _ROADMAP = [
 # (check, automated?). Deterministic = dates, SLAs, coverage counts — no model.
 # The manual rows are the human/ratification steps the same metrics depend on.
 _HYGIENE_CHECKS = [
-    ("policy review currency (dates vs cadence)", True),
-    ("named-risk review currency", True),
+    ("policy review-currency flagging (dates vs cadence)", True),
+    ("named-risk review-currency flagging", True),
     ("evidence freshness (cadence + last_collected)", True),
     ("remediation target-date adherence", True),
     ("deviation disposition SLA", True),
@@ -531,7 +535,7 @@ def build_grc_page(e: GRCEngine) -> str:
     body = (
         '<div class="wrap">'
         '<header><div class="eyebrow">Company Corp · GRC program</div>'
-        '<h1>GRC program health <span class="st st-below">[WIP]</span></h1>'
+        '<h1>GRC program health <span class="st st-below wip-tag">[WIP]</span></h1>'
         f'<div class="meta">For the GRC Manager · reference date '
         f'{e.config.as_of.isoformat()} · <b>synthetic data</b>, git-native YAML</div>'
         '<div class="navrow">↩ <a href="dashboard.html">Eng risk dashboard</a> — that tab ranks what to '
