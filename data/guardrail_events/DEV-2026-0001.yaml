@@ -1,0 +1,21 @@
+# Guardrail deviation (v4.0 §0.E): a provisional exception, machine-proposed by
+# the offline deviation monitor and awaiting human disposition. Bounded by the
+# guardrail's provisional_move; isolated by directory, so eng residual is
+# untouched. Overdue for disposition at the 2026-06-18 reference date. Synthetic.
+id: DEV-2026-0001
+type: exception                            # provisional; isolated by directory (P.4)
+title: Agent deploy to prod without an approved change ticket
+filed_on: 2026-06-15                       # observed date (parses cleanly, drives aging)
+status: active
+mapped_scenarios: [SCN-2026-0019]
+exception_effect:                          # bounded by GR-AGENT-PROD-WRITE provisional_move
+  moves: probability_of_realization
+  with_exception_90ci: [0.02, 0.05]
+  estimated_by: offline-ai-deviation-monitor
+# --- deviation-specific (read from .raw by the GRC build) ---
+guardrail: GR-AGENT-PROD-WRITE
+disposition: proposed                      # proposed | dismissed | accepted | remediated
+severity: high                             # -> response_ladder rung
+response_invoked: escalate + timebox
+detected_by: offline-ai-deviation-monitor  # advisory; a human dispositions (propose -> ratify)
+disposition_due: 2026-06-16                # filed_on + 24h SLA; OVERDUE at as-of 2026-06-18

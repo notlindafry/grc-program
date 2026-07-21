@@ -1,0 +1,21 @@
+# Guardrail deviation (v4.0 §0.E): the one INTERVENE — a critical deviation
+# whose response rung fired the runtime intervention seam. The enforcement
+# EXECUTION is an external, AAGATE-style overlay (CSA, Dec 2025): acknowledged,
+# not built — no engine here. Dispositioned REMEDIATED same day. Synthetic.
+id: DEV-2026-0004
+type: exception
+title: Orchestrator spawned a depth-4 delegation chain touching prod credentials
+filed_on: 2026-05-28
+status: resolved
+mapped_scenarios: [SCN-2026-0032]
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.04, 0.08]
+  estimated_by: offline-ai-deviation-monitor
+guardrail: GR-AGENT-DELEGATION
+disposition: remediated
+severity: critical
+response_invoked: intervene                # -> external runtime enforcement seam, acknowledged-not-built
+detected_by: offline-ai-deviation-monitor
+disposition_due: 2026-05-28                # 12h SLA
+disposition_on: 2026-05-28

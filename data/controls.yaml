@@ -16,6 +16,7 @@
   theme: Organizational
   policy: POL-INFOSEC
   mapped_named_risks: []
+  framework_refs: [DORA-P1-ICT-RISK-MGMT]
 
 "A.5.2":
   title: Information security roles and responsibilities
@@ -46,6 +47,7 @@
   theme: Organizational
   policy: POL-INFOSEC
   mapped_named_risks: []
+  framework_refs: [DORA-P5-INFO-SHARING]
 
 "A.5.7":
   title: Threat intelligence
@@ -106,12 +108,14 @@
   theme: Organizational
   policy: POL-ACCESS-CONTROL
   mapped_named_risks: [NR-PROD-COMPROMISE]
+  framework_refs: [PCI-REQ-8]
 
 "A.5.17":
   title: Authentication information
   theme: Organizational
   policy: POL-ACCESS-CONTROL
   mapped_named_risks: [NR-PROD-COMPROMISE]
+  framework_refs: [PCI-REQ-8]
 
 "A.5.18":
   title: Access rights
@@ -124,24 +128,28 @@
   theme: Organizational
   policy: POL-SUPPLIER
   mapped_named_risks: [NR-VENDOR-ACCESS]
+  framework_refs: [DORA-P4-THIRD-PARTY-RISK]
 
 "A.5.20":
   title: Addressing information security within supplier agreements
   theme: Organizational
   policy: POL-SUPPLIER
   mapped_named_risks: [NR-VENDOR-ACCESS]
+  framework_refs: [DORA-P4-THIRD-PARTY-RISK]
 
 "A.5.21":
   title: Managing information security in the ICT supply chain
   theme: Organizational
   policy: POL-SUPPLIER
   mapped_named_risks: [NR-MODEL-SUPPLY, NR-VENDOR-ACCESS]
+  framework_refs: [DORA-P4-THIRD-PARTY-RISK]
 
 "A.5.22":
   title: Monitoring, review and change management of supplier services
   theme: Organizational
   policy: POL-SUPPLIER
   mapped_named_risks: [NR-VENDOR-ACCESS]
+  framework_refs: [DORA-P4-THIRD-PARTY-RISK]
 
 "A.5.23":
   title: Information security for use of cloud services
@@ -154,6 +162,7 @@
   theme: Organizational
   policy: POL-INCIDENT
   mapped_named_risks: [NR-PLATFORM-OUTAGE]
+  framework_refs: [DORA-P2-INCIDENT-REPORTING]
 
 "A.5.25":
   title: Assessment and decision on information security events
@@ -166,6 +175,7 @@
   theme: Organizational
   policy: POL-INCIDENT
   mapped_named_risks: [NR-PROD-COMPROMISE]
+  framework_refs: [DORA-P2-INCIDENT-REPORTING]
 
 "A.5.27":
   title: Learning from information security incidents
@@ -190,6 +200,7 @@
   theme: Organizational
   policy: POL-BCP
   mapped_named_risks: [NR-PLATFORM-OUTAGE]
+  framework_refs: [DORA-P3-RESILIENCE-TESTING]
 
 "A.5.31":
   title: Legal, statutory, regulatory and contractual requirements
@@ -403,6 +414,7 @@
   theme: Technological
   policy: POL-ACCESS-CONTROL
   mapped_named_risks: [NR-PROD-COMPROMISE]
+  framework_refs: [PCI-REQ-8]
 
 "A.8.6":
   title: Capacity management
@@ -421,6 +433,7 @@
   theme: Technological
   policy: POL-VULN-MGMT
   mapped_named_risks: [NR-PROD-COMPROMISE, NR-ENDPOINT-MALWARE]
+  framework_refs: [DORA-P1-ICT-RISK-MGMT, DORA-P3-RESILIENCE-TESTING, PCI-REQ-11]
 
 "A.8.9":
   title: Configuration management
@@ -463,12 +476,14 @@
   theme: Technological
   policy: POL-LOGGING-MONITORING
   mapped_named_risks: [NR-ABUSE-DETECTION, NR-PROD-COMPROMISE]
+  framework_refs: [DORA-P2-INCIDENT-REPORTING, PCI-REQ-10]
 
 "A.8.16":
   title: Monitoring activities
   theme: Technological
   policy: POL-LOGGING-MONITORING
   mapped_named_risks: [NR-ABUSE-DETECTION, NR-CARD-TESTING]
+  framework_refs: [PCI-REQ-10]
 
 "A.8.17":
   title: Clock synchronization
@@ -547,6 +562,7 @@
   theme: Technological
   policy: POL-SECURE-DEV
   mapped_named_risks: [NR-MIGRATION-AVAILABILITY]
+  framework_refs: [PCI-REQ-11]
 
 "A.8.30":
   title: Outsourced development

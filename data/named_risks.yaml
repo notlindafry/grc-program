@@ -16,6 +16,8 @@ NR-PROD-COMPROMISE:
   appetite_threshold: 1500000
   appetite_rationale: "Core-launch risk; some tolerance during the rebuild, but production compromise erodes customer trust fast."
   threatens_okrs: [gcloud-migration, core-platform]
+  last_reviewed: 2026-05-12
+  review_cadence: annual
 
 NR-DATA-EXFIL:
   title: Exfiltration of regulated data from an analytics or export path
@@ -25,6 +27,8 @@ NR-DATA-EXFIL:
   appetite_threshold: 2000000
   appetite_rationale: "Regulated data, but exfil is adversarial and partly insurable; moderate tolerance."
   threatens_okrs: [data-platform]
+  last_reviewed: 2026-04-21
+  review_cadence: annual
 
 NR-PAYMENT-FRAUD:
   title: Fraudulent transactions against the payments platform
@@ -34,6 +38,8 @@ NR-PAYMENT-FRAUD:
   appetite_threshold: 2500000
   appetite_rationale: "Fraud is a managed cost of running payments; higher tolerance, tracked against margin."
   threatens_okrs: [payments-launch]
+  last_reviewed: 2026-03-17
+  review_cadence: annual
 
 NR-ENDPOINT-MALWARE:
   title: Malware on a corporate endpoint leading to lateral movement
@@ -43,6 +49,8 @@ NR-ENDPOINT-MALWARE:
   appetite_threshold: 2000000
   appetite_rationale: "Recoverable with EDR and reimaging; moderate tolerance."
   threatens_okrs: [internal-tools]
+  last_reviewed: 2026-02-09
+  review_cadence: annual
 
 NR-CARD-TESTING:
   title: Automated card-testing against the public checkout flow
@@ -52,6 +60,8 @@ NR-CARD-TESTING:
   appetite_threshold: 1500000
   appetite_rationale: "Financial and recoverable; velocity limits cap the downside."
   threatens_okrs: [payments-launch]
+  last_reviewed: 2026-03-17
+  review_cadence: annual
 
 NR-ABUSE-ESCALATION:
   title: Unmitigated abuse escalating on the platform
@@ -61,6 +71,8 @@ NR-ABUSE-ESCALATION:
   appetite_threshold: 1500000
   appetite_rationale: "Reputational; moderate tolerance backed by an SLA-driven response."
   threatens_okrs: [trust-and-safety]
+  last_reviewed: 2026-01-28
+  review_cadence: annual
 
 NR-ABUSE-DETECTION:
   title: Gaps in automated detection of policy-violating content
@@ -70,6 +82,8 @@ NR-ABUSE-DETECTION:
   appetite_threshold: 1500000
   appetite_rationale: "Detection gaps are recoverable via retrain; moderate tolerance."
   threatens_okrs: [trust-and-safety]
+  last_reviewed: 2026-01-28
+  review_cadence: annual
 
 NR-PLATFORM-OUTAGE:
   title: Customer-facing outage of a core platform service
@@ -79,6 +93,8 @@ NR-PLATFORM-OUTAGE:
   appetite_threshold: 2500000
   appetite_rationale: "Availability risk knowingly carried to sustain launch velocity; bounded by SLA credits."
   threatens_okrs: [core-platform]
+  last_reviewed: 2026-05-06
+  review_cadence: annual
 
 NR-DATA-AVAILABILITY:
   title: Loss of availability of a core data platform service
@@ -88,6 +104,8 @@ NR-DATA-AVAILABILITY:
   appetite_threshold: 2000000
   appetite_rationale: "Recoverable; failover reduces the blast radius."
   threatens_okrs: [data-platform]
+  last_reviewed: 2026-02-25
+  review_cadence: annual
 
 NR-DATA-QUALITY:
   title: Corrupted or unvalidated data feeding downstream decisions
@@ -97,6 +115,8 @@ NR-DATA-QUALITY:
   appetite_threshold: 2000000
   appetite_rationale: "Correctness matters, but bad data is usually caught and reprocessed."
   threatens_okrs: [data-platform]
+  last_reviewed: 2026-02-25
+  review_cadence: annual
 
 NR-PIPELINE-INTEGRITY:
   title: Schema-invalid or corrupted writes entering the data pipeline
@@ -106,6 +126,8 @@ NR-PIPELINE-INTEGRITY:
   appetite_threshold: 2000000
   appetite_rationale: "Recoverable via replay; write-time gates cap the downside."
   threatens_okrs: [data-platform]
+  last_reviewed: 2026-02-25
+  review_cadence: annual
 
 NR-DATA-RESIDENCY:
   title: Regulated customer data processed or stored outside its required region
@@ -115,6 +137,8 @@ NR-DATA-RESIDENCY:
   appetite_threshold: 650000
   appetite_rationale: "Regulated data; low tolerance regardless of delivery upside."
   threatens_okrs: [data-platform, data-residency]
+  last_reviewed: 2026-04-08
+  review_cadence: annual
 
 NR-SUBPROCESSOR-GOV:
   title: Ungoverned subprocessor handling of regulated data
@@ -124,6 +148,8 @@ NR-SUBPROCESSOR-GOV:
   appetite_threshold: 500000
   appetite_rationale: "Regulated third-party processing; low tolerance -- a licence-to-operate risk."
   threatens_okrs: [data-platform]
+  last_reviewed: 2026-04-08
+  review_cadence: annual
 
 NR-DATA-RETENTION:
   title: Personal data retained beyond its lawful retention window
@@ -133,6 +159,8 @@ NR-DATA-RETENTION:
   appetite_threshold: 600000
   appetite_rationale: "Over-retention of PII is a pure obligation failure; low tolerance."
   threatens_okrs: [data-platform]
+  last_reviewed: 2025-05-14
+  review_cadence: annual
 
 NR-CONSENT-MGMT:
   title: Tracking or processing without valid, current consent
@@ -142,6 +170,8 @@ NR-CONSENT-MGMT:
   appetite_threshold: 750000
   appetite_rationale: "Consent and tracking are regulator-facing; low tolerance regardless of product upside."
   threatens_okrs: [mobile-app]
+  last_reviewed: 2025-06-02
+  review_cadence: annual
 
 NR-PII-MINIMIZATION:
   title: Collecting or exposing more personal data than needed
@@ -151,6 +181,8 @@ NR-PII-MINIMIZATION:
   appetite_threshold: 500000
   appetite_rationale: "Excess PII only adds liability; low tolerance."
   threatens_okrs: [data-platform]
+  last_reviewed: 2026-04-08
+  review_cadence: annual
 
 NR-MIGRATION-AVAILABILITY:
   title: Availability regressions introduced by the migration
@@ -160,6 +192,8 @@ NR-MIGRATION-AVAILABILITY:
   appetite_threshold: 2000000
   appetite_rationale: "Elevated change risk deliberately accepted during the rebuild window."
   threatens_okrs: [gcloud-migration]
+  last_reviewed: 2026-05-20
+  review_cadence: annual
 
 NR-MIGRATION-DATAINTEGRITY:
   title: Data integrity loss during monolith-to-microservices cutover
@@ -169,6 +203,8 @@ NR-MIGRATION-DATAINTEGRITY:
   appetite_threshold: 1500000
   appetite_rationale: "Cutover integrity issues are recoverable with dual-write checks."
   threatens_okrs: [gcloud-migration]
+  last_reviewed: 2026-05-20
+  review_cadence: annual
 
 NR-AI-AGENT-AUTONOMY:
   title: Autonomous agents taking unsafe action in production
@@ -178,6 +214,8 @@ NR-AI-AGENT-AUTONOMY:
   appetite_threshold: 1500000
   appetite_rationale: "Emerging; a nominal tolerance pending the calibration to trust the number."
   threatens_okrs: [ai-platform]
+  last_reviewed: 2026-06-02
+  review_cadence: annual
 
 NR-VENDOR-ACCESS:
   title: Excessive third-party vendor access to internal systems
@@ -187,6 +225,8 @@ NR-VENDOR-ACCESS:
   appetite_threshold: 2000000
   appetite_rationale: "Vendor access is scoped and revocable; moderate tolerance."
   threatens_okrs: [mobile-app, internal-tools]
+  last_reviewed: 2026-03-30
+  review_cadence: annual
 
 NR-SUPPLIER-OUTAGE:
   title: A critical supplier's outage cascades into our service
@@ -196,6 +236,8 @@ NR-SUPPLIER-OUTAGE:
   appetite_threshold: 2000000
   appetite_rationale: "External dependency; tolerance bounded by tested fallbacks."
   threatens_okrs: [core-platform]
+  last_reviewed: 2026-03-30
+  review_cadence: annual
 
 NR-MODEL-SUPPLY:
   title: Concentration on a single external model provider
@@ -205,6 +247,8 @@ NR-MODEL-SUPPLY:
   appetite_threshold: 1500000
   appetite_rationale: "Emerging; a nominal tolerance pending a tested fallback."
   threatens_okrs: [ai-platform]
+  last_reviewed: 2026-06-02
+  review_cadence: annual
 
 NR-PCI-SCOPE:
   title: PCI scope expansion / cardholder data handling gap
@@ -214,6 +258,8 @@ NR-PCI-SCOPE:
   appetite_threshold: 1000000
   appetite_rationale: "PCI is pass/fail with the card schemes; low tolerance."
   threatens_okrs: [payments-launch]
+  last_reviewed: 2026-04-15
+  review_cadence: annual
 
 NR-REG-FILINGS:
   title: Missed regulatory filing or lapsed certification
@@ -223,3 +269,16 @@ NR-REG-FILINGS:
   appetite_threshold: 1000000
   appetite_rationale: "Filing obligations are binary; low tolerance."
   threatens_okrs: [run-the-business]
+  last_reviewed: 2026-04-15
+  review_cadence: annual
+
+NR-AI-DISCLOSURE:
+  title: Undisclosed AI-generated content in regulated external communications
+  short_title: AI disclosure
+  domain: TR-COMPLIANCE
+  owner: gc-office@company.com
+  appetite_threshold: 50000
+  appetite_rationale: "New obligation; provisionally low tolerance until the first scenario is scored."
+  threatens_okrs: []
+  last_reviewed: 2026-06-02
+  review_cadence: annual

@@ -1,0 +1,13 @@
+# An audit / incident-PMAI / self-identified finding (SPEC §2.5). Carries a
+# bounded severity that informs control health and the residual NARRATIVE,
+# but is NOT simulated -- it never enters the residual bands. Synthetic.
+id: FND-2026-0006
+type: finding
+title: "Self-identified: supply-chain security reviews not completed for two new vendors"
+owner: procurement-office@company.com
+filed_on: 2026-06-10
+status: open
+source: self-identified
+severity: medium
+mapped_scenarios: [SCN-2026-0018]
+control: [A.5.21]

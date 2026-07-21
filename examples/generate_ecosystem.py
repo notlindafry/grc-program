@@ -97,29 +97,39 @@ def render_domains() -> str:
 # 3. Policies -- the governance layer above controls (SPEC §2.7)
 # ---------------------------------------------------------------------------
 
+# (id, title, owner, last_reviewed, review_cadence). Cadence (v4.0 §0.A) is the
+# authored review commitment the GRC tab tests currency against; the eng build
+# never reads it. POL-PHYSICAL / POL-HR-SECURITY / POL-ASSET-MGMT run a
+# semiannual cycle (post-audit commitment) and deliberately read OVERDUE at the
+# canonical 2026-06-18 reference date (v4.0 §0.H).
 POLICIES = [
-    ("POL-INFOSEC", "Information Security Policy", "ciso-office@company.com", "2026-02-01"),
-    ("POL-ACCESS-CONTROL", "Access Control Policy", "ciso-office@company.com", "2026-02-01"),
-    ("POL-CRYPTO", "Cryptography & Key Management Policy", "ciso-office@company.com", "2026-01-15"),
-    ("POL-ASSET-MGMT", "Asset Management Policy", "it-office@company.com", "2025-11-10"),
-    ("POL-DATA-CLASSIFICATION", "Data Classification & Handling Policy", "dpo@company.com", "2026-03-01"),
-    ("POL-PRIVACY", "Privacy & Personal Data Policy", "dpo@company.com", "2026-03-01"),
-    ("POL-SUPPLIER", "Supplier & Third-Party Security Policy", "procurement-office@company.com", "2025-12-05"),
-    ("POL-INCIDENT", "Information Security Incident Management Policy", "ciso-office@company.com", "2026-02-20"),
-    ("POL-BCP", "Business Continuity & ICT Readiness Policy", "resilience-office@company.com", "2026-01-30"),
-    ("POL-HR-SECURITY", "Human Resources Security Policy", "people-office@company.com", "2025-10-12"),
-    ("POL-PHYSICAL", "Physical & Environmental Security Policy", "facilities-office@company.com", "2025-09-20"),
-    ("POL-SECURE-DEV", "Secure Development Policy", "eng-office@company.com", "2026-04-01"),
-    ("POL-VULN-MGMT", "Technical Vulnerability Management Policy", "ciso-office@company.com", "2026-04-10"),
-    ("POL-CHANGE-MGMT", "Change Management Policy", "eng-office@company.com", "2026-03-15"),
-    ("POL-LOGGING-MONITORING", "Logging & Monitoring Policy", "soc-office@company.com", "2026-02-05"),
-    ("POL-NETWORK", "Network Security Policy", "network-office@company.com", "2026-01-08"),
-    ("POL-COMPLIANCE", "Legal & Regulatory Compliance Policy", "gc-office@company.com", "2026-02-28"),
+    ("POL-INFOSEC", "Information Security Policy", "ciso-office@company.com", "2026-02-01", "annual"),
+    ("POL-ACCESS-CONTROL", "Access Control Policy", "ciso-office@company.com", "2026-02-01", "annual"),
+    ("POL-CRYPTO", "Cryptography & Key Management Policy", "ciso-office@company.com", "2026-01-15", "annual"),
+    ("POL-ASSET-MGMT", "Asset Management Policy", "it-office@company.com", "2025-11-10", "semiannual"),
+    ("POL-DATA-CLASSIFICATION", "Data Classification & Handling Policy", "dpo@company.com", "2026-03-01", "annual"),
+    ("POL-PRIVACY", "Privacy & Personal Data Policy", "dpo@company.com", "2026-03-01", "annual"),
+    ("POL-SUPPLIER", "Supplier & Third-Party Security Policy", "procurement-office@company.com", "2025-12-05", "annual"),
+    ("POL-INCIDENT", "Information Security Incident Management Policy", "ciso-office@company.com", "2026-02-20", "annual"),
+    ("POL-BCP", "Business Continuity & ICT Readiness Policy", "resilience-office@company.com", "2026-01-30", "annual"),
+    ("POL-HR-SECURITY", "Human Resources Security Policy", "people-office@company.com", "2025-10-12", "semiannual"),
+    ("POL-PHYSICAL", "Physical & Environmental Security Policy", "facilities-office@company.com", "2025-09-20", "semiannual"),
+    ("POL-SECURE-DEV", "Secure Development Policy", "eng-office@company.com", "2026-04-01", "annual"),
+    ("POL-VULN-MGMT", "Technical Vulnerability Management Policy", "ciso-office@company.com", "2026-04-10", "annual"),
+    ("POL-CHANGE-MGMT", "Change Management Policy", "eng-office@company.com", "2026-03-15", "annual"),
+    ("POL-LOGGING-MONITORING", "Logging & Monitoring Policy", "soc-office@company.com", "2026-02-05", "annual"),
+    ("POL-NETWORK", "Network Security Policy", "network-office@company.com", "2026-01-08", "annual"),
+    ("POL-COMPLIANCE", "Legal & Regulatory Compliance Policy", "gc-office@company.com", "2026-02-28", "annual"),
+    # v4.0 §0.F: the governing policy the agent guardrails trace up to. No
+    # control references it, so it is inert for the eng build.
+    ("POL-AI-USE", "AI & Agent Use Policy", "ciso-office@company.com", "2026-05-01", "annual"),
 ]
 
 POLICY_YAML_HEAD = """\
 # The governance layer above controls (SPEC §2.7, thin). The coverage read is
 # "every control traces up to a governing policy." Links are placeholders.
+# review_cadence (v4.0 §0.A) is the authored review commitment; overdue is
+# DERIVED (as-of - last_reviewed > cadence) by the GRC build only.
 # All data synthetic.
 
 """
@@ -127,13 +137,14 @@ POLICY_YAML_HEAD = """\
 
 def render_policies() -> str:
     out = [POLICY_YAML_HEAD]
-    for pid, title, owner, reviewed in POLICIES:
+    for pid, title, owner, reviewed, cadence in POLICIES:
         slug = pid.lower().replace("pol-", "")
         out.append(
             f"{pid}:\n"
             f"  title: {title}\n"
             f"  owner: {owner}\n"
             f"  last_reviewed: {reviewed}\n"
+            f"  review_cadence: {cadence}\n"
             f"  link: https://policies.example.com/{slug}\n"
         )
     return "\n".join(out)
@@ -356,6 +367,30 @@ CONTROL_YAML_HEAD = """\
 """
 
 
+# External requirement ids a control satisfies (v4.0 §0.A) — the inverse of
+# ``regulations.yaml``'s ``satisfied_by_controls`` and kept consistent with it
+# (the GRC build cross-checks the two directions). Human-ratified illustrative
+# mappings, not authored by the tool. Inert for the eng build (lands in .raw).
+CONTROL_FRAMEWORK_REFS = {
+    "A.5.1": ["DORA-P1-ICT-RISK-MGMT"],
+    "A.5.6": ["DORA-P5-INFO-SHARING"],
+    "A.5.16": ["PCI-REQ-8"],
+    "A.5.17": ["PCI-REQ-8"],
+    "A.5.19": ["DORA-P4-THIRD-PARTY-RISK"],
+    "A.5.20": ["DORA-P4-THIRD-PARTY-RISK"],
+    "A.5.21": ["DORA-P4-THIRD-PARTY-RISK"],
+    "A.5.22": ["DORA-P4-THIRD-PARTY-RISK"],
+    "A.5.24": ["DORA-P2-INCIDENT-REPORTING"],
+    "A.5.26": ["DORA-P2-INCIDENT-REPORTING"],
+    "A.5.30": ["DORA-P3-RESILIENCE-TESTING"],
+    "A.8.5": ["PCI-REQ-8"],
+    "A.8.8": ["DORA-P1-ICT-RISK-MGMT", "DORA-P3-RESILIENCE-TESTING", "PCI-REQ-11"],
+    "A.8.15": ["DORA-P2-INCIDENT-REPORTING", "PCI-REQ-10"],
+    "A.8.16": ["PCI-REQ-10"],
+    "A.8.29": ["PCI-REQ-11"],
+}
+
+
 def render_controls() -> str:
     out = [CONTROL_YAML_HEAD]
     for theme, titles in ANNEX_A.items():
@@ -366,13 +401,17 @@ def render_controls() -> str:
             policy = CONTROL_POLICY.get(ref, "POL-INFOSEC")
             risks = named_risks_for(ref, theme)
             risks_render = "[" + ", ".join(risks) + "]" if risks else "[]"
-            out.append(
+            entry = (
                 f'"{ref}":\n'
                 f"  title: {title}\n"
                 f"  theme: {theme}\n"
                 f"  policy: {policy}\n"
                 f"  mapped_named_risks: {risks_render}\n"
             )
+            frefs = CONTROL_FRAMEWORK_REFS.get(ref)
+            if frefs:
+                entry += f"  framework_refs: [{', '.join(frefs)}]\n"
+            out.append(entry)
         out.append("")
     return "\n".join(out)
 
@@ -500,7 +539,49 @@ NAMED_RISKS = [
      "Regulatory filings",
      "TR-COMPLIANCE", "compliance-lead@company.com", 1000000,
      "Filing obligations are binary; low tolerance.", ["run-the-business"]),
+    # v4.0 §0.H: the deliberately UNSCORED named risk — registered and owned,
+    # zero scenarios, so the GRC coverage tile has something real to catch. The
+    # small placeholder appetite is authored ahead of the first quantified
+    # scenario (still authored, never derived) and is deliberately small enough
+    # not to move the eng dashboard's rendered bottom-up appetite total (P.4:
+    # $36.55M and 3.655x still render as $36.5M / 3.65x).
+    ("NR-AI-DISCLOSURE", "Undisclosed AI-generated content in regulated external communications",
+     "AI disclosure",
+     "TR-COMPLIANCE", "gc-office@company.com", 50000,
+     "New obligation; provisionally low tolerance until the first scenario is scored.", []),
 ]
+
+# v4.0 §0.A: risk-review currency (last_reviewed, review_cadence) per named
+# risk, for the GRC tab's review-currency SLA. Derived overdue only; the eng
+# build never reads these (they land in .raw). NR-DATA-RETENTION and
+# NR-CONSENT-MGMT deliberately read overdue at the 2026-06-18 reference date.
+NAMED_RISK_REVIEWS = {
+    "NR-PROD-COMPROMISE": ("2026-05-12", "annual"),
+    "NR-DATA-EXFIL": ("2026-04-21", "annual"),
+    "NR-PAYMENT-FRAUD": ("2026-03-17", "annual"),
+    "NR-ENDPOINT-MALWARE": ("2026-02-09", "annual"),
+    "NR-CARD-TESTING": ("2026-03-17", "annual"),
+    "NR-ABUSE-ESCALATION": ("2026-01-28", "annual"),
+    "NR-ABUSE-DETECTION": ("2026-01-28", "annual"),
+    "NR-PLATFORM-OUTAGE": ("2026-05-06", "annual"),
+    "NR-DATA-AVAILABILITY": ("2026-02-25", "annual"),
+    "NR-DATA-QUALITY": ("2026-02-25", "annual"),
+    "NR-PIPELINE-INTEGRITY": ("2026-02-25", "annual"),
+    "NR-DATA-RESIDENCY": ("2026-04-08", "annual"),
+    "NR-SUBPROCESSOR-GOV": ("2026-04-08", "annual"),
+    "NR-DATA-RETENTION": ("2025-05-14", "annual"),
+    "NR-CONSENT-MGMT": ("2025-06-02", "annual"),
+    "NR-PII-MINIMIZATION": ("2026-04-08", "annual"),
+    "NR-MIGRATION-AVAILABILITY": ("2026-05-20", "annual"),
+    "NR-MIGRATION-DATAINTEGRITY": ("2026-05-20", "annual"),
+    "NR-AI-AGENT-AUTONOMY": ("2026-06-02", "annual"),
+    "NR-VENDOR-ACCESS": ("2026-03-30", "annual"),
+    "NR-SUPPLIER-OUTAGE": ("2026-03-30", "annual"),
+    "NR-MODEL-SUPPLY": ("2026-06-02", "annual"),
+    "NR-PCI-SCOPE": ("2026-04-15", "annual"),
+    "NR-REG-FILINGS": ("2026-04-15", "annual"),
+    "NR-AI-DISCLOSURE": ("2026-06-02", "annual"),
+}
 
 NAMED_RISK_YAML_HEAD = """\
 # Tier 2 -- the owned, appetite-bearing risk (executive / VP altitude, SPEC §2.3).
@@ -519,6 +600,7 @@ def render_named_risks() -> str:
     out = [NAMED_RISK_YAML_HEAD]
     for nid, title, short_title, domain, owner, threshold, rationale, okrs in NAMED_RISKS:
         okr_render = "[" + ", ".join(okrs) + "]"
+        reviewed, cadence = NAMED_RISK_REVIEWS[nid]
         out.append(
             f"{nid}:\n"
             f"  title: {title}\n"
@@ -528,6 +610,8 @@ def render_named_risks() -> str:
             f"  appetite_threshold: {threshold}\n"
             f'  appetite_rationale: "{rationale}"\n'
             f"  threatens_okrs: {okr_render}\n"
+            f"  last_reviewed: {reviewed}\n"
+            f"  review_cadence: {cadence}\n"
         )
     return "\n".join(out)
 
@@ -1003,6 +1087,11 @@ FINDINGS = [
      "tns-lead@company.com", "incident-PMAI", "medium", ["SCN-2026-0008"], ["A.8.16"], "2026-05-15"),
     ("FND-2026-0005", "Incident PMAI: quarterly DR test deferred, failover unproven",
      "platform-lead@company.com", "incident-PMAI", "high", ["SCN-2026-0013"], ["A.5.30"], "2026-05-20"),
+    # v4.0 §0.H: the deliberate no-action-plan hole — no remediation's
+    # addresses_issues points at this finding, so the GRC "findings without an
+    # action plan" tile catches something real.
+    ("FND-2026-0006", "Self-identified: supply-chain security reviews not completed for two new vendors",
+     "procurement-office@company.com", "self-identified", "medium", ["SCN-2026-0018"], ["A.5.21"], "2026-06-10"),
 ]
 
 
@@ -1381,6 +1470,16 @@ KRIS = [
      ["SCN-2026-0016"], 6, 12, "receding", "over"),
     ("KRI-DPA-COVERAGE", "Share of subprocessors without a signed current DPA",
      ["SCN-2026-0018"], 0.18, 0.10, "rising", "over"),
+    # v4.0 §0.G: agent-telemetry KRIs, siblings of KRI-AGENTIC-WORKFLOWS.
+    # Standards-sourced examples (CSA agentic-profile telemetry); leading
+    # indicators only, never additive terms. Fed by the security detection seam
+    # (see guardrails.yaml monitoring.signal_source); no live ingestion is built.
+    ("KRI-AGENT-ACTION-VELOCITY", "Agent-initiated production actions per hour (p95)",
+     ["SCN-2026-0032"], 55, 60, "rising", "over"),
+    ("KRI-AGENT-PERM-ESCALATION", "Agent permission-escalation requests per week",
+     ["SCN-2026-0019", "SCN-2026-0032"], 2, 5, "stable", "over"),
+    ("KRI-AGENT-DELEGATION-DEPTH", "Maximum observed agent delegation depth (7-day)",
+     ["SCN-2026-0032"], 2, 3, "stable", "over"),
 ]
 
 KRI_HEAD = """\
@@ -1484,6 +1583,346 @@ renewals:
 """
 
 
+# ===========================================================================
+# v4.0 SPEC 0 — GRC-tab registers (§0.B–§0.E). None of these files is read by
+# the eng build (the loader opens a hardcoded file list plus scenarios/,
+# issues/, remediations/ only — P.4), so they are inert for the dashboard.
+# ===========================================================================
+
+REGULATIONS = """\
+# External requirement register (v4.0 §0.B): framework + requirement, each
+# referencing existing ISO 27001:2022 Annex A controls so one control can
+# satisfy many obligations (map once, satisfy many). DORA validated:
+# Regulation (EU) 2022/2554, applicable to EU financial entities and their ICT
+# providers since 17 January 2025; five pillars, the first four mandatory, the
+# fifth voluntary. Company Corp is modelled EU-in-scope. requirement_ref stays
+# at PILLAR level: DORA's RTS/ITS were still being finalized through 2026, so
+# article-level detail is to-be-verified against the regulation text — do not
+# fabricate article numbers. The satisfied_by_controls mappings are
+# human-ratified illustrative mappings, not authored by the tool; each id must
+# exist in controls.yaml. DORA maps primarily to the Resilience domain with
+# Security / Third-party / incident threads crossing in (manifestation over
+# cause: DORA is a cross-cutting obligation, not a domain). All data synthetic.
+
+DORA-P1-ICT-RISK-MGMT:
+  framework: DORA
+  requirement_ref: "Pillar 1 — ICT risk management"      # article/RTS detail TBV vs Reg (EU) 2022/2554
+  title: ICT risk management framework
+  satisfied_by_controls: [A.5.1, A.8.8]
+DORA-P2-INCIDENT-REPORTING:
+  framework: DORA
+  requirement_ref: "Pillar 2 — ICT-related incident management, classification & reporting"
+  title: ICT-related incident management and reporting
+  satisfied_by_controls: [A.5.24, A.5.26, A.8.15]         # A.8.15 shared with PCI-REQ-10 -> reuse
+DORA-P3-RESILIENCE-TESTING:
+  framework: DORA
+  requirement_ref: "Pillar 3 — digital operational resilience testing"
+  title: Digital operational resilience testing
+  satisfied_by_controls: [A.5.30, A.8.8]
+DORA-P4-THIRD-PARTY-RISK:
+  framework: DORA
+  requirement_ref: "Pillar 4 — ICT third-party risk management"
+  title: ICT third-party risk management
+  satisfied_by_controls: [A.5.19, A.5.20, A.5.21, A.5.22]
+DORA-P5-INFO-SHARING:
+  framework: DORA
+  requirement_ref: "Pillar 5 — information & intelligence sharing"   # VOLUNTARY, not mandatory
+  title: Information and intelligence sharing
+  satisfied_by_controls: [A.5.6]
+PCI-REQ-8:
+  framework: PCI-DSS
+  requirement_ref: "Req 8 — identify users and authenticate access"
+  title: Identify users and authenticate access to system components
+  satisfied_by_controls: [A.5.16, A.5.17, A.8.5]
+PCI-REQ-10:
+  framework: PCI-DSS
+  requirement_ref: "Req 10 — logging & monitoring"
+  title: Log and monitor all access to system components and cardholder data
+  satisfied_by_controls: [A.8.15, A.8.16]                 # A.8.15 also under DORA-P2 -> reuse
+PCI-REQ-11:
+  framework: PCI-DSS
+  requirement_ref: "Req 11 — test security of systems and networks regularly"
+  title: Test security of systems and networks regularly
+  satisfied_by_controls: [A.8.8, A.8.29]                  # A.8.8 also under DORA-P1/P3 -> reuse
+"""
+
+SLA_CONFIG = """\
+# Service-level targets for the GRC program's own process steps (v4.0 §0.C).
+# AUTHORED commitments, never derived from observed cycle times or from an
+# outcome we want to show (the appetite rule, applied to process SLAs).
+risk_intake_to_scored_days: 10
+exception_raised_to_decided_days: 5
+finding_to_remediation_plan_days: 15
+policy_review_cadence_months: 12          # default; per-policy override via review_cadence
+evidence_refresh: by_cadence               # per-evidence cadence field
+remediation_target_date_adherence: true    # overdue = target_date < as-of
+# guardrail-deviation disposition SLA is per-guardrail (see guardrails.yaml provisional_move)
+"""
+
+GUARDRAILS = """\
+# Agent guardrails (v4.0 §0.D): policy-as-code assertions governing what
+# autonomous agents may do, each tracing up to POL-AI-USE and mapped to the
+# named risk its violation would move (action-consequence mapping, NIST AI RMF
+# "Map"). rmf_functions anchor to the NIST-published AI RMF core (Govern, Map,
+# Measure, Manage; AI RMF 1.0 / NIST AI 100-1, Jan 2023). autonomy_tier is a
+# Cloud Security Alliance Agentic-Profile extension that aligns with and
+# extends NIST RMF — CSA-attributed, v1/evolving, NOT NIST-published. The
+# response_ladder is DECLARED, not built; its "intervene" rung defers to an
+# AAGATE-style (CSA, Dec 2025) runtime enforcement overlay — an external seam,
+# not something this repo builds. monitoring.signal_source is the INPUT seam
+# from security's detection tooling. provisional_move is the Model B
+# meta-guardrail: the most a single machine-proposed deviation may provisionally
+# move the named factor, with a mandatory disposition SLA. All data synthetic.
+
+GR-AGENT-PROD-WRITE:
+  title: Coding agent may write to prod only behind an approved change ticket
+  layer: intent-formation                 # intent-formation | runtime (defense-in-depth classification)
+  assertion: "deploy.target != 'prod' OR change_ticket.approved == true"
+  policy: POL-AI-USE
+  mapped_named_risks: [NR-PROD-COMPROMISE]
+  applies_to: [agent:code-assistant, agent:ci-bot]
+  autonomy_tier: 3                        # CSA Agentic Profile tier (CSA-attributed, P.6)
+  owner: platform-security-lead@company.com
+  rmf_functions: [Govern, Map, Measure, Manage]
+  monitoring:
+    mode: continuous                      # continuous | periodic | manual-attestation
+    signal_source: secops-agent-access-feed
+    telemetry_kris: [KRI-AGENT-ACTION-VELOCITY, KRI-AGENT-PERM-ESCALATION]
+  provisional_move:
+    factor: probability_of_realization
+    max_band_90ci: [0.02, 0.06]           # the most a single auto-registration may move
+    disposition_sla_hours: 24
+  response_ladder:                        # DECLARED, not built; severity x autonomy_tier
+    low: monitor
+    medium: monitor + notify_owner
+    high: escalate + timebox
+    critical: intervene                   # -> runtime enforcement seam (AAGATE-style), acknowledged-not-built
+
+GR-AGENT-DATA-EXPORT:
+  title: Support agent may not export regulated data outside approved stores
+  layer: runtime
+  assertion: "export.dataset.classification != 'regulated' OR export.destination in approved_stores"
+  policy: POL-AI-USE
+  mapped_named_risks: [NR-DATA-EXFIL]
+  applies_to: [agent:support-triage-bot]
+  autonomy_tier: 2
+  owner: data-platform-lead@company.com
+  rmf_functions: [Govern, Map, Measure]
+  monitoring:
+    mode: periodic
+    signal_source: dlp-export-feed
+    telemetry_kris: [KRI-AGENT-PERM-ESCALATION]
+  provisional_move:
+    factor: probability_of_realization
+    max_band_90ci: [0.01, 0.04]
+    disposition_sla_hours: 48
+  response_ladder:                        # DELIBERATELY INCOMPLETE (no critical rung) — the
+    low: monitor                          # ladder-completeness derivation catches it (§1.B)
+    medium: monitor + notify_owner
+    high: escalate + timebox
+
+GR-AGENT-CODE-MERGE:
+  title: AI-generated changes merge only with an approving human review
+  layer: intent-formation
+  assertion: "pr.author.is_agent == false OR pr.approvals.human >= 1"
+  policy: POL-AI-USE
+  mapped_named_risks: [NR-PROD-COMPROMISE]
+  applies_to: [agent:code-assistant]
+  autonomy_tier: 2
+  owner: eng-office@company.com
+  rmf_functions: [Govern, Map, Measure, Manage]
+  monitoring:
+    mode: continuous
+    signal_source: ci-merge-audit-feed
+    telemetry_kris: [KRI-AGENT-DELEGATION-DEPTH]
+  provisional_move:
+    factor: probability_of_realization
+    max_band_90ci: [0.04, 0.10]
+    disposition_sla_hours: 24
+  response_ladder:
+    low: monitor
+    medium: monitor + notify_owner
+    high: escalate + timebox
+    critical: intervene
+
+GR-AGENT-DELEGATION:
+  title: Agent may not delegate to sub-agents beyond depth 2 without owner approval
+  layer: runtime
+  assertion: "delegation.depth <= 2 OR delegation.owner_approved == true"
+  policy: POL-AI-USE
+  mapped_named_risks: [NR-AI-AGENT-AUTONOMY]
+  applies_to: [agent:ci-bot, agent:workflow-orchestrator]
+  autonomy_tier: 3
+  owner: platform-security-lead@company.com
+  rmf_functions: [Govern, Map, Measure, Manage]
+  monitoring:
+    mode: continuous
+    signal_source: agent-runtime-telemetry
+    telemetry_kris: [KRI-AGENT-DELEGATION-DEPTH, KRI-AGENT-ACTION-VELOCITY]
+  provisional_move:
+    factor: probability_of_realization
+    max_band_90ci: [0.03, 0.08]
+    disposition_sla_hours: 12
+  response_ladder:
+    low: monitor
+    medium: monitor + notify_owner
+    high: escalate + timebox
+    critical: intervene
+"""
+
+AGENT_INVENTORY = """\
+# The security-fed detected-agent set (v4.0 §0.H / §1.B): agents and agentic
+# use-cases OBSERVED in the environment by security tooling. This register is
+# the security-to-GRC seam made concrete — the guardrail-coverage denominator
+# ("of detected agents, the fraction with a declared, mapped guardrail") has to
+# name a real set, and applies_to alone cannot be it (a set defined by the
+# guardrails would always read 100% covered). No live feed is built; a real
+# detection pipeline would repopulate this file. agent:data-migration-bot is
+# the deliberate UNGOVERNED hole: detected, referenced by no guardrail's
+# applies_to (v4.0 §0.H). All data synthetic.
+
+agent:code-assistant:
+  description: IDE/CI coding assistant raising and editing changes
+  first_detected: 2026-02-10
+  source: secops-agent-access-feed
+agent:ci-bot:
+  description: Pipeline agent executing builds, tests and deploys
+  first_detected: 2026-02-10
+  source: secops-agent-access-feed
+agent:support-triage-bot:
+  description: Support agent triaging tickets with data-store read access
+  first_detected: 2026-04-02
+  source: secops-agent-access-feed
+agent:workflow-orchestrator:
+  description: Orchestrator delegating tasks to tool-using sub-agents
+  first_detected: 2026-05-11
+  source: agent-runtime-telemetry
+agent:data-migration-bot:
+  description: Agentic ETL runner moving datasets between stores during the migration
+  first_detected: 2026-06-04
+  source: secops-agent-access-feed
+"""
+
+# Guardrail deviations (v4.0 §0.E): provisional exceptions, one per file, in
+# their OWN directory — NEVER data/issues/ (P.4: a deviation placed in issues/
+# enters the eng residual). Shape-compatible with IssueRecord.parse so the GRC
+# build reuses the parser and the engine's per-issue FAIR contribution;
+# deviation-specific fields are read from .raw. Spans severities and
+# dispositions; exactly one invokes the "intervene" rung.
+GUARDRAIL_EVENTS = {
+    "DEV-2026-0001": """\
+# Guardrail deviation (v4.0 §0.E): a provisional exception, machine-proposed by
+# the offline deviation monitor and awaiting human disposition. Bounded by the
+# guardrail's provisional_move; isolated by directory, so eng residual is
+# untouched. Overdue for disposition at the 2026-06-18 reference date. Synthetic.
+id: DEV-2026-0001
+type: exception                            # provisional; isolated by directory (P.4)
+title: Agent deploy to prod without an approved change ticket
+filed_on: 2026-06-15                       # observed date (parses cleanly, drives aging)
+status: active
+mapped_scenarios: [SCN-2026-0019]
+exception_effect:                          # bounded by GR-AGENT-PROD-WRITE provisional_move
+  moves: probability_of_realization
+  with_exception_90ci: [0.02, 0.05]
+  estimated_by: offline-ai-deviation-monitor
+# --- deviation-specific (read from .raw by the GRC build) ---
+guardrail: GR-AGENT-PROD-WRITE
+disposition: proposed                      # proposed | dismissed | accepted | remediated
+severity: high                             # -> response_ladder rung
+response_invoked: escalate + timebox
+detected_by: offline-ai-deviation-monitor  # advisory; a human dispositions (propose -> ratify)
+disposition_due: 2026-06-16                # filed_on + 24h SLA; OVERDUE at as-of 2026-06-18
+""",
+    "DEV-2026-0002": """\
+# Guardrail deviation (v4.0 §0.E): dispositioned ACCEPTED within its SLA — a
+# ratified provisional exception; contributes to the provisional deviation
+# exposure overlay (§1.C), never to the eng residual. Synthetic.
+id: DEV-2026-0002
+type: exception
+title: Regulated-table export by the support agent to an unapproved store
+filed_on: 2026-06-05
+status: active
+mapped_scenarios: [SCN-2026-0002]
+exception_effect:                          # bounded by GR-AGENT-DATA-EXPORT provisional_move
+  moves: probability_of_realization
+  with_exception_90ci: [0.01, 0.03]
+  estimated_by: offline-ai-deviation-monitor
+guardrail: GR-AGENT-DATA-EXPORT
+disposition: accepted
+severity: medium
+response_invoked: monitor + notify_owner
+detected_by: offline-ai-deviation-monitor
+disposition_due: 2026-06-07                # filed_on + 48h SLA
+disposition_on: 2026-06-06                 # decided within SLA
+""",
+    "DEV-2026-0003": """\
+# Guardrail deviation (v4.0 §0.E): dispositioned DISMISSED (false positive —
+# the approving review existed under a different account mapping). No
+# contribution anywhere. Synthetic.
+id: DEV-2026-0003
+type: exception
+title: Agent-authored change flagged as merged without human approval
+filed_on: 2026-06-01
+status: resolved
+mapped_scenarios: [SCN-2026-0034]
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.04, 0.10]
+  estimated_by: offline-ai-deviation-monitor
+guardrail: GR-AGENT-CODE-MERGE
+disposition: dismissed
+severity: low
+response_invoked: monitor
+detected_by: offline-ai-deviation-monitor
+disposition_due: 2026-06-02
+disposition_on: 2026-06-01
+""",
+    "DEV-2026-0004": """\
+# Guardrail deviation (v4.0 §0.E): the one INTERVENE — a critical deviation
+# whose response rung fired the runtime intervention seam. The enforcement
+# EXECUTION is an external, AAGATE-style overlay (CSA, Dec 2025): acknowledged,
+# not built — no engine here. Dispositioned REMEDIATED same day. Synthetic.
+id: DEV-2026-0004
+type: exception
+title: Orchestrator spawned a depth-4 delegation chain touching prod credentials
+filed_on: 2026-05-28
+status: resolved
+mapped_scenarios: [SCN-2026-0032]
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.04, 0.08]
+  estimated_by: offline-ai-deviation-monitor
+guardrail: GR-AGENT-DELEGATION
+disposition: remediated
+severity: critical
+response_invoked: intervene                # -> external runtime enforcement seam, acknowledged-not-built
+detected_by: offline-ai-deviation-monitor
+disposition_due: 2026-05-28                # 12h SLA
+disposition_on: 2026-05-28
+""",
+    "DEV-2026-0005": """\
+# Guardrail deviation (v4.0 §0.E): a second PROPOSED deviation, inside its
+# disposition window at the 2026-06-18 reference date (due that day). Synthetic.
+id: DEV-2026-0005
+type: exception
+title: Agent deploy to prod under an expired change-ticket approval
+filed_on: 2026-06-17
+status: active
+mapped_scenarios: [SCN-2026-0019]
+exception_effect:
+  moves: probability_of_realization
+  with_exception_90ci: [0.02, 0.04]
+  estimated_by: offline-ai-deviation-monitor
+guardrail: GR-AGENT-PROD-WRITE
+disposition: proposed
+severity: medium
+response_invoked: monitor + notify_owner
+detected_by: offline-ai-deviation-monitor
+disposition_due: 2026-06-18                # filed_on + 24h SLA; due, not yet overdue
+""",
+}
+
+
 # ---------------------------------------------------------------------------
 # Build. Appetite is authored in the NAMED_RISKS table above (no calibration);
 # the RAG colour is whatever the authored line and the tuned exposure produce.
@@ -1492,10 +1931,13 @@ renewals:
 REM_DIR = DATA / "remediations"
 
 
+GUARDRAIL_EVENTS_DIR = DATA / "guardrail_events"
+
+
 def build_ecosystem() -> None:
     """Write the full GRC-ecosystem corpus (the only corpus, post-retirement)."""
     DATA.mkdir(exist_ok=True)
-    for d in (SCN, ISSUES, REM_DIR):
+    for d in (SCN, ISSUES, REM_DIR, GUARDRAIL_EVENTS_DIR):
         d.mkdir(exist_ok=True)
         for old in d.glob("*.yaml"):
             old.unlink()
@@ -1511,6 +1953,14 @@ def build_ecosystem() -> None:
     (DATA / "okrs.yaml").write_text(OKRS)
     (DATA / "estimators.yaml").write_text(ESTIMATORS)
     (DATA / "config.yaml").write_text(CONFIG)
+
+    # v4.0 SPEC 0 GRC registers (never read by the eng build — P.4).
+    (DATA / "regulations.yaml").write_text(REGULATIONS)
+    (DATA / "sla_config.yaml").write_text(SLA_CONFIG)
+    (DATA / "guardrails.yaml").write_text(GUARDRAILS)
+    (DATA / "agent_inventory.yaml").write_text(AGENT_INVENTORY)
+    for did, text in GUARDRAIL_EVENTS.items():
+        (GUARDRAIL_EVENTS_DIR / f"{did}.yaml").write_text(text)
 
     for spec in SCENARIOS:
         (SCN / f"{spec[0]}.yaml").write_text(render_scenario(spec))

@@ -1,0 +1,30 @@
+# The security-fed detected-agent set (v4.0 §0.H / §1.B): agents and agentic
+# use-cases OBSERVED in the environment by security tooling. This register is
+# the security-to-GRC seam made concrete — the guardrail-coverage denominator
+# ("of detected agents, the fraction with a declared, mapped guardrail") has to
+# name a real set, and applies_to alone cannot be it (a set defined by the
+# guardrails would always read 100% covered). No live feed is built; a real
+# detection pipeline would repopulate this file. agent:data-migration-bot is
+# the deliberate UNGOVERNED hole: detected, referenced by no guardrail's
+# applies_to (v4.0 §0.H). All data synthetic.
+
+agent:code-assistant:
+  description: IDE/CI coding assistant raising and editing changes
+  first_detected: 2026-02-10
+  source: secops-agent-access-feed
+agent:ci-bot:
+  description: Pipeline agent executing builds, tests and deploys
+  first_detected: 2026-02-10
+  source: secops-agent-access-feed
+agent:support-triage-bot:
+  description: Support agent triaging tickets with data-store read access
+  first_detected: 2026-04-02
+  source: secops-agent-access-feed
+agent:workflow-orchestrator:
+  description: Orchestrator delegating tasks to tool-using sub-agents
+  first_detected: 2026-05-11
+  source: agent-runtime-telemetry
+agent:data-migration-bot:
+  description: Agentic ETL runner moving datasets between stores during the migration
+  first_detected: 2026-06-04
+  source: secops-agent-access-feed

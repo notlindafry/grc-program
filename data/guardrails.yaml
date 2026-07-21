@@ -1,0 +1,108 @@
+# Agent guardrails (v4.0 §0.D): policy-as-code assertions governing what
+# autonomous agents may do, each tracing up to POL-AI-USE and mapped to the
+# named risk its violation would move (action-consequence mapping, NIST AI RMF
+# "Map"). rmf_functions anchor to the NIST-published AI RMF core (Govern, Map,
+# Measure, Manage; AI RMF 1.0 / NIST AI 100-1, Jan 2023). autonomy_tier is a
+# Cloud Security Alliance Agentic-Profile extension that aligns with and
+# extends NIST RMF — CSA-attributed, v1/evolving, NOT NIST-published. The
+# response_ladder is DECLARED, not built; its "intervene" rung defers to an
+# AAGATE-style (CSA, Dec 2025) runtime enforcement overlay — an external seam,
+# not something this repo builds. monitoring.signal_source is the INPUT seam
+# from security's detection tooling. provisional_move is the Model B
+# meta-guardrail: the most a single machine-proposed deviation may provisionally
+# move the named factor, with a mandatory disposition SLA. All data synthetic.
+
+GR-AGENT-PROD-WRITE:
+  title: Coding agent may write to prod only behind an approved change ticket
+  layer: intent-formation                 # intent-formation | runtime (defense-in-depth classification)
+  assertion: "deploy.target != 'prod' OR change_ticket.approved == true"
+  policy: POL-AI-USE
+  mapped_named_risks: [NR-PROD-COMPROMISE]
+  applies_to: [agent:code-assistant, agent:ci-bot]
+  autonomy_tier: 3                        # CSA Agentic Profile tier (CSA-attributed, P.6)
+  owner: platform-security-lead@company.com
+  rmf_functions: [Govern, Map, Measure, Manage]
+  monitoring:
+    mode: continuous                      # continuous | periodic | manual-attestation
+    signal_source: secops-agent-access-feed
+    telemetry_kris: [KRI-AGENT-ACTION-VELOCITY, KRI-AGENT-PERM-ESCALATION]
+  provisional_move:
+    factor: probability_of_realization
+    max_band_90ci: [0.02, 0.06]           # the most a single auto-registration may move
+    disposition_sla_hours: 24
+  response_ladder:                        # DECLARED, not built; severity x autonomy_tier
+    low: monitor
+    medium: monitor + notify_owner
+    high: escalate + timebox
+    critical: intervene                   # -> runtime enforcement seam (AAGATE-style), acknowledged-not-built
+
+GR-AGENT-DATA-EXPORT:
+  title: Support agent may not export regulated data outside approved stores
+  layer: runtime
+  assertion: "export.dataset.classification != 'regulated' OR export.destination in approved_stores"
+  policy: POL-AI-USE
+  mapped_named_risks: [NR-DATA-EXFIL]
+  applies_to: [agent:support-triage-bot]
+  autonomy_tier: 2
+  owner: data-platform-lead@company.com
+  rmf_functions: [Govern, Map, Measure]
+  monitoring:
+    mode: periodic
+    signal_source: dlp-export-feed
+    telemetry_kris: [KRI-AGENT-PERM-ESCALATION]
+  provisional_move:
+    factor: probability_of_realization
+    max_band_90ci: [0.01, 0.04]
+    disposition_sla_hours: 48
+  response_ladder:                        # DELIBERATELY INCOMPLETE (no critical rung) — the
+    low: monitor                          # ladder-completeness derivation catches it (§1.B)
+    medium: monitor + notify_owner
+    high: escalate + timebox
+
+GR-AGENT-CODE-MERGE:
+  title: AI-generated changes merge only with an approving human review
+  layer: intent-formation
+  assertion: "pr.author.is_agent == false OR pr.approvals.human >= 1"
+  policy: POL-AI-USE
+  mapped_named_risks: [NR-PROD-COMPROMISE]
+  applies_to: [agent:code-assistant]
+  autonomy_tier: 2
+  owner: eng-office@company.com
+  rmf_functions: [Govern, Map, Measure, Manage]
+  monitoring:
+    mode: continuous
+    signal_source: ci-merge-audit-feed
+    telemetry_kris: [KRI-AGENT-DELEGATION-DEPTH]
+  provisional_move:
+    factor: probability_of_realization
+    max_band_90ci: [0.04, 0.10]
+    disposition_sla_hours: 24
+  response_ladder:
+    low: monitor
+    medium: monitor + notify_owner
+    high: escalate + timebox
+    critical: intervene
+
+GR-AGENT-DELEGATION:
+  title: Agent may not delegate to sub-agents beyond depth 2 without owner approval
+  layer: runtime
+  assertion: "delegation.depth <= 2 OR delegation.owner_approved == true"
+  policy: POL-AI-USE
+  mapped_named_risks: [NR-AI-AGENT-AUTONOMY]
+  applies_to: [agent:ci-bot, agent:workflow-orchestrator]
+  autonomy_tier: 3
+  owner: platform-security-lead@company.com
+  rmf_functions: [Govern, Map, Measure, Manage]
+  monitoring:
+    mode: continuous
+    signal_source: agent-runtime-telemetry
+    telemetry_kris: [KRI-AGENT-DELEGATION-DEPTH, KRI-AGENT-ACTION-VELOCITY]
+  provisional_move:
+    factor: probability_of_realization
+    max_band_90ci: [0.03, 0.08]
+    disposition_sla_hours: 12
+  response_ladder:
+    low: monitor
+    medium: monitor + notify_owner
+    high: escalate + timebox
+    critical: intervene
