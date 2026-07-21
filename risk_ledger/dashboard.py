@@ -510,7 +510,7 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
         for k, v, s, warn in tiles
     )
     return (f'<section class="summary"><h2>Where are we weakest, what do we fix first, '
-            f'and why does it matter to what&nbsp;we\'re&nbsp;shipping?</h2>{cards[0]}'
+            f'and why does it matter&nbsp;to&nbsp;what&nbsp;we\'re&nbsp;shipping?</h2>{cards[0]}'
             f'<div class="tiles">{tile_html}</div></section>')
 
 
@@ -701,7 +701,7 @@ def _view3(graph: Graph, eng: GraphEngine) -> str:
              f'evidence. A healthy control needs no line, and a risk whose controls are all healthy is a scope '
              f'problem, not a safeguard failure. Never colour alone — each marker carries its word.</p>'
              + "".join(blocks))
-    return _card("3", "Are the controls holding each breach?",
+    return _card("3", "Are the controls holding each appetite breach?",
                  "For each risk over appetite, the controls meant to hold it — how many, and which ones can't currently do the job.",
                  inner)
 
