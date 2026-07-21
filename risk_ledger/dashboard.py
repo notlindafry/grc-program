@@ -510,7 +510,7 @@ def _summary(graph: Graph, eng: GraphEngine) -> str:
         for k, v, s, warn in tiles
     )
     return (f'<section class="summary"><h2>Where are we weakest, what do we fix first, '
-            f'and why does it matter&nbsp;to&nbsp;what&nbsp;we\'re&nbsp;shipping?</h2>{cards[0]}'
+            f'and why does it matter to what&nbsp;we\'re&nbsp;shipping?</h2>{cards[0]}'
             f'<div class="tiles">{tile_html}</div></section>')
 
 
@@ -987,7 +987,7 @@ header .meta { color:var(--text-muted); font-size:13.5px; }
 .rec-own { display:inline-block; margin-left:4px; color:var(--text-muted); font-size:11.5px;
   white-space:nowrap; border:1px solid var(--border); border-radius:var(--radius-sm); padding:1px 7px; }
 .summary { margin:32px 0; }
-.summary > h2 { font-size:17px; font-weight:500; color:var(--text); max-width:640px; margin:0 0 16px; }
+.summary > h2 { font-size:17px; font-weight:500; color:var(--text); margin:0 0 16px; }
 .hero { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:26px 28px; }
 .hero-num { font-size:40px; line-height:1.1; }
 .hero-cap { color:var(--text); font-size:15px; margin-top:8px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
