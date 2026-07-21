@@ -40,7 +40,7 @@ _CSS = _ROOT + """
 * { box-sizing:border-box; }
 body { margin:0; background:var(--bg); color:var(--text); border-top:3px solid var(--accent);
   font-family:var(--font-body); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased; }
-h1,h2,h3,h4,.col-num,.strip-num { font-family:var(--font-display); font-weight:600; letter-spacing:-0.01em; }
+h1,h2,h3,h4,.col-num,.strip-num,.strip-title { font-family:var(--font-display); font-weight:600; letter-spacing:-0.01em; }
 a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
 :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .wrap { max-width:var(--maxw); margin:0 auto; padding:40px 24px 80px; }
@@ -67,8 +67,12 @@ header .meta { color:var(--text-muted); font-size:13.5px; }
   padding:8px 10px; font-size:12px; }
 .subtile .col-k { color:var(--status-below-tint); }
 .strip { margin:14px 0 0; background:var(--surface); border:1px solid var(--border);
-  border-radius:var(--radius); padding:14px 18px; display:flex; gap:18px; flex-wrap:wrap; align-items:baseline; }
+  border-radius:var(--radius); padding:16px 18px; }
+.strip-head { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
 .strip-num { font-size:22px; color:var(--text-strong); }
+.strip-title { font-size:16px; color:var(--text-strong); }
+.strip-sub { color:var(--text-muted); font-size:12.5px; margin:6px 0 0; max-width:820px; }
+.strip-parts { margin-top:10px; }
 .strip .part { font-size:12px; color:var(--text-muted); }
 .note { margin:14px 0 0; color:var(--text-muted); font-size:12.5px; max-width:820px; }
 .grid { display:grid; gap:20px; margin-top:26px; }
@@ -231,10 +235,12 @@ def _program_sla_strip(e: GRCEngine) -> str:
         f'<span class="part">{_esc(name)}: <b>{m}/{n}</b></span>' for name, (m, n) in steps.items())
     return (
         '<div class="strip">'
+        '<div class="strip-head">'
         f'<span class="strip-num">{met}/{measured}</span>'
-        f'<span class="part"><b>program-wide SLA adherence</b> — process steps inside their authored '
-        f'service level (sla_config.yaml)</span> {_sla_word(met, measured)}'
-        f'<span style="flex-basis:100%"></span>{parts}'
+        '<span class="strip-title">Program-wide SLA adherence</span>'
+        f'{_sla_word(met, measured)}</div>'
+        '<p class="strip-sub">Process steps inside their authored service level (sla_config.yaml).</p>'
+        f'<div class="strip-parts">{parts}</div>'
         '</div>'
         '<p class="note">Deliberately <b>no blended health score</b> — a composite would describe '
         'nothing. Each figure keeps its own denominator; the only aggregate is this count of steps '
@@ -252,7 +258,7 @@ def _governance_card(e: GRCEngine) -> str:
     rc = e.requirement_coverage()
     ac = e.agent_coverage()
     rows = "".join(
-        f'<tr><td class="nm">{_esc(o.policy_id)}<span class="sub"></span></td>'
+        f'<tr><td class="nm">{_esc(o.policy_id)}</td>'
         f'<td class="drv">{_esc(o.title)}</td><td>{_fmt_date(o.last_reviewed)}</td>'
         f'<td>{_esc(o.cadence)}</td><td class="num">{_word_over(f"{o.days_overdue}d overdue")}</td></tr>'
         for o in pc.overdue)
