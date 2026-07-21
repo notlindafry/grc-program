@@ -6,13 +6,15 @@ the risk portfolio. The residual number is the eng tab's and does not lead here.
 
 Rendering decisions, per spec:
 
-* **Separate page** (``docs/grc.html``) with a nav link to the eng dashboard.
-  A separate page keeps the eng render byte-identical (P.4); true in-page
-  tabbing needs the eng render refactored into a fragment and is deferred.
-  DECISION FLAGGED FOR REVIEW: the spec asks for a link "to/from" the eng
-  dashboard, but adding the return link to ``dashboard.html`` would break the
-  byte-identical gate, so the link is one-way (GRC → eng) until the in-page
-  tabbing spec lands.
+* **Separate pages, cross-linked both ways** (``docs/grc.html`` ↔
+  ``docs/dashboard.html``). The eng dashboard carries a single static nav link
+  to this page and back. The isolation guarantee is *not* the eng render being
+  frozen byte-for-byte — it is that the GRC corpus (registers + deviations)
+  cannot change any eng number, enforced by
+  ``test_eng_dashboard_byte_identical_under_grc_loader`` (renders the eng page
+  with and without the GRC corpus loaded and asserts equality). Adding the nav
+  link changed the eng render deliberately; it moved no number. True in-page
+  tabbing needs the eng render refactored into a fragment and is still deferred.
 * **Design system**: the ``:root`` tokens are imported from the eng dashboard
   verbatim — no raw hex in components. RAG per P.9: conventional for
   coverage/hygiene/SLA; two-sided for control right-sizing, where an
@@ -513,8 +515,10 @@ def _notes_card(e: GRCEngine) -> str:
     return (
         '<div class="card"><h2>Decisions &amp; next steps</h2>'
         '<ul style="font-size:13px; line-height:1.7; margin:0; padding-left:18px">'
-        '<li><b>Separate page, one-way nav (flagged for review):</b> a return link on the eng page '
-        'would break its byte-identical gate (P.4). In-page tabbing is deferred.</li>'
+        '<li><b>Separate pages, cross-linked both ways:</b> the eng dashboard now links here and back. '
+        'The isolation guarantee is unchanged — GRC data still cannot move any eng number (the '
+        'both-loaders render test enforces it); only a single static nav link was added to the eng '
+        'page. True in-page tabbing is still deferred.</li>'
         '<li><b>Security posture:</b> static, read-only, public, synthetic — auth/RBAC intentionally '
         'not applicable. <b>Revisit before pointing this at real risk data</b>: put auth or Vercel '
         'Password Protection in front first.</li>'
@@ -543,7 +547,8 @@ def build_grc_page(e: GRCEngine) -> str:
         'drill-downs follow. AI governance is the newest, least settled section.'
         '<span class="iso"><b>Isolation guarantee:</b> this page cannot move the eng numbers. It reads '
         'registers the eng build never opens, and deviations live outside <code>data/issues/</code>. '
-        'The eng dashboard is verified byte-identical.</span></div>'
+        'Verified by a test that renders the eng dashboard with and without the GRC corpus loaded and '
+        'confirms it is identical.</span></div>'
         '</header>'
         + _scorecard(e)
         + _program_sla_strip(e)

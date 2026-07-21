@@ -161,11 +161,13 @@ regenerates from the corpus and redeploys on every push to `main`.
 `risk-ledger grc` renders the **GRC tab** (v4.0, work in progress) to
 `docs/grc.html` — a separate page for a GRC Manager measuring the health of the
 program itself (coverage, hygiene, SLA throughput, AI governance), not the risk
-portfolio. It reads additional registers (`regulations.yaml`, `sla_config.yaml`,
-`guardrails.yaml`, `agent_inventory.yaml`, `guardrail_events/`) that the eng
-build never opens, so **the eng dashboard stays byte-identical** — the isolation
-guarantee; guardrail deviations live outside `data/issues/` and never enter
-residual.
+portfolio. The eng dashboard and the GRC tab cross-link both ways. It reads
+additional registers (`regulations.yaml`, `sla_config.yaml`, `guardrails.yaml`,
+`agent_inventory.yaml`, `guardrail_events/`) that the eng build never opens, so
+**GRC data cannot move any engineering number** — the isolation guarantee,
+enforced by a test that renders the eng dashboard with and without the GRC
+corpus loaded and asserts they are identical; guardrail deviations live outside
+`data/issues/` and never enter residual.
 
 > ⚠️ **The deploy is public and automatic.** Every push to `main` publishes
 > whatever is in `data/` to the live URL — there is no separate "make this

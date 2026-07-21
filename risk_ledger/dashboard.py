@@ -1159,7 +1159,10 @@ def build_dashboard(graph: Graph, eng: GraphEngine) -> str:
         '<header><div class="eyebrow">Company Corp · Technology risk</div>'
         '<h1>GRC portfolio — the ten-second read for VP of Engineering</h1>'
         f'<div class="meta">Executive view for engineering leadership · reference date '
-        f'{eng.config.as_of.isoformat()} · <b>synthetic data</b>, generated from git-native YAML</div></header>'
+        f'{eng.config.as_of.isoformat()} · <b>synthetic data</b>, generated from git-native YAML</div>'
+        '<div class="meta" style="margin-top:8px">→ <a href="grc.html">GRC program health '
+        '<b>[WIP]</b></a> — the health of the program producing this view (coverage, hygiene, SLA, '
+        'AI governance). A separate page; nothing on it can move the numbers here.</div></header>'
         + _top5_section(graph, eng)
         + _summary(graph, eng)
         + '<div class="grid">'
