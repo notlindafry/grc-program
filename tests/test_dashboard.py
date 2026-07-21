@@ -74,12 +74,14 @@ def test_ai_lens_is_coverage_not_a_sixth_numbered_view(page: str) -> None:
 
 def test_ai_lens_shows_the_asymmetry_and_does_not_balance_it(page: str) -> None:
     # SPEC v3.4 §4 / acceptance 5 (the honest one): product AI ~$10.7M dwarfs
-    # internal AI ~$0.8M; the ratio is stated and the internal block is NOT padded
-    # to look comparable. The proportional bar's product segment is far wider.
+    # internal AI ~$0.8M; the ratio is stated and the split is shown as a pie whose
+    # product slice dominates — not two balanced halves.
     lens = re.search(r'class="card ai-lens".*?</section>', page, re.S).group(0)
     assert re.search(r"Product AI is ~\d+&times;|Product AI is ~\d+×", lens)  # the ratio, stated
-    prod_w = float(re.search(r'ail-seg prod" style="width:([\d.]+)%', lens).group(1))
-    assert prod_w > 80                                     # product dominates the bar, not balanced
+    assert '<svg class="ail-pie"' in lens                  # a pie, per the design
+    # the pie's product/internal legend percentages: product far larger, sums to 100
+    pcts = [int(x) for x in re.findall(r"·\s*(\d+)%", lens)]
+    assert len(pcts) == 2 and pcts[0] + pcts[1] == 100 and pcts[0] > 80
     # both aggregates are shown, and product is an order of magnitude larger
     assert "~$10.7M" in lens and re.search(r"~\$\d{3}k", lens)
 
@@ -343,7 +345,7 @@ def _card_html(page: str, n: str) -> str:
     """The HTML of one numbered view card, from its .vnum badge to the next card
     (or the AI example) — the cards are sibling <div>s, not <section>s, so anchor
     on the badge that opens the following card instead of a closing tag."""
-    m = re.search(rf'class="vnum">{n}</span>.*?(?=class="vnum">|class="card ai")', page, re.S)
+    m = re.search(rf'class="vnum">{n}</span>.*?(?=class="vnum">|class="card ai)', page, re.S)
     assert m, f"card {n} not found"
     return m.group(0)
 

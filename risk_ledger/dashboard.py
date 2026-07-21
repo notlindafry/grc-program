@@ -938,27 +938,49 @@ def _ai_lens(graph: Graph, eng: GraphEngine) -> str:
             f'<td class="num">{band_str(b.low, b.high)}</td></tr>'
             for lbl, nr, dom, b in data)
         return (f'<h4>{title} <span class="ail-agg">{len(data)} AI-vectored · ~{money(agg)}</span></h4>'
-                f'<p class="drv" style="margin:0 0 8px">{note}</p>'
+                f'<p class="ail-note">{note}</p>'
                 f'<table class="tbl"><thead><tr><th>Scenario</th><th>Host named risk</th>'
                 f'<th>Domain</th><th class="num">Exposure (90% CI)</th></tr></thead><tbody>{body}</tbody></table>')
 
-    # The asymmetry, led with as a proportion (§4): one bar, product dominating.
-    # A minimum width keeps the internal sliver visible — present, not padded.
-    p_pct = max(6.0, 100 * p_sum / (p_sum + i_sum))
-    bar = (f'<div class="ail-bar" role="img" aria-label="Product AI {money(p_sum)} versus internal AI {money(i_sum)}">'
-           f'<div class="ail-seg prod" style="width:{p_pct:.1f}%"><span>In the product · {money(p_sum)}</span></div>'
-           f'<div class="ail-seg intl" style="width:{100 - p_pct:.1f}%"></div></div>'
-           f'<p class="ail-cap"><b>Product AI is ~{ratio:.0f}× internal AI</b> '
-           f'({money(p_sum)} vs {money(i_sum)}). The internal block is small because the risk is small — '
-           f'its presence answers <i>"did you look at our own AI usage?"</i> (yes); its size answers '
-           f'<i>"how worried?"</i> (a little). Its absence would be the conspicuous failure.</p>')
+    # The asymmetry, led with as a proportion (§4): a two-slice pie, product
+    # dominating and the internal sliver visibly present — shown, not balanced.
+    total = p_sum + i_sum
+    fp = p_sum / total
+    prod_fill, intl_fill = "var(--accent)", "color-mix(in srgb, var(--accent), var(--bg) 58%)"
+
+    def wedge(a: float, b: float, fill: str) -> str:
+        def pt(f):
+            ang = 2 * math.pi * f - math.pi / 2  # 0 at 12 o'clock, clockwise
+            return 70 + 64 * math.cos(ang), 70 + 64 * math.sin(ang)
+        x0, y0 = pt(a)
+        x1, y1 = pt(b)
+        large = 1 if (b - a) > 0.5 else 0
+        return (f'<path d="M70,70 L{x0:.2f},{y0:.2f} A64,64 0 {large} 1 {x1:.2f},{y1:.2f} Z" '
+                f'fill="{fill}" stroke="var(--surface)" stroke-width="2"/>')
+
+    p_pct = round(100 * fp)
+    pie = (
+        '<div class="ail-pie-wrap">'
+        f'<svg class="ail-pie" viewBox="0 0 140 140" role="img" '
+        f'aria-label="Product AI {money(p_sum)} ({p_pct}%) versus internal AI {money(i_sum)} ({100 - p_pct}%)">'
+        f'{wedge(0.0, fp, prod_fill)}{wedge(fp, 1.0, intl_fill)}</svg>'
+        '<div class="ail-legend">'
+        f'<div><span class="sw" style="background:{prod_fill}"></span>'
+        f'<b>In the product</b><span class="ail-lv">{money(p_sum)} · {p_pct}%</span></div>'
+        f'<div><span class="sw" style="background:{intl_fill}"></span>'
+        f'<b>In how we build</b><span class="ail-lv">{money(i_sum)} · {100 - p_pct}%</span></div>'
+        '</div></div>'
+        f'<p class="ail-cap"><b>Product AI is ~{ratio:.0f}× internal AI</b> '
+        f'({money(p_sum)} vs {money(i_sum)}). The internal slice is small because the risk is small — '
+        f'its presence answers <i>"did you look at our own AI usage?"</i> (yes); its size answers '
+        f'<i>"how worried?"</i> (a little). Its absence would be the conspicuous failure.</p>')
 
     inner = (
         '<p class="lede">AI is not a category of risk; it is a cause that runs through the ones you already '
         'have. Here is everywhere it drives exposure — in the product and in how we build. '
         '<b>All of it is emerging</b>: wide, forward-looking, and deliberately held out of the live appetite '
         'math, so none of it moves the portfolio numbers yet. This view answers coverage, not priority.</p>'
-        + bar
+        + pie
         + block("In the product", "The model making customer decisions, the autonomous agent, the "
                 "abuse-detection model — where AI already shapes what ships.", product, p_sum)
         + block("In how we build (internal operations)", "AI as an operational practice, not a product "
@@ -1117,14 +1139,17 @@ h4 { font-size:13px; color:var(--text); margin:18px 0 8px; }
 .ai-lens .vhdr { align-items:center; }
 .ai-lens .seam { font-size:10px; letter-spacing:0.1em; color:var(--accent); background:transparent;
   border:1px solid var(--accent); padding:3px 8px; border-radius:var(--radius-sm); font-weight:700; }
-.ail-bar { display:flex; gap:2px; height:30px; margin:4px 0 10px; }
-.ail-seg { border-radius:var(--radius-sm); display:flex; align-items:center; min-width:8px; overflow:hidden; }
-.ail-seg.prod { background:var(--accent); }
-.ail-seg.prod span { color:var(--accent-ink); font-size:12px; font-weight:600; padding:0 12px; white-space:nowrap; }
-.ail-seg.intl { background:color-mix(in srgb, var(--accent), transparent 68%); }
+.ai-lens h4 { font-size:15px; font-weight:600; color:var(--text-strong); margin:22px 0 3px; }
+.ai-lens h4 .ail-agg { color:var(--text-muted); font-weight:400; font-size:12px; margin-left:8px; }
+.ail-note { color:var(--text-muted); font-size:12.5px; line-height:1.5; margin:0 0 10px; max-width:760px; }
+.ail-pie-wrap { display:flex; align-items:center; gap:22px; margin:6px 0 12px; }
+.ail-pie { width:132px; height:132px; flex:0 0 auto; }
+.ail-legend { display:flex; flex-direction:column; gap:10px; font-size:13.5px; color:var(--text); }
+.ail-legend > div { display:flex; align-items:center; gap:8px; }
+.ail-legend .sw { width:12px; height:12px; border-radius:50%; flex:0 0 auto; }
+.ail-legend .ail-lv { color:var(--text-muted); margin-left:6px; font-family:var(--font-display); }
 .ail-cap { color:var(--text); font-size:13px; line-height:1.5; margin:0 0 6px; max-width:760px; }
 .ail-cap i { color:var(--text-muted); font-style:italic; }
-.ai-lens h4 .ail-agg { color:var(--text-muted); font-weight:400; font-size:12px; margin-left:6px; }
 footer { margin-top:40px; color:var(--text-muted); font-size:12.5px; border-top:1px solid var(--border); padding-top:18px; }
 @media (max-width:720px) { .tiles { grid-template-columns:repeat(2,1fr); } .ai-flow { grid-template-columns:1fr; } .ai-arrow { transform:rotate(90deg); } }
 """
