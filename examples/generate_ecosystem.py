@@ -661,7 +661,43 @@ SCENARIOS = [
     ("SCN-2026-0033", "Silent training-data drift degrades the abuse-detection model", "NR-ABUSE-DETECTION",
      [8, 40], [0.01, 0.05], [120000, 700000], ["individual_harm", "public_market_harm"],
      ["ai"], "emerging", "receding"),
+    # --- Internal-operations AI (SPEC v3.4 §2, built per the v3.4 sizing decision):
+    # small, real, and EMERGING. AI as an operational *practice*, not a product
+    # feature — the median blind spot the product lens alone misses. Each attaches
+    # to an existing named risk in the right domain and is authored at honest,
+    # modest exposure; deliberately NOT sized up to balance the product lens (the
+    # asymmetry is the point, §4). Each carries the `ai` causation vector so the
+    # coverage lens (§3) picks it up. They are `emerging`, not managed: at their
+    # honest ~$0.7M size, folding them into the live appetite math pushed the
+    # portfolio's P(>capacity) from 6% to 28% (the corpus runs a deliberately tight
+    # $15M materiality headroom, v2.8 §1). Held out, they keep that invariant intact
+    # and still answer the coverage question — internal AI exposure is real, small,
+    # and not yet in the live numbers. Factors authored to plausible CIs, not
+    # reverse-solved to a target (v2.2 §B).
+    # The `internal_ops` vector marks these as AI in *how we build*, not in the
+    # product — the coverage lens (§3) splits the two blocks on it. A locus marker,
+    # the same shape as `third_party` (where the risk originates), not a causation
+    # mechanism like `ai`/`adversarial`.
+    ("SCN-2026-0034", "AI-generated code introduces a vulnerability into production", "NR-PROD-COMPROMISE",
+     [9, 22], [0.035, 0.09], [260000, 820000], ["financial", "individual_harm"],
+     ["ai", "internal_ops"], "emerging", "rising"),
+    ("SCN-2026-0035", "Regulated data pasted into an external LLM", "NR-DATA-EXFIL",
+     [6, 16], [0.032, 0.085], [210000, 780000], ["financial", "regulatory", "individual_harm"],
+     ["ai", "internal_ops"], "emerging", "rising"),
+    ("SCN-2026-0036", "Copilot-accelerated shipping outpaces review", "NR-PIPELINE-INTEGRITY",
+     [6, 16], [0.024, 0.062], [140000, 520000], ["financial"],
+     ["ai", "internal_ops"], "emerging", "stable"),
 ]
+
+# Short display headlines for the internal-ops AI scenarios (SPEC v3.4 §2). Kept
+# as a side-table so the existing scenario files are untouched (acceptance 8: the
+# corpus gains three files, no others change). Emitted as `short_title` by
+# render_scenario; scenarios without one fall back to their full title.
+SCENARIO_SHORT_TITLES = {
+    "SCN-2026-0034": "AI-generated code vuln",
+    "SCN-2026-0035": "Data into an external LLM",
+    "SCN-2026-0036": "Copilot outpaces review",
+}
 
 # The stored output of the offline AI incident->scenario mapping step, keyed by
 # the scenario it produced. See ``map_incident_to_scenario`` for the seam.
@@ -724,6 +760,10 @@ def render_scenario(spec) -> str:
         SCENARIO_HEAD,
         f"id: {sid}",
         f"title: {title}",
+    ]
+    if sid in SCENARIO_SHORT_TITLES:
+        lines.append(f"short_title: {SCENARIO_SHORT_TITLES[sid]}")
+    lines += [
         f"named_risk: {nr}",
         "baseline:",
         f"  opportunity_frequency_90ci: [{of[0]}, {of[1]}]",

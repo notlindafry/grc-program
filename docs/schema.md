@@ -25,10 +25,10 @@ organized by **where the risk manifests** (spec §1):
 
 ```
 Tier 1  Domain        where the risk manifests     board / portfolio altitude   7
-Tier 2  Named risk    owned; appetite is set here   executive (VP) altitude      20
-Tier 3  Scenario      the quantified loss event     practitioner altitude        22
+Tier 2  Named risk    owned; appetite is set here   executive (VP) altitude      24
+Tier 3  Scenario      the quantified loss event     practitioner altitude        29
 ------------------------- risk / issue boundary -------------------------
-        Issues        exceptions, vulns, findings   operational owners           57
+        Issues        exceptions, vulns, findings   operational owners           36
 ```
 
 Two cross-cutting dimensions apply *across* the domains rather than nesting as
@@ -59,12 +59,12 @@ freshness, and KRIs *inform the estimate*; none adds its own term.
 ### Cardinality confirmation (shipped corpus, `risk-ledger graph`)
 
 ```
-Entities: 7 domains · 24 named risks · 26 scenarios · 36 issues
+Entities: 7 domains · 24 named risks · 29 scenarios · 36 issues
           (exception=28, vuln=3, finding=5) · 93 controls · 17 policies
           · 14 evidence · 12 KRIs · 4 horizon · 40 remediations · 16 OKRs
 
 named_risk → domain (tree):    24/24 resolve to a parent
-scenario   → named_risk (tree): 26/26 resolve to a parent
+scenario   → named_risk (tree): 29/29 resolve to a parent
 control    → policy (tree):     93/93 resolve to a parent
 issue      → scenario (m2m):    36/36 issues mapped
 control    → named_risk (m2m):  90/93 controls mapped   (3 deliberate orphans)

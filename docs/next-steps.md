@@ -112,11 +112,13 @@ runtime.
 ## Explicitly out of scope (and why)
 
 This artifact is a **model of the operating model**, not a platform — a closed set of
-five dashboard views plus a portfolio summary and the Top-5 banner, rendered from
-synthetic git-native YAML. There is deliberately **no workflow engine, no live
-collectors, and no database**; the view set is closed and each view earns its place by
-mapping to a question a VP actually asks (`SPEC v2.7 §8`, pruned seven→five in v3.3 —
-Horizon cut, Falling-through-the-cracks folded into view 1). The security posture follows from that shape: a static,
+five prioritization views plus a portfolio summary, the Top-5 banner, and an AI
+coverage lens (a *coverage* read, deliberately outside the numbered prioritization
+set), rendered from synthetic git-native YAML. There is deliberately **no workflow
+engine, no live collectors, and no database**; the view set is closed and each view
+earns its place by mapping to a question a VP actually asks (`SPEC v2.7 §8`, pruned
+seven→five in v3.3 — Horizon cut, Falling-through-the-cracks folded into view 1; the
+v3.4 AI coverage lens answers "is our AI usage accounted for", not "what do I fix first"). The security posture follows from that shape: a static,
 read-only, public HTML page with no login, no user input, and no backend has the same
 near-zero surface as the repo it extends, so the standard auth / RBAC / rate-limiting /
 input-sanitization requirements are **not applicable and intentionally omitted**

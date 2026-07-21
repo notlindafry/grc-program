@@ -429,6 +429,7 @@ class Scenario:
     vectors: list[str]
     lifecycle_state: str
     trajectory: str
+    short_title: str = ""  # optional headline name; falls back to title (SPEC v3.4)
     legacy_risk: str = ""  # optional bridge to the legacy risks.yaml id
     incident: Optional[dict[str, Any]] = None  # the offline AI incident→scenario seam (SPEC §8)
     problems: list[Issue] = field(default_factory=list)
@@ -441,6 +442,7 @@ class Scenario:
             id=str(raw.get("id", "")),
             path=path,
             title=str(raw.get("title", "")),
+            short_title=str(raw.get("short_title", "")),
             named_risk=str(raw.get("named_risk", "")),
             opportunity_frequency_90ci=_ci(baseline.get("opportunity_frequency_90ci")),
             probability_of_realization_90ci=_ci(baseline.get("probability_of_realization_90ci")),
@@ -456,6 +458,11 @@ class Scenario:
 
     def add(self, issue: Issue) -> None:
         self.problems.append(issue)
+
+    @property
+    def label(self) -> str:
+        """The headline name: ``short_title`` if authored, else the full title."""
+        return self.short_title or self.title
 
     @property
     def errors(self) -> list[Issue]:

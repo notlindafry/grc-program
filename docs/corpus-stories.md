@@ -128,11 +128,26 @@ never think about while your platform burns.* Data integrity stays BELOW but is
 no longer the hero. Surfaced via the domain `rag_counts` / `amber_end_to_end`.
 
 **10. Emerging risks + horizon + KRI breaches.**
-Three emerging scenarios with wide, rising, `ai`-vector intervals
-(`SCN-2026-0031/0032/0033`), held out of the appetite math. Four horizon items
-(`HZN-*`); ten KRIs breached. The engine still computes these (`emerging_items`,
-`breached_kris`), but the standalone horizon view was cut in the v3.3 dashboard
-prune — trajectory is monitoring, not a decision a VP acts on in the ten-second read.
+Six emerging scenarios with wide, `ai`-vector intervals, held out of the appetite
+math: three in the product (`SCN-2026-0031/0032/0033` — model-provider
+concentration, unsafe agent autonomy, abuse-detection drift) and three in internal
+operations (`SCN-2026-0034/0035/0036`, added in v3.4 — AI-generated code, data into
+external LLMs, copilot velocity). Four horizon items (`HZN-*`); ten KRIs breached.
+The engine still computes these (`emerging_items`, `breached_kris`); the standalone
+horizon view was cut in the v3.3 prune, and the emerging AI items now surface in the
+v3.4 coverage lens instead (see below).
+
+**11. The AI coverage lens (v3.4).** AI stays a cross-cutting *cause*, never a domain
+or a named risk. The lens filters the corpus by the `ai` vector and splits it on the
+`internal_ops` locus marker: **in the product** (~$10.7M across the three emerging
+product scenarios) versus **in how we build** (~$0.8M across the three new internal-ops
+scenarios). The ~14× asymmetry is shown, not balanced — the small internal number is
+coverage proof (we looked), not a ranking. The internal scenarios attach to existing
+host risks (`NR-PROD-COMPROMISE`, `NR-DATA-EXFIL`, `NR-PIPELINE-INTEGRITY`) and are
+**emerging**: at their honest ~$0.8M size, folding them into the live appetite math
+pushed the portfolio's P(>capacity) from 6% to 28% (the corpus runs a tight $15M
+materiality headroom), so they are held out — real, small, and not yet in the live
+numbers.
 
 **Enough green to contrast, and it is real green now (v2.5 §3).** Five named risks
 read AT — `NR-ABUSE-ESCALATION` and `NR-ABUSE-DETECTION` (Security),
