@@ -544,8 +544,7 @@ def build_grc_page(e: GRCEngine) -> str:
         + _tab_bar("grc")
         + '<header><div class="eyebrow">Company Corp</div>'
         '<h1>GRC program health <span class="st st-below wip-tag">[WIP]</span></h1>'
-        f'<div class="meta">For the GRC Manager · reference date '
-        f'{e.config.as_of.isoformat()} · <b>synthetic data</b>, git-native YAML</div>'
+        '<div class="meta">For the GRC Manager · <b>synthetic data</b>, git-native YAML</div>'
         '<div class="wip wip-strong"><b>WORK IN PROGRESS</b> — landing scorecard only; pillar '
         'drill-downs follow. AI governance is the newest, least settled section.</div>'
         '</header>'

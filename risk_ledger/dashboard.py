@@ -1191,8 +1191,8 @@ def build_dashboard(graph: Graph, eng: GraphEngine) -> str:
         + _tab_bar("eng")
         + '<header><div class="eyebrow">Company Corp</div>'
         '<h1>GRC portfolio — the ten-second read for VP of Engineering</h1>'
-        f'<div class="meta">Executive view for engineering leadership · reference date '
-        f'{eng.config.as_of.isoformat()} · <b>synthetic data</b>, generated from git-native YAML</div></header>'
+        '<div class="meta">Executive view for engineering leadership · <b>synthetic data</b>, '
+        'generated from git-native YAML</div></header>'
         + _top5_section(graph, eng)
         + _summary(graph, eng)
         + '<div class="grid">'
