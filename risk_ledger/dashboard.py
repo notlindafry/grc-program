@@ -898,6 +898,79 @@ def _view5(graph: Graph, eng: GraphEngine) -> str:
                  inner)
 
 
+def _ai_lens(graph: Graph, eng: GraphEngine) -> str:
+    """The AI coverage lens (SPEC v3.4). Not a prioritization view — it answers a
+    *coverage* question ("is our AI usage accounted for?"), so it sits outside the
+    numbered set and carries no rank. It filters the corpus by the ``ai`` causation
+    vector (AI stays a cross-cutting cause, never a domain or a named risk) and
+    splits it on the ``internal_ops`` locus marker: AI *in the product* vs AI in
+    *how we build*. The split is deliberately lopsided and shown, not balanced
+    (§4): the honest picture is one big concentration in the product and a small,
+    real internal tail — and both are **emerging**, held out of the live appetite
+    math, which the view says plainly."""
+    ai = [(sid, sc) for sid, sc in graph.scenarios.items() if "ai" in (sc.vectors or [])]
+    if not ai:
+        return ""
+
+    def rows(internal: bool) -> list[tuple]:
+        out = []
+        for sid, sc in ai:
+            if ("internal_ops" in sc.vectors) != internal:
+                continue
+            r = eng.scenario_residual(sid)
+            if not r:
+                continue
+            nr = graph.named_risks[sc.named_risk]
+            dom = graph.domains[nr.domain].title
+            out.append((sc.label, nr.label, dom, r.band))
+        out.sort(key=lambda t: t[3].mean, reverse=True)
+        return out
+
+    product, internal = rows(False), rows(True)
+    p_sum = sum(t[3].mean for t in product)
+    i_sum = sum(t[3].mean for t in internal) or 1.0
+    ratio = p_sum / i_sum
+
+    def block(title: str, note: str, data: list[tuple], agg: float) -> str:
+        body = "".join(
+            f'<tr><td class="nm">{_esc(lbl)}</td><td class="drv">{_esc(nr)}</td>'
+            f'<td class="drv">{_esc(dom)}</td>'
+            f'<td class="num">{band_str(b.low, b.high)}</td></tr>'
+            for lbl, nr, dom, b in data)
+        return (f'<h4>{title} <span class="ail-agg">{len(data)} AI-vectored · ~{money(agg)}</span></h4>'
+                f'<p class="drv" style="margin:0 0 8px">{note}</p>'
+                f'<table class="tbl"><thead><tr><th>Scenario</th><th>Host named risk</th>'
+                f'<th>Domain</th><th class="num">Exposure (90% CI)</th></tr></thead><tbody>{body}</tbody></table>')
+
+    # The asymmetry, led with as a proportion (§4): one bar, product dominating.
+    # A minimum width keeps the internal sliver visible — present, not padded.
+    p_pct = max(6.0, 100 * p_sum / (p_sum + i_sum))
+    bar = (f'<div class="ail-bar" role="img" aria-label="Product AI {money(p_sum)} versus internal AI {money(i_sum)}">'
+           f'<div class="ail-seg prod" style="width:{p_pct:.1f}%"><span>In the product · {money(p_sum)}</span></div>'
+           f'<div class="ail-seg intl" style="width:{100 - p_pct:.1f}%"></div></div>'
+           f'<p class="ail-cap"><b>Product AI is ~{ratio:.0f}× internal AI</b> '
+           f'({money(p_sum)} vs {money(i_sum)}). The internal block is small because the risk is small — '
+           f'its presence answers <i>"did you look at our own AI usage?"</i> (yes); its size answers '
+           f'<i>"how worried?"</i> (a little). Its absence would be the conspicuous failure.</p>')
+
+    inner = (
+        '<p class="lede">AI is not a category of risk; it is a cause that runs through the ones you already '
+        'have. Here is everywhere it drives exposure — in the product and in how we build. '
+        '<b>All of it is emerging</b>: wide, forward-looking, and deliberately held out of the live appetite '
+        'math, so none of it moves the portfolio numbers yet. This view answers coverage, not priority.</p>'
+        + bar
+        + block("In the product", "The model making customer decisions, the autonomous agent, the "
+                "abuse-detection model — where AI already shapes what ships.", product, p_sum)
+        + block("In how we build (internal operations)", "AI as an operational practice, not a product "
+                "feature: generated code, data pasted into external LLMs, copilot velocity. The blind spot "
+                "the product lens alone misses.", internal, i_sum))
+    return ('<section class="card ai-lens"><div class="vhdr"><span class="seam alt">AI COVERAGE</span>'
+            '<div><h3>Is our AI usage accounted for?</h3>'
+            '<p class="vsub">AI as a cross-cutting cause, surfaced — not a domain, not a named risk. '
+            'The shape is lopsided, and that is the honest answer.</p></div></div>'
+            f'{inner}</section>')
+
+
 def _ai_example(graph: Graph) -> str:
     scn = next((s for s in graph.scenarios.values() if s.incident), None)
     if scn is None:
@@ -1041,6 +1114,17 @@ h4 { font-size:13px; color:var(--text); margin:18px 0 8px; }
 .ai-v { font-size:12.5px; color:var(--text); }
 .ai-v .mut { color:var(--text-muted); font-size:11px; }
 .ai-arrow { color:var(--text-muted); font-size:20px; text-align:center; }
+.ai-lens .vhdr { align-items:center; }
+.ai-lens .seam { font-size:10px; letter-spacing:0.1em; color:var(--accent); background:transparent;
+  border:1px solid var(--accent); padding:3px 8px; border-radius:var(--radius-sm); font-weight:700; }
+.ail-bar { display:flex; gap:2px; height:30px; margin:4px 0 10px; }
+.ail-seg { border-radius:var(--radius-sm); display:flex; align-items:center; min-width:8px; overflow:hidden; }
+.ail-seg.prod { background:var(--accent); }
+.ail-seg.prod span { color:var(--accent-ink); font-size:12px; font-weight:600; padding:0 12px; white-space:nowrap; }
+.ail-seg.intl { background:color-mix(in srgb, var(--accent), transparent 68%); }
+.ail-cap { color:var(--text); font-size:13px; line-height:1.5; margin:0 0 6px; max-width:760px; }
+.ail-cap i { color:var(--text-muted); font-style:italic; }
+.ai-lens h4 .ail-agg { color:var(--text-muted); font-weight:400; font-size:12px; margin-left:6px; }
 footer { margin-top:40px; color:var(--text-muted); font-size:12.5px; border-top:1px solid var(--border); padding-top:18px; }
 @media (max-width:720px) { .tiles { grid-template-columns:repeat(2,1fr); } .ai-flow { grid-template-columns:1fr; } .ai-arrow { transform:rotate(90deg); } }
 """
@@ -1059,6 +1143,7 @@ def build_dashboard(graph: Graph, eng: GraphEngine) -> str:
         + '<div class="grid">'
         + _view1(graph, eng) + _view_domains(graph, eng)
         + _view3(graph, eng) + _view4(graph, eng) + _view5(graph, eng)
+        + _ai_lens(graph, eng)
         + _ai_example(graph)
         + '</div>'
         '<footer>Every figure is a 90% confidence interval from a light FAIR-shaped Monte Carlo, measured '

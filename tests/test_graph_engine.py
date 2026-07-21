@@ -301,6 +301,23 @@ def test_emerging_items_are_ai_vectored_and_not_uniform(corpus_engine):
     assert any(not i.would_breach for i in items)          # ...but not all
 
 
+def test_internal_ops_ai_is_emerging_and_held_out_of_the_appetite_math(corpus_engine):
+    # SPEC v3.4 §2 + the sizing decision: the three internal-ops AI scenarios carry
+    # the ai + internal_ops vectors and are EMERGING, so they surface in the coverage
+    # lens but do not touch the live appetite math — their host risks read exactly as
+    # they would without them (acceptance 2/3: no RAG flip, P(>cap) unchanged).
+    g, eng = corpus_engine
+    internal = [g.scenarios[s] for s in ("SCN-2026-0034", "SCN-2026-0035", "SCN-2026-0036")]
+    assert all(s.is_emerging and "ai" in s.vectors and "internal_ops" in s.vectors for s in internal)
+    # hosts read at their pre-v3.4 positions: Prod OVER, Data-exfil & Pipeline BELOW.
+    assert eng.named_risk_residual("NR-PROD-COMPROMISE").state == "over"
+    assert eng.named_risk_residual("NR-DATA-EXFIL").state == "below"
+    assert eng.named_risk_residual("NR-PIPELINE-INTEGRITY").state == "below"
+    # and they show up on the emerging track, not the managed portfolio.
+    emerging = {i.scenario.id for i in eng.emerging_items()}
+    assert {"SCN-2026-0034", "SCN-2026-0035", "SCN-2026-0036"} <= emerging
+
+
 def test_kri_triggers_surface_as_signals(corpus_engine):
     _, eng = corpus_engine
     breached = {k.kri_id for k in eng.breached_kris()}

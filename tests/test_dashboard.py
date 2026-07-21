@@ -31,6 +31,13 @@ def page() -> str:
     return dashboard.build_dashboard(g, GraphEngine(g, cfg))
 
 
+@pytest.fixture(scope="module")
+def corpus_graph():
+    g = load_graph(DATA)
+    validate_graph(g, Config(as_of=AS_OF))
+    return g
+
+
 def test_page_is_self_contained_html(page: str) -> None:
     assert page.startswith("<!doctype html>")
     assert page.rstrip().endswith("</html>")
@@ -50,6 +57,48 @@ def test_five_views_plus_summary_and_ai_example(page: str) -> None:
     assert 'class="vnum">6</span>' not in page
     assert page.count('class="summary"') == 1
     assert page.count('class="card ai"') == 1
+
+
+def test_ai_lens_is_coverage_not_a_sixth_numbered_view(page: str) -> None:
+    # SPEC v3.4 §3/§5: the AI coverage lens answers "is our AI usage accounted for",
+    # not "what do I fix first" — so it renders outside the numbered set (no .vnum),
+    # after the prioritization views, and does not reopen the five-view count.
+    assert page.count('class="card ai-lens"') == 1
+    assert "Is our AI usage accounted for?" in page
+    lens = re.search(r'class="card ai-lens".*?</section>', page, re.S).group(0)
+    assert 'class="vnum"' not in lens                     # unnumbered — not a 6th view
+    assert "In the product" in lens and "In how we build" in lens  # the two sub-blocks
+    assert "AI is not a category of risk" in lens          # the principle, coverage-framed
+    assert "All of it is emerging" in lens                 # honest: held out of the appetite math
+
+
+def test_ai_lens_shows_the_asymmetry_and_does_not_balance_it(page: str) -> None:
+    # SPEC v3.4 §4 / acceptance 5 (the honest one): product AI ~$10.7M dwarfs
+    # internal AI ~$0.8M; the ratio is stated and the internal block is NOT padded
+    # to look comparable. The proportional bar's product segment is far wider.
+    lens = re.search(r'class="card ai-lens".*?</section>', page, re.S).group(0)
+    assert re.search(r"Product AI is ~\d+&times;|Product AI is ~\d+×", lens)  # the ratio, stated
+    prod_w = float(re.search(r'ail-seg prod" style="width:([\d.]+)%', lens).group(1))
+    assert prod_w > 80                                     # product dominates the bar, not balanced
+    # both aggregates are shown, and product is an order of magnitude larger
+    assert "~$10.7M" in lens and re.search(r"~\$\d{3}k", lens)
+
+
+def test_ai_stays_a_vector_no_ai_domain_or_new_named_risk(page: str, corpus_graph) -> None:
+    # SPEC v3.4 §5 / acceptance 7: AI is a cross-cutting cause everywhere it appears.
+    # This build adds no AI domain and no AI named risk — the three new scenarios
+    # attach to existing, non-AI-named host risks (Prod-compromise, Data-exfil,
+    # Pipeline-integrity), and the domain set is unchanged at seven.
+    assert len(corpus_graph.domains) == 7
+    assert not any(d.id.upper().endswith("-AI") or d.id == "TR-AI" for d in corpus_graph.domains.values())
+    for sid, host in (("SCN-2026-0034", "NR-PROD-COMPROMISE"),
+                      ("SCN-2026-0035", "NR-DATA-EXFIL"),
+                      ("SCN-2026-0036", "NR-PIPELINE-INTEGRITY")):
+        sc = corpus_graph.scenarios[sid]
+        assert sc.named_risk == host
+        assert "ai" in sc.vectors and "internal_ops" in sc.vectors
+        assert sc.is_emerging                              # held out of the appetite math
+        assert sc.short_title                              # acceptance 1: a short_title
 
 
 def test_orphans_folded_into_view1_not_a_separate_card(page: str) -> None:

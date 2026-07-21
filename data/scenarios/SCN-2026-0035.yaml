@@ -1,0 +1,18 @@
+# Tier 3 -- the quantified loss event the Monte Carlo runs on (SPEC §2.4). The
+# baseline OF/PoR/LM lives here. Baselines are rescaled (SPEC v2.1 §D4) so the
+# aggregate sits near the enterprise appetite rather than 12-30x over it. Each
+# scenario names its Tier-2 named_risk, carries impact + vector tags, and a
+# lifecycle_state (managed | emerging) with a trajectory. All synthetic.
+
+id: SCN-2026-0035
+title: Regulated data pasted into an external LLM
+short_title: Data into an external LLM
+named_risk: NR-DATA-EXFIL
+baseline:
+  opportunity_frequency_90ci: [6, 16]
+  probability_of_realization_90ci: [0.032, 0.085]
+  loss_magnitude_90ci: [210000, 780000]
+impact: [financial, regulatory, individual_harm]
+vectors: [ai, internal_ops]
+lifecycle_state: emerging
+trajectory: rising
