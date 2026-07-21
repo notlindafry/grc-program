@@ -1162,7 +1162,7 @@ def build_dashboard(graph: Graph, eng: GraphEngine) -> str:
         f'{eng.config.as_of.isoformat()} · <b>synthetic data</b>, generated from git-native YAML</div>'
         '<div class="meta" style="margin-top:8px">→ <a href="grc.html">GRC program health '
         '<b>[WIP]</b></a> — the health of the program producing this view (coverage, hygiene, SLA, '
-        'AI governance). A separate page; nothing on it can move the numbers here.</div></header>'
+        'AI governance).</div></header>'
         + _top5_section(graph, eng)
         + _summary(graph, eng)
         + '<div class="grid">'

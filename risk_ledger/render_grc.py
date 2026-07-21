@@ -52,7 +52,6 @@ header .meta { color:var(--text-muted); font-size:13.5px; }
   background:color-mix(in srgb, var(--status-below), transparent 92%); padding:12px 16px;
   font-size:13px; color:var(--text); }
 .wip b { color:var(--status-below-tint); letter-spacing:0.04em; }
-.wip .iso { display:block; margin-top:6px; color:var(--text-muted); font-size:12.5px; }
 .wip-strong { border-style:solid; }
 .cols { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:26px 0 0; }
 .col { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; }
@@ -544,11 +543,7 @@ def build_grc_page(e: GRCEngine) -> str:
         '<div class="navrow">↩ <a href="dashboard.html">Eng risk dashboard</a> — that tab ranks what to '
         'fix; this one checks the program doing the ranking.</div>'
         '<div class="wip wip-strong"><b>WORK IN PROGRESS</b> — landing scorecard only; pillar '
-        'drill-downs follow. AI governance is the newest, least settled section.'
-        '<span class="iso"><b>Isolation guarantee:</b> this page cannot move the eng numbers. It reads '
-        'registers the eng build never opens, and deviations live outside <code>data/issues/</code>. '
-        'Verified by a test that renders the eng dashboard with and without the GRC corpus loaded and '
-        'confirms it is identical.</span></div>'
+        'drill-downs follow. AI governance is the newest, least settled section.</div>'
         '</header>'
         + _scorecard(e)
         + _program_sla_strip(e)

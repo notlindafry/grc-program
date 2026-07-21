@@ -209,7 +209,6 @@ def test_page_shell_and_wip(page):
     assert page.startswith("<!doctype html>")
     assert 'name="robots" content="noindex, nofollow"' in page
     assert "WORK IN PROGRESS" in page
-    assert "Isolation guarantee" in page
     assert 'href="dashboard.html"' in page  # nav to the eng tab
 
 
