@@ -748,9 +748,9 @@ class GRCEngine:
         dev = self.deviation_sla()
         dev_measured = [s for s in dev if s.met is not None]
         return {
-            "policies inside review cadence (rest auto-flagged for manual review)": (pc.current, pc.total),
-            "evidence fresh on its cadence": (len(ev["fresh"]), len(self.graph.evidence)),
-            "live remediations on target date": (rem.total_live - len(rem.overdue), rem.total_live),
-            "deviations dispositioned in SLA": (
+            "Policy reviews on cadence": (pc.current, pc.total),
+            "Evidence fresh on cadence": (len(ev["fresh"]), len(self.graph.evidence)),
+            "Remediations on target date": (rem.total_live - len(rem.overdue), rem.total_live),
+            "Deviations dispositioned in SLA": (
                 sum(1 for s in dev_measured if s.met), len(dev_measured)),
         }

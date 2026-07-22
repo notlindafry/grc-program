@@ -6,15 +6,17 @@ the risk portfolio. The residual number is the eng tab's and does not lead here.
 
 Rendering decisions, per spec:
 
-* **Separate pages, cross-linked both ways** (``docs/grc.html`` ↔
-  ``docs/dashboard.html``). The eng dashboard carries a single static nav link
-  to this page and back. The isolation guarantee is *not* the eng render being
-  frozen byte-for-byte — it is that the GRC corpus (registers + deviations)
-  cannot change any eng number, enforced by
+* **Two pages presented as tabs** (``docs/grc.html`` ↔ ``docs/dashboard.html``).
+  Both pages carry the same static two-tab bar (``dashboard._tab_bar``); the
+  current page's tab is the active one, the other tab links across, so switching
+  reads as switching tabs of one product. The isolation guarantee is *not* the
+  eng render being frozen byte-for-byte — it is that the GRC corpus (registers +
+  deviations) cannot change any eng number, enforced by
   ``test_eng_dashboard_byte_identical_under_grc_loader`` (renders the eng page
-  with and without the GRC corpus loaded and asserts equality). Adding the nav
-  link changed the eng render deliberately; it moved no number. True in-page
-  tabbing needs the eng render refactored into a fragment and is still deferred.
+  with and without the GRC corpus loaded and asserts equality). The tab bar is
+  static chrome; it moved no number. True *in-page* tabbing (one HTML document
+  hosting both views) needs the eng render refactored into a fragment and is
+  still deferred; these remain two documents linked as tabs.
 * **Design system**: the ``:root`` tokens are imported from the eng dashboard
   verbatim — no raw hex in components. RAG per P.9: conventional for
   coverage/hygiene/SLA; two-sided for control right-sizing, where an
@@ -32,7 +34,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .config import Config
-from .dashboard import _ROOT, _esc, money
+from .dashboard import _ROOT, _TABS_CSS, _esc, _tab_bar, money
 from .grc import GRCEngine, load_grc_graph
 
 # Component CSS on top of the shared :root tokens (no raw hex here — §1.F).
@@ -47,12 +49,6 @@ a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:under
 header .eyebrow { color:var(--accent); font-size:10.5px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; }
 header h1 { font-size:30px; margin:6px 0 4px; color:var(--text-strong); }
 header .meta { color:var(--text-muted); font-size:13.5px; }
-.navrow { margin-top:10px; font-size:13px; }
-.wip { margin:18px 0 0; border:1px dashed var(--status-below); border-radius:var(--radius);
-  background:color-mix(in srgb, var(--status-below), transparent 92%); padding:12px 16px;
-  font-size:13px; color:var(--text); }
-.wip b { color:var(--status-below-tint); letter-spacing:0.04em; }
-.wip-strong { border-style:solid; }
 .cols { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:26px 0 0; }
 .col { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; }
 .col h3 { font-size:13px; margin:0 0 10px; color:var(--text-strong); text-transform:uppercase; letter-spacing:0.05em; }
@@ -61,19 +57,9 @@ header .meta { color:var(--text-muted); font-size:13.5px; }
 .col-row { border-top:1px solid var(--border); margin-top:10px; padding-top:10px; font-size:12.5px; }
 .col-k { color:var(--text-muted); font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; }
 .col-v { margin-top:2px; }
-.sowhat { margin-top:10px; font-size:11.5px; color:var(--accent); border:1px solid var(--border);
-  border-radius:var(--radius-sm); padding:2px 8px; display:inline-block; }
-.subtile { margin-top:12px; border:1px dashed var(--status-below); border-radius:var(--radius-sm);
-  padding:8px 10px; font-size:12px; }
-.subtile .col-k { color:var(--status-below-tint); }
-.strip { margin:14px 0 0; background:var(--surface); border:1px solid var(--border);
-  border-radius:var(--radius); padding:16px 18px; }
-.strip-head { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
-.strip-num { font-size:22px; color:var(--text-strong); }
-.strip-title { font-size:16px; color:var(--text-strong); }
-.strip-sub { color:var(--text-muted); font-size:12.5px; margin:6px 0 0; max-width:820px; }
-.strip-parts { margin-top:10px; }
-.strip .part { font-size:12px; color:var(--text-muted); }
+.slahead { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; margin:2px 0 14px; }
+.slahead .col-num { font-size:26px; }
+.slahead .lbl { color:var(--text); font-size:14px; }
 .note { margin:14px 0 0; color:var(--text-muted); font-size:12.5px; max-width:820px; }
 .grid { display:grid; gap:20px; margin-top:26px; }
 .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px 26px; }
@@ -89,26 +75,15 @@ table.tbl { width:100%; border-collapse:collapse; font-size:13px; }
 .tbl .drv { color:var(--text-muted); }
 .tbl .num { text-align:right; font-family:var(--font-display); white-space:nowrap; }
 .st { font-weight:600; font-size:12px; }
-.wip-tag { font-size:21px; vertical-align:middle; letter-spacing:0.04em; }
+.wip-tag { font-size:28px; vertical-align:middle; letter-spacing:0.04em; }
 .st-over { color:var(--status-over); }
 .st-at { color:var(--status-at); }
 .st-below { color:var(--status-below-tint); }
 .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:baseline; }
-.callout { border-left:3px solid var(--accent); background:var(--bg); padding:10px 14px; margin:14px 0 0;
-  border-radius:var(--radius-sm); color:var(--text); font-size:13px; line-height:1.5; max-width:820px; }
-.callout.warn { border-left-color:var(--status-below); }
 .lede { color:var(--text); font-size:13.5px; margin:0 0 14px; max-width:820px; }
 footer { margin-top:40px; color:var(--text-faint); font-size:12.5px; max-width:820px; }
 @media (max-width:840px) { .cols { grid-template-columns:repeat(2,1fr); } }
 """
-
-# The three program goals a figure can serve (§1.E "so what" tags).
-_GOALS = {
-    "risk": "responsible risk-taking",
-    "speed": "engineering speed",
-    "informed": "informed decisions",
-}
-
 
 def _word_over(text: str) -> str:
     return f'<span class="st st-over"><span class="dot" style="background:var(--status-over)"></span>{_esc(text)}</span>'
@@ -172,11 +147,10 @@ def _scorecard(e: GRCEngine) -> str:
         + '</div></div>'
         f'<div class="col-row"><div class="col-k">SLA</div><div class="col-v">{_sla_word(pc.current, pc.total)}'
         f' <span class="drv">policies flagged for manual review: {len(pc.overdue)}/{pc.total}</span></div></div>'
-        # AI governance rides in the Governance column (§1.E), strongest WIP (P.7).
-        '<div class="subtile"><div class="col-k">AI governance · WIP</div>'
+        # AI governance rides in the Governance column (§1.E).
+        '<div class="col-row"><div class="col-k">AI governance</div>'
         f'<div class="col-v">guardrail coverage <b>{len(ac.covered)}/{len(ac.detected)}</b> detected agents'
         f' · disposition SLA: <b>{len(dev_overdue)}</b> overdue</div></div>'
-        f'<div><span class="sowhat">{_GOALS["informed"]}</span></div>'
         '</div>')
 
     risk = (
@@ -191,7 +165,6 @@ def _scorecard(e: GRCEngine) -> str:
         f' <span class="drv">remediations on target: {rem.total_live - len(rem.overdue)}/{rem.total_live}</span></div></div>'
         f'<div class="col-row"><div class="col-k">Hygiene pass</div><div class="col-v">{len(rh.passing)}/{rh.total} risks flag-free'
         f' · {len(unscored)} unscored</div></div>'
-        f'<div><span class="sowhat">{_GOALS["risk"]}</span></div>'
         '</div>')
 
     comp = (
@@ -204,7 +177,6 @@ def _scorecard(e: GRCEngine) -> str:
         f'<div class="col-row"><div class="col-k">SLA</div><div class="col-v">{_sla_word(len(ev["fresh"]), n_ev)}'
         f' <span class="drv">evidence fresh on cadence: {len(ev["fresh"])}/{n_ev}</span></div></div>'
         f'<div class="col-row"><div class="col-k">Action plans</div><div class="col-v">{len(plans)} finding(s) with no plan</div></div>'
-        f'<div><span class="sowhat">{_GOALS["informed"]}</span></div>'
         '</div>')
 
     self_n = sources.get("self-identified", 0)
@@ -221,7 +193,6 @@ def _scorecard(e: GRCEngine) -> str:
         f'{sum(1 for s in dev_measured if s.met)}/{len(dev_measured)} measured</span></div></div>'
         '<div class="col-row"><div class="col-k">Automation</div><div class="col-v">roadmap: 7 seams, 0 live '
         '(data + documented seam)</div></div>'
-        f'<div><span class="sowhat">{_GOALS["speed"]}</span></div>'
         '</div>')
 
     return f'<div class="cols">{gov}{risk}{comp}{ai}</div>'
@@ -231,20 +202,24 @@ def _program_sla_strip(e: GRCEngine) -> str:
     steps = e.program_sla()
     met = sum(m for m, _ in steps.values())
     measured = sum(n for _, n in steps.values())
-    parts = " · ".join(
-        f'<span class="part">{_esc(name)}: <b>{m}/{n}</b></span>' for name, (m, n) in steps.items())
+    rows = "".join(
+        f'<tr><td class="nm">{_esc(name)}</td>'
+        f'<td class="num">{m}/{n}</td>'
+        f'<td>{_sla_word(m, n)}</td></tr>'
+        for name, (m, n) in steps.items())
     return (
-        '<div class="strip">'
-        '<div class="strip-head">'
-        f'<span class="strip-num">{met}/{measured}</span>'
-        '<span class="strip-title">Program-wide SLA adherence</span>'
-        f'{_sla_word(met, measured)}</div>'
-        '<p class="strip-sub">Process steps inside their authored service level (sla_config.yaml).</p>'
-        f'<div class="strip-parts">{parts}</div>'
-        '</div>'
+        '<div class="card">'
+        '<h2>Program-wide SLA adherence</h2>'
+        '<p class="sub">Across every process step with an authored service level (sla_config.yaml), '
+        'how many items are on time right now.</p>'
+        f'<div class="slahead"><span class="col-num">{met}/{measured}</span>'
+        f'<span class="lbl">items on SLA</span>{_sla_word(met, measured)}</div>'
+        '<table class="tbl"><thead><tr><th>Process step</th><th>On SLA</th><th>Status</th></tr></thead>'
+        f'<tbody>{rows}</tbody></table>'
         '<p class="note">Deliberately <b>no blended health score</b> — a composite would describe '
-        'nothing. Each figure keeps its own denominator; the only aggregate is this count of steps '
-        'inside their SLA.</p>')
+        'nothing. The headline is simply the sum of the rows above, each keeping its own denominator: '
+        'a count of items on time, not a quality index.</p>'
+        '</div>')
 
 
 # ---------------------------------------------------------------------------
@@ -300,28 +275,30 @@ def _ai_governance_card(e: GRCEngine) -> str:
            (_word_over(f"{s.days_overdue}d overdue") if s.met is False else _word_below("open, in window")))
         + '</td></tr>'
         for s in sla)
-    prov_rows = "".join(
-        f'<tr><td class="nm">{_esc(c.dev.id)}</td><td class="drv">{_esc(c.dev.guardrail)}</td>'
-        f'<td class="drv">{_esc(c.named_risk)}</td>'
-        f'<td class="num">{money(c.band.low)}–{money(c.band.high)}</td>'
-        f'<td class="drv">{"clamped to bound" if c.clamped else "within bound"}</td></tr>'
-        for c in pe.contributions)
-    risk_lines = []
+    # Roll the per-deviation contributions up per named risk — the landing
+    # altitude. Count the open deviations on each, the combined provisional
+    # exposure, and what share of that risk's appetite it represents.
+    prov_rows = ""
     for nid, band in pe.by_risk.items():
         nr = e.graph.named_risks.get(nid)
         app = nr.appetite_threshold if nr else None
-        share = f" ({band.mean / app:.0%} of its {money(app)} appetite in expectation)" if app else ""
-        risk_lines.append(f'<b>{_esc(nid)}</b>: +{money(band.low)}–{money(band.high)} provisional{share}')
-    ladders = (f'<b>{len(complete)}/{len(e.graph.guardrails)}</b> guardrails declare a complete '
-               'response ladder (all four rungs)')
+        n_dev = sum(1 for c in pe.contributions if c.named_risk == nid)
+        share = f"{band.mean / app:.0%} of appetite" if app else "—"
+        prov_rows += (
+            f'<tr><td class="nm">{_esc(nid)}</td>'
+            f'<td class="num">{n_dev}</td>'
+            f'<td class="num">+{money(band.low)}–{money(band.high)}</td>'
+            f'<td class="num">{_esc(share)}</td></tr>')
+    ladders = (f'<b>{len(complete)}/{len(e.graph.guardrails)}</b> guardrails define a response for '
+               'every severity level (low, medium, high, critical).')
     if incomplete:
-        ladders += " — " + ", ".join(
-            f'{_esc(g)} missing <i>{", ".join(_esc(r) for r in rungs)}</i> {_word_below("incomplete")}'
+        ladders += " " + " ".join(
+            f'{_esc(g)} is {_word_below("incomplete")} — no response set for '
+            f'{_esc(", ".join(rungs))}.'
             for g, rungs in incomplete.items())
 
     return (
-        '<div class="card" style="border:1px dashed var(--status-below)"><h2>AI governance '
-        '<span class="st st-below">· WORK IN PROGRESS — newest, least settled</span></h2>'
+        '<div class="card"><h2>AI governance</h2>'
         '<p class="sub">Governing guardrails is a governance act, so this lives under Governance. '
         'Anchors: NIST AI RMF (Govern, Map, Measure, Manage; NIST AI 100-1, Jan 2023). Autonomy tiers '
         'and the Agentic Profile are <b>Cloud Security Alliance</b> extensions — v1, evolving, '
@@ -329,25 +306,24 @@ def _ai_governance_card(e: GRCEngine) -> str:
         'executor, not built here.</p>'
         f'<p class="lede">Guardrail coverage: <b>{len(ac.covered)}/{len(ac.detected)}</b> detected '
         f'agents governed. Deviations — by disposition: {disp}; by severity: {sev}.</p>'
-        '<h4>Time-to-disposition (the governing-at-speed number)</h4>'
-        '<p class="lede">Time to a human decision on a machine-proposed deviation, against each '
-        'guardrail\'s <code>disposition_sla_hours</code> — not approval-before-action. All '
+        '<h4>How fast flagged deviations get reviewed</h4>'
+        '<p class="lede">Agents act on their own; guardrails run inline, so nothing here sits in front '
+        'of an agent waiting for sign-off. A deviation is the exception — a guardrail breach caught '
+        'after the fact — that a human then reviews and closes out. This is how fast that '
+        'after-the-fact review happens, against each guardrail\'s time limit. All '
         f'{len(sla)} deviations:</p>'
         '<table class="tbl"><thead><tr><th>Deviation</th><th>Guardrail</th><th>Severity</th>'
         f'<th>Disposition</th><th>Due</th><th>Status</th></tr></thead><tbody>{sla_rows}</tbody></table>'
-        '<h4>Provisional deviation exposure — Model B overlay (WIP)</h4>'
-        '<p class="lede">The FAIR contribution of each <i>proposed or accepted</i> deviation (dismissed '
-        'and remediated add nothing), capped by the guardrail\'s <code>provisional_move</code> bound, '
-        'shown against the named risk\'s appetite. It is <b>not added to the eng portfolio total</b> '
-        'and is not that risk\'s published exposure.</p>'
-        '<table class="tbl"><thead><tr><th>Deviation</th><th>Guardrail</th><th>Named risk</th>'
-        f'<th>Provisional contribution</th><th>Bound</th></tr></thead><tbody>{prov_rows}</tbody></table>'
-        f'<p class="lede" style="margin-top:10px">{" · ".join(risk_lines)}</p>'
-        '<div class="callout warn"><b>Deliberate modeling decision — Model B:</b> the <i>exposure</i> '
-        'side may now be written by humans plus a <b>bounded auto-registrar</b>. Appetite stays '
-        'authored and machine-untouched; the one-path rule holds. The meta-guardrail is '
-        '<code>provisional_move</code>: bounded factor, mandatory disposition SLA.</div>'
-        f'<h4>Response-ladder completeness</h4><p class="lede">{ladders}.</p>'
+        '<h4>How much risk the open deviations carry</h4>'
+        '<p class="lede">The other side of the same deviations: not how fast they clear, but how much '
+        'potential risk they add while still open. Each unresolved deviation (proposed or accepted — '
+        'dismissed and remediated add nothing) adds a small, capped amount to the risk it maps to, so '
+        'a risk can accumulate exposure from several. The cap is the guardrail\'s own declared limit. '
+        'For the purposes of this simulation this stays out of the eng portfolio total and is not '
+        'treated as the risk\'s real exposure.</p>'
+        '<table class="tbl"><thead><tr><th>Named risk</th><th>Open deviations</th>'
+        f'<th>Provisional exposure</th><th>Share of appetite</th></tr></thead><tbody>{prov_rows}</tbody></table>'
+        f'<h4>Response coverage by severity</h4><p class="lede">{ladders}</p>'
         '</div>')
 
 
@@ -520,10 +496,10 @@ def _notes_card(e: GRCEngine) -> str:
     return (
         '<div class="card"><h2>Decisions &amp; next steps</h2>'
         '<ul style="font-size:13px; line-height:1.7; margin:0; padding-left:18px">'
-        '<li><b>Separate pages, cross-linked both ways:</b> the eng dashboard now links here and back. '
-        'The isolation guarantee is unchanged — GRC data still cannot move any eng number (the '
-        'both-loaders render test enforces it); only a single static nav link was added to the eng '
-        'page. True in-page tabbing is still deferred.</li>'
+        '<li><b>Two pages presented as tabs:</b> the eng dashboard and this page share a two-tab bar '
+        'and switch between each other. The isolation guarantee is unchanged — GRC data still cannot '
+        'move any eng number (the both-loaders render test enforces it); the tab bar is static chrome. '
+        'True in-page tabbing (one document hosting both) is still deferred.</li>'
         '<li><b>Security posture:</b> static, read-only, public, synthetic — auth/RBAC intentionally '
         'not applicable. <b>Revisit before pointing this at real risk data</b>: put auth or Vercel '
         'Password Protection in front first.</li>'
@@ -542,14 +518,10 @@ def _notes_card(e: GRCEngine) -> str:
 def build_grc_page(e: GRCEngine) -> str:
     body = (
         '<div class="wrap">'
-        '<header><div class="eyebrow">Company Corp · GRC program</div>'
+        + _tab_bar("grc")
+        + '<header><div class="eyebrow">Company Corp</div>'
         '<h1>GRC program health <span class="st st-below wip-tag">[WIP]</span></h1>'
-        f'<div class="meta">For the GRC Manager · reference date '
-        f'{e.config.as_of.isoformat()} · <b>synthetic data</b>, git-native YAML</div>'
-        '<div class="navrow">↩ <a href="dashboard.html">Eng risk dashboard</a> — that tab ranks what to '
-        'fix; this one checks the program doing the ranking.</div>'
-        '<div class="wip wip-strong"><b>WORK IN PROGRESS</b> — landing scorecard only; pillar '
-        'drill-downs follow. AI governance is the newest, least settled section.</div>'
+        '<div class="meta">For the GRC Manager · <b>synthetic data</b>, git-native YAML</div>'
         '</header>'
         + _scorecard(e)
         + _program_sla_strip(e)
@@ -574,7 +546,7 @@ def build_grc_page(e: GRCEngine) -> str:
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
         '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&'
         'family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">'
-        f'<style>{_CSS}</style></head><body>{body}</body></html>'
+        f'<style>{_CSS}{_TABS_CSS}</style></head><body>{body}</body></html>'
     )
 
 

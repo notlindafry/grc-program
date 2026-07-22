@@ -1152,17 +1152,47 @@ footer { margin-top:40px; color:var(--text-muted); font-size:12.5px; border-top:
 """
 
 
+# The two-view tab bar, shared verbatim by the eng dashboard and the GRC tab so
+# switching between them reads as switching tabs of one product. Both are
+# separate HTML pages, so the "tabs" are links; the current page's tab is marked
+# active (rendered as a non-link span). This is static chrome — it moves no
+# number, so the GRC-isolation guarantee (the both-loaders render test) holds.
+_TABS_CSS = """
+.tabs { display:flex; gap:2px; margin:0 0 24px; border-bottom:1px solid var(--border); }
+.tab { padding:9px 18px 11px; font-family:var(--font-display); font-weight:600; font-size:14px;
+  color:var(--text-muted); text-decoration:none; border-bottom:2px solid transparent; margin-bottom:-1px;
+  white-space:nowrap; }
+.tab:hover { color:var(--text); text-decoration:none; }
+.tab-active { color:var(--text-strong); border-bottom-color:var(--accent); }
+.tab .tab-wip { color:var(--status-below-tint); font-size:11px; font-weight:600; vertical-align:middle;
+  margin-left:4px; letter-spacing:0.03em; }
+"""
+
+_TAB_ENG = "Engineering Org GRC Profile"
+_TAB_GRC = 'GRC program health<span class="tab-wip">[WIP]</span>'
+
+
+def _tab_bar(active: str) -> str:
+    """The shared view switcher. ``active`` is ``"eng"`` or ``"grc"``; the active
+    view renders as a plain span, the other as a link to its page."""
+    eng = (f'<span class="tab tab-active" aria-current="page">{_TAB_ENG}</span>'
+           if active == "eng"
+           else f'<a class="tab" href="dashboard.html">{_TAB_ENG}</a>')
+    grc = (f'<span class="tab tab-active" aria-current="page">{_TAB_GRC}</span>'
+           if active == "grc"
+           else f'<a class="tab" href="grc.html">{_TAB_GRC}</a>')
+    return f'<nav class="tabs" aria-label="Views">{eng}{grc}</nav>'
+
+
 def build_dashboard(graph: Graph, eng: GraphEngine) -> str:
     p = eng.portfolio()
     body = (
         '<div class="wrap">'
-        '<header><div class="eyebrow">Company Corp · Technology risk</div>'
+        + _tab_bar("eng")
+        + '<header><div class="eyebrow">Company Corp</div>'
         '<h1>GRC portfolio — the ten-second read for VP of Engineering</h1>'
-        f'<div class="meta">Executive view for engineering leadership · reference date '
-        f'{eng.config.as_of.isoformat()} · <b>synthetic data</b>, generated from git-native YAML</div>'
-        '<div class="meta" style="margin-top:8px">→ <a href="grc.html">GRC program health '
-        '<b>[WIP]</b></a> — the health of the program producing this view (coverage, hygiene, SLA, '
-        'AI governance).</div></header>'
+        '<div class="meta">Executive view for engineering leadership · <b>synthetic data</b>, '
+        'generated from git-native YAML</div></header>'
         + _top5_section(graph, eng)
         + _summary(graph, eng)
         + '<div class="grid">'
@@ -1187,7 +1217,7 @@ def build_dashboard(graph: Graph, eng: GraphEngine) -> str:
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
         '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&'
         'family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">'
-        f'<style>{_CSS}</style></head><body>{body}</body></html>'
+        f'<style>{_CSS}{_TABS_CSS}</style></head><body>{body}</body></html>'
     )
 
 
