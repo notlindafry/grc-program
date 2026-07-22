@@ -1168,7 +1168,7 @@ _TABS_CSS = """
   margin-left:4px; letter-spacing:0.03em; }
 """
 
-_TAB_ENG = "Engineering risk"
+_TAB_ENG = "Eng GRC Profile"
 _TAB_GRC = 'GRC program health<span class="tab-wip">[WIP]</span>'
 
 

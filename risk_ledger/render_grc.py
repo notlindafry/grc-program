@@ -49,11 +49,6 @@ a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:under
 header .eyebrow { color:var(--accent); font-size:10.5px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; }
 header h1 { font-size:30px; margin:6px 0 4px; color:var(--text-strong); }
 header .meta { color:var(--text-muted); font-size:13.5px; }
-.wip { margin:18px 0 0; border:1px dashed var(--status-below); border-radius:var(--radius);
-  background:color-mix(in srgb, var(--status-below), transparent 92%); padding:12px 16px;
-  font-size:13px; color:var(--text); }
-.wip b { color:var(--status-below-tint); letter-spacing:0.04em; }
-.wip-strong { border-style:solid; }
 .cols { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:26px 0 0; }
 .col { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; }
 .col h3 { font-size:13px; margin:0 0 10px; color:var(--text-strong); text-transform:uppercase; letter-spacing:0.05em; }
@@ -62,11 +57,6 @@ header .meta { color:var(--text-muted); font-size:13.5px; }
 .col-row { border-top:1px solid var(--border); margin-top:10px; padding-top:10px; font-size:12.5px; }
 .col-k { color:var(--text-muted); font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; }
 .col-v { margin-top:2px; }
-.sowhat { margin-top:10px; font-size:11.5px; color:var(--accent); border:1px solid var(--border);
-  border-radius:var(--radius-sm); padding:2px 8px; display:inline-block; }
-.subtile { margin-top:12px; border:1px dashed var(--status-below); border-radius:var(--radius-sm);
-  padding:8px 10px; font-size:12px; }
-.subtile .col-k { color:var(--status-below-tint); }
 .slahead { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; margin:2px 0 14px; }
 .slahead .col-num { font-size:26px; }
 .slahead .lbl { color:var(--text); font-size:14px; }
@@ -85,7 +75,7 @@ table.tbl { width:100%; border-collapse:collapse; font-size:13px; }
 .tbl .drv { color:var(--text-muted); }
 .tbl .num { text-align:right; font-family:var(--font-display); white-space:nowrap; }
 .st { font-weight:600; font-size:12px; }
-.wip-tag { font-size:21px; vertical-align:middle; letter-spacing:0.04em; }
+.wip-tag { font-size:28px; vertical-align:middle; letter-spacing:0.04em; }
 .st-over { color:var(--status-over); }
 .st-at { color:var(--status-at); }
 .st-below { color:var(--status-below-tint); }
@@ -94,14 +84,6 @@ table.tbl { width:100%; border-collapse:collapse; font-size:13px; }
 footer { margin-top:40px; color:var(--text-faint); font-size:12.5px; max-width:820px; }
 @media (max-width:840px) { .cols { grid-template-columns:repeat(2,1fr); } }
 """
-
-# The three program goals a figure can serve (§1.E "so what" tags).
-_GOALS = {
-    "risk": "responsible risk-taking",
-    "speed": "engineering speed",
-    "informed": "informed decisions",
-}
-
 
 def _word_over(text: str) -> str:
     return f'<span class="st st-over"><span class="dot" style="background:var(--status-over)"></span>{_esc(text)}</span>'
@@ -165,11 +147,10 @@ def _scorecard(e: GRCEngine) -> str:
         + '</div></div>'
         f'<div class="col-row"><div class="col-k">SLA</div><div class="col-v">{_sla_word(pc.current, pc.total)}'
         f' <span class="drv">policies flagged for manual review: {len(pc.overdue)}/{pc.total}</span></div></div>'
-        # AI governance rides in the Governance column (§1.E), strongest WIP (P.7).
-        '<div class="subtile"><div class="col-k">AI governance · WIP</div>'
+        # AI governance rides in the Governance column (§1.E).
+        '<div class="col-row"><div class="col-k">AI governance</div>'
         f'<div class="col-v">guardrail coverage <b>{len(ac.covered)}/{len(ac.detected)}</b> detected agents'
         f' · disposition SLA: <b>{len(dev_overdue)}</b> overdue</div></div>'
-        f'<div><span class="sowhat">{_GOALS["informed"]}</span></div>'
         '</div>')
 
     risk = (
@@ -184,7 +165,6 @@ def _scorecard(e: GRCEngine) -> str:
         f' <span class="drv">remediations on target: {rem.total_live - len(rem.overdue)}/{rem.total_live}</span></div></div>'
         f'<div class="col-row"><div class="col-k">Hygiene pass</div><div class="col-v">{len(rh.passing)}/{rh.total} risks flag-free'
         f' · {len(unscored)} unscored</div></div>'
-        f'<div><span class="sowhat">{_GOALS["risk"]}</span></div>'
         '</div>')
 
     comp = (
@@ -197,7 +177,6 @@ def _scorecard(e: GRCEngine) -> str:
         f'<div class="col-row"><div class="col-k">SLA</div><div class="col-v">{_sla_word(len(ev["fresh"]), n_ev)}'
         f' <span class="drv">evidence fresh on cadence: {len(ev["fresh"])}/{n_ev}</span></div></div>'
         f'<div class="col-row"><div class="col-k">Action plans</div><div class="col-v">{len(plans)} finding(s) with no plan</div></div>'
-        f'<div><span class="sowhat">{_GOALS["informed"]}</span></div>'
         '</div>')
 
     self_n = sources.get("self-identified", 0)
@@ -214,7 +193,6 @@ def _scorecard(e: GRCEngine) -> str:
         f'{sum(1 for s in dev_measured if s.met)}/{len(dev_measured)} measured</span></div></div>'
         '<div class="col-row"><div class="col-k">Automation</div><div class="col-v">roadmap: 7 seams, 0 live '
         '(data + documented seam)</div></div>'
-        f'<div><span class="sowhat">{_GOALS["speed"]}</span></div>'
         '</div>')
 
     return f'<div class="cols">{gov}{risk}{comp}{ai}</div>'
@@ -320,8 +298,7 @@ def _ai_governance_card(e: GRCEngine) -> str:
             for g, rungs in incomplete.items())
 
     return (
-        '<div class="card" style="border:1px dashed var(--status-below)"><h2>AI governance '
-        '<span class="st st-below">· WORK IN PROGRESS — newest, least settled</span></h2>'
+        '<div class="card"><h2>AI governance</h2>'
         '<p class="sub">Governing guardrails is a governance act, so this lives under Governance. '
         'Anchors: NIST AI RMF (Govern, Map, Measure, Manage; NIST AI 100-1, Jan 2023). Autonomy tiers '
         'and the Agentic Profile are <b>Cloud Security Alliance</b> extensions — v1, evolving, '
@@ -545,8 +522,6 @@ def build_grc_page(e: GRCEngine) -> str:
         + '<header><div class="eyebrow">Company Corp</div>'
         '<h1>GRC program health <span class="st st-below wip-tag">[WIP]</span></h1>'
         '<div class="meta">For the GRC Manager · <b>synthetic data</b>, git-native YAML</div>'
-        '<div class="wip wip-strong"><b>WORK IN PROGRESS</b> — landing scorecard only; pillar '
-        'drill-downs follow. AI governance is the newest, least settled section.</div>'
         '</header>'
         + _scorecard(e)
         + _program_sla_strip(e)
