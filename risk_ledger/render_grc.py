@@ -420,8 +420,7 @@ def _compliance_card(e: GRCEngine) -> str:
         f'<tbody>{reuse_rows}</tbody></table>'
         '<h4>Over-engineered controls (two-sided scale — amber, not green)</h4>'
         f'<p class="lede"><b>{len(over_eng)}</b> controls map only to risks below appetite — '
-        'over-invested. Over-control is wasted effort, not a healthy state: green means '
-        f'<i>right-sized</i>, never <i>maximal</i>. First eight of {len(over_eng)}:</p>'
+        f'review to determine if over-invested. First eight of {len(over_eng)}:</p>'
         '<table class="tbl"><thead><tr><th>Control</th><th>Mapped risks (all below appetite)</th>'
         f'<th>Status</th></tr></thead><tbody>{over_rows}</tbody></table>'
         '</div>')
