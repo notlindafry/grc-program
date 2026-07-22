@@ -34,7 +34,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .config import Config
-from .dashboard import _ROOT, _TABS_CSS, _esc, _tab_bar, money
+from .dashboard import _REPO_URL, _ROOT, _TABS_CSS, _esc, _tab_bar, money
 from .grc import GRCEngine, load_grc_graph
 
 # Component CSS on top of the shared :root tokens (no raw hex here — §1.F).
@@ -505,7 +505,7 @@ def _notes_card(e: GRCEngine) -> str:
         'Password Protection in front first.</li>'
         '<li><b>WCAG contrast:</b> status trio verified on --bg/--surface (worst case 6.04:1, above '
         'the 4.5:1 AA bar) — safe at the 10–12px labels. Standing item closed.</li>'
-        '<li><b>Pillar drill-downs</b> follow in later specs, same coverage / hygiene / SLA / so-what '
+        '<li><b>Pillar drill-downs</b> follow in later specs, same coverage / hygiene / SLA '
         'grammar.</li>'
         '</ul></div>')
 
@@ -535,7 +535,8 @@ def build_grc_page(e: GRCEngine) -> str:
         + '</div>'
         '<footer>Every status carries its word; nothing rides on colour alone. Every coverage figure '
         'names its denominator. Diagnostics only — nothing here moves residual; the one path stays the '
-        'exception register on the eng tab. Synthetic data; no live collectors.</footer>'
+        'exception register on the eng tab. Synthetic data; no live collectors. · '
+        f'<a href="{_REPO_URL}">Source on GitHub</a></footer>'
         '</div>')
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'

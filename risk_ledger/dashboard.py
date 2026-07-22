@@ -1168,6 +1168,10 @@ _TABS_CSS = """
   margin-left:4px; letter-spacing:0.03em; }
 """
 
+# Source repo, linked from both page footers so the live Vercel site points back
+# to git (the reverse of the README's live-site links).
+_REPO_URL = "https://github.com/notlindafry/grc-program"
+
 _TAB_ENG = "Engineering Org GRC Profile"
 _TAB_GRC = 'GRC program health<span class="tab-wip">[WIP]</span>'
 
@@ -1205,7 +1209,8 @@ def build_dashboard(graph: Graph, eng: GraphEngine) -> str:
         'against an authored appetite; the corpus is synthetic and version-controlled. Appetite is a two-sided '
         'target: <b>at appetite is green, below appetite is amber</b> (unused tolerance), over is red. '
         'One position, one probability. No workflow engine, no live collectors — this is a model of the '
-        'operating model, deliberately not a platform.</footer>'
+        'operating model, deliberately not a platform. · '
+        f'<a href="{_REPO_URL}">Source on GitHub</a></footer>'
         '</div>'
     )
     return (
