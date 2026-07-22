@@ -220,11 +220,11 @@ def test_no_composite_score_and_denominators(page):
 
 def test_status_words_never_colour_alone(page):
     # Every status span carries a word; spot the vocabulary the tab uses.
-    for word in ("overdue", "on SLA", "uncovered", "over-controlled", "unscored", "fresh"):
+    for word in ("overdue", "on SLA", "uncovered", "review", "unscored", "fresh"):
         assert word in page
-    # Two-sided scale: over-engineered controls read amber via --status-below,
-    # and the page never marks over-control green.
-    assert "over-controlled" in page
+    # Two-sided scale: controls that map only to below-appetite risks read amber
+    # via --status-below (the "review" flag), never green.
+    assert 'class="st st-below"' in page
 
 
 def test_standards_attribution_is_precise(page):
