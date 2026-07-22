@@ -393,7 +393,7 @@ def _compliance_card(e: GRCEngine) -> str:
     over_rows = "".join(
         f'<tr><td class="nm">{_esc(cid)} {_esc(e.graph.controls[cid].title[:40])}</td>'
         f'<td class="drv">{", ".join(_esc(n) for n in nids)}</td>'
-        f'<td>{_word_below("over-controlled")}</td></tr>'
+        f'<td>{_word_below("review")}</td></tr>'
         for cid, nids in over_eng[:8])
     return (
         '<div class="card"><h2>Compliance</h2>'
@@ -418,7 +418,7 @@ def _compliance_card(e: GRCEngine) -> str:
         '<p class="lede">Controls satisfying more than one requirement — map once, satisfy many:</p>'
         '<table class="tbl"><thead><tr><th>Control</th><th>Requirements</th><th>Status</th></tr></thead>'
         f'<tbody>{reuse_rows}</tbody></table>'
-        '<h4>Over-engineered controls (two-sided scale — amber, not green)</h4>'
+        '<h4>Controls to review for over-investment</h4>'
         f'<p class="lede"><b>{len(over_eng)}</b> controls map only to risks below appetite — '
         f'review to determine if over-invested. First eight of {len(over_eng)}:</p>'
         '<table class="tbl"><thead><tr><th>Control</th><th>Mapped risks (all below appetite)</th>'
