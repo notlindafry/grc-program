@@ -153,17 +153,22 @@ AI coverage lens, and one worked AI example, with charts baked as inline SVG and
 no JS framework, SPEC §6/§7). It writes to `docs/dashboard.html`, which the deploy
 Action publishes to Vercel:
 
-**▶ [Live dashboard](https://grc-report.vercel.app)**
+**▶ Live on Vercel:**
+[Engineering Org GRC Profile](https://grc-report.vercel.app/) ·
+[GRC program health — WIP](https://grc-report.vercel.app/grc.html)
 
 A GitHub Action ([`.github/workflows/deploy-report.yml`](.github/workflows/deploy-report.yml))
-regenerates from the corpus and redeploys on every push to `main`.
+regenerates from the corpus and redeploys on every push to `main`. Each live
+page links back to this repo in its footer.
 
 `risk-ledger grc` renders the **GRC tab** (v4.0, work in progress) to
-`docs/grc.html` — a separate page for a GRC Manager measuring the health of the
+`docs/grc.html` — a page for a GRC Manager measuring the health of the
 program itself (coverage, hygiene, SLA throughput, AI governance), not the risk
-portfolio. The eng dashboard and the GRC tab cross-link both ways. It reads
-additional registers (`regulations.yaml`, `sla_config.yaml`, `guardrails.yaml`,
-`agent_inventory.yaml`, `guardrail_events/`) that the eng build never opens, so
+portfolio. The two pages are presented as **tabs of one view** — a shared tab
+bar switches between the Engineering Org GRC Profile and GRC program health. The
+GRC page reads additional registers (`regulations.yaml`, `sla_config.yaml`,
+`guardrails.yaml`, `agent_inventory.yaml`, `guardrail_events/`) that the eng
+build never opens, so
 **GRC data cannot move any engineering number** — the isolation guarantee,
 enforced by a test that renders the eng dashboard with and without the GRC
 corpus loaded and asserts they are identical; guardrail deviations live outside
@@ -183,8 +188,11 @@ files (`enterprise.yaml`, `domains.yaml`, `named_risks.yaml`, `controls.yaml` �
 the full ISO 27001:2022 Annex A set of 93 — `policies.yaml`, `evidence.yaml`,
 `kris.yaml`, `horizon.yaml`, `okrs.yaml`, `estimators.yaml`); records that
 represent an individually reviewable decision get one file each (`scenarios/`,
-`issues/`, `remediations/`). Every shape is documented with a populated example
-in **[`docs/schema.md`](docs/schema.md)**.
+`issues/`, `remediations/`). The v4.0 GRC tab adds registers the eng build never
+reads — `regulations.yaml`, `sla_config.yaml`, `guardrails.yaml`,
+`agent_inventory.yaml`, and the `guardrail_events/` directory (guardrail
+deviations, kept out of `issues/` so they never enter residual). Every shape is
+documented with a populated example in **[`docs/schema.md`](docs/schema.md)**.
 
 ## Scope and non-goals
 

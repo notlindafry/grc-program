@@ -374,7 +374,7 @@ operational_owner: iam-oncall@company.com
 mechanism: enforce_sso_via_idp
 restores_control: IAM-LEGACY-AUTH-001
 addresses_scenarios: [SCN-2026-0001, SCN-2026-0019]
-addresses_issues: [VULN-2026-0001]
+addresses_issues: [EXC-2026-0170]
 ```
 
 ### `okrs.yaml` — extended (§2.12)
