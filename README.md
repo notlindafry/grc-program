@@ -161,6 +161,13 @@ A GitHub Action ([`.github/workflows/deploy-report.yml`](.github/workflows/deplo
 regenerates from the corpus and redeploys on every push to `main`. Each live
 page links back to this repo in its footer.
 
+Both live pages carry **Vercel Web Analytics** (visitor / page-view counts). This
+is a static, Python-generated site — not a React/Next app — so it uses Vercel's
+static-site insights script (`/_vercel/insights/script.js`), injected into every
+rendered page's `<head>`, rather than the `@vercel/analytics` npm package.
+**Enable Web Analytics** on the Vercel project (Project → Analytics) for data to
+flow; the script is a no-op until then.
+
 `risk-ledger grc` renders the **GRC tab** (v4.0, work in progress) to
 `docs/grc.html` — a page for a GRC Manager measuring the health of the
 program itself (coverage, hygiene, SLA throughput, AI governance), not the risk

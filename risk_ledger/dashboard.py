@@ -1172,6 +1172,18 @@ _TABS_CSS = """
 # to git (the reverse of the README's live-site links).
 _REPO_URL = "https://github.com/notlindafry/grc-program"
 
+# Vercel Web Analytics (visitor / page-view counts). This is a static,
+# Python-generated HTML site — not a React/Next app — so the @vercel/analytics
+# npm package and the <Analytics/> component do not apply. The equivalent for a
+# static site is Vercel's insights script, served from the same origin at
+# /_vercel/insights/script.js once Web Analytics is enabled on the project
+# (Vercel dashboard → Project → Analytics). The window.va shim queues events
+# before the script loads, exactly as Vercel's own injection does.
+_ANALYTICS = (
+    '<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};</script>'
+    '<script defer src="/_vercel/insights/script.js"></script>'
+)
+
 _TAB_ENG = "Engineering Org GRC Profile"
 _TAB_GRC = 'GRC program health<span class="tab-wip">[WIP]</span>'
 
@@ -1222,7 +1234,7 @@ def build_dashboard(graph: Graph, eng: GraphEngine) -> str:
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
         '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&'
         'family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">'
-        f'<style>{_CSS}{_TABS_CSS}</style></head><body>{body}</body></html>'
+        f'<style>{_CSS}{_TABS_CSS}</style>{_ANALYTICS}</head><body>{body}</body></html>'
     )
 
 

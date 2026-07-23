@@ -41,9 +41,14 @@ def corpus_graph():
 def test_page_is_self_contained_html(page: str) -> None:
     assert page.startswith("<!doctype html>")
     assert page.rstrip().endswith("</html>")
-    # baked, not a live app: no framework script tags, no external data fetches
-    assert "<script" not in page.lower()
+    # baked, not a live app: no external data fetches, no application JS. The only
+    # script permitted is Vercel Web Analytics (page-view counts on the deploy) —
+    # not a framework and not part of the render/model.
     assert "fetch(" not in page
+    analytics_free = page.replace(
+        '<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};</script>',
+        "").replace('<script defer src="/_vercel/insights/script.js"></script>', "")
+    assert "<script" not in analytics_free.lower()
 
 
 def test_five_views_plus_summary_and_ai_example(page: str) -> None:
