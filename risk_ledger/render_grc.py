@@ -34,7 +34,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .config import Config
-from .dashboard import _REPO_URL, _ROOT, _TABS_CSS, _esc, _tab_bar, money
+from .dashboard import _ANALYTICS, _REPO_URL, _ROOT, _TABS_CSS, _esc, _tab_bar, money
 from .grc import GRCEngine, load_grc_graph
 
 # Component CSS on top of the shared :root tokens (no raw hex here — §1.F).
@@ -546,7 +546,7 @@ def build_grc_page(e: GRCEngine) -> str:
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
         '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&'
         'family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">'
-        f'<style>{_CSS}{_TABS_CSS}</style></head><body>{body}</body></html>'
+        f'<style>{_CSS}{_TABS_CSS}</style>{_ANALYTICS}</head><body>{body}</body></html>'
     )
 
 
